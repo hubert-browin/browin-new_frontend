@@ -1,0 +1,1944 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BROWIN - Stwórz własne arcydzieło | Sklep</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Phosphor Icons (Modern & Clean) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                    },
+                    colors: {
+                        browin: {
+                            dark: '#333333',    // Trust color / Text
+                            red: '#942940',     // Conversion color
+                            white: '#ffffff',   // Background color
+                            gray: '#f5f5f5',    // Light contrast
+                            border: '#e5e5e5'   // Borders
+                        }
+                    },
+                    boxShadow: {
+                        'sharp': '4px 4px 0px 0px rgba(51,51,51,0.1)',
+                        'panel': '20px 0 60px rgba(0,0,0,0.15)',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; }
+        img { max-width: 100%; height: auto; }
+
+        .brand-logo {
+            height: clamp(2.95rem, 2.55rem + 0.8vw, 3.45rem) !important;
+            width: auto;
+            max-width: 224px;
+        }
+
+        .brand-logo-mobile {
+            height: 2.2rem !important;
+            width: auto;
+            max-width: 162px;
+        }
+
+        .brand-logo-menu {
+            height: 1.9rem !important;
+            width: auto;
+            max-width: 146px;
+        }
+
+        .hero-primary-cta {
+            font-weight: 700 !important;
+        }
+
+        .search-ui-copy {
+            font-size: 14px !important;
+            line-height: 1.2;
+        }
+
+        input.search-ui-copy {
+            font-weight: 500 !important;
+        }
+
+        button.search-ui-copy {
+            font-weight: 700 !important;
+        }
+
+        .search-ui-copy::placeholder {
+            font-weight: 500 !important;
+            font-size: 14px !important;
+        }
+
+        .checkout-cta {
+            font-weight: 850 !important;
+        }
+
+        .desktop-cat-tab span {
+            font-weight: 700 !important;
+        }
+
+        #desktop-mega-panel ul li a {
+            font-weight: 600 !important;
+            color: rgba(51, 51, 51, 0.92);
+        }
+
+        /* Mobile safe area for bottom nav */
+        body {
+            padding-bottom: 64px;
+            font-weight: 500;
+        }
+
+        button,
+        input,
+        textarea,
+        select {
+            font-weight: inherit;
+        }
+
+        input::placeholder,
+        textarea::placeholder {
+            font-weight: 500;
+            color: rgba(51, 51, 51, 0.48);
+            opacity: 1;
+        }
+
+        @media (min-width: 768px) { body { padding-bottom: 0; } }
+
+        /* Hide scrollbar for horizontal scroll areas */
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        
+        /* Smooth scrolling */
+        html { scroll-behavior: smooth; }
+
+        /* Glass effect for sticky headers */
+        .glass-header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+
+        .desktop-header-shell,
+        .desktop-header-search,
+        .desktop-header-actions,
+        .desktop-hero-frame,
+        .hero-shell,
+        .hero-main-content,
+        .utility-strip,
+        .utility-strip-links,
+        .hero-banner-grid,
+        .hero-slider-card,
+        .hero-side-panels,
+        .value-grid,
+        .product-grid,
+        .product-card {
+            min-width: 0;
+        }
+
+        .desktop-header-shell > a:first-child,
+        .hero-shell > * {
+            min-width: 0;
+        }
+
+        @media (min-width: 1024px) and (max-width: 1599px) {
+            .desktop-topbar {
+                display: none;
+            }
+
+            .desktop-header-shell {
+                display: grid !important;
+                grid-template-columns: minmax(176px, 200px) minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 0.75rem 1.25rem;
+                padding-top: 0.875rem !important;
+                padding-bottom: 0.875rem !important;
+            }
+
+            .desktop-header-search {
+                max-width: none !important;
+            }
+
+            .desktop-header-actions {
+                gap: 0.5rem;
+            }
+
+            .desktop-cart-trigger {
+                margin-left: 0 !important;
+                padding-inline: 0.625rem;
+            }
+
+            .desktop-cart-copy {
+                display: none;
+            }
+
+            .desktop-hero-frame {
+                padding-top: 0.75rem !important;
+                padding-bottom: 0.75rem !important;
+            }
+
+            .hero-shell {
+                display: grid !important;
+                grid-template-columns: minmax(224px, 252px) minmax(0, 1fr) !important;
+                height: clamp(430px, calc(100dvh - 8.25rem), 500px) !important;
+                align-items: stretch;
+            }
+
+            .desktop-categories {
+                display: block !important;
+                grid-column: 1 !important;
+                min-width: 0;
+            }
+
+            .hero-main-content {
+                grid-column: 2 !important;
+                min-width: 0;
+            }
+
+            .utility-strip {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto;
+                height: auto !important;
+                min-height: 3rem;
+                padding: 0 0 0 0.875rem !important;
+                padding-right: 0 !important;
+                align-items: stretch;
+                gap: 0.625rem;
+            }
+
+            .utility-strip-links {
+                flex: 1 1 auto;
+                flex-wrap: wrap;
+                gap: 0.625rem 1rem;
+                justify-content: flex-start;
+            }
+
+            .utility-strip-highlight {
+                display: flex;
+                align-items: center;
+                align-self: stretch;
+                justify-self: end;
+                height: auto !important;
+                margin-left: auto;
+                margin-right: 0 !important;
+                min-height: 3rem;
+                padding-inline: 1rem;
+            }
+
+            .hero-banner-grid {
+                grid-template-columns: minmax(0, 1.55fr) minmax(280px, 0.95fr) !important;
+                align-items: stretch;
+            }
+
+            .hero-slider-card {
+                grid-column: auto !important;
+                min-height: 0;
+            }
+
+            .hero-side-panels {
+                grid-column: auto !important;
+                grid-template-rows: repeat(2, minmax(0, 1fr));
+                height: auto !important;
+                min-height: 0;
+            }
+
+            #desktop-mega-panel {
+                width: min(940px, calc(100vw - 22rem));
+            }
+        }
+
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .desktop-topbar {
+                display: none;
+            }
+
+            .desktop-header-shell {
+                display: grid !important;
+                grid-template-columns: minmax(0, 1fr) auto;
+                align-items: center;
+                gap: 1rem 1.25rem;
+                padding-top: 0.875rem !important;
+                padding-bottom: 0.875rem !important;
+            }
+
+            .desktop-header-search {
+                grid-column: 1 / -1;
+                max-width: none !important;
+                order: 3;
+            }
+
+            .desktop-header-actions {
+                gap: 0.5rem;
+                justify-self: end;
+            }
+
+            .desktop-cart-trigger {
+                margin-left: 0 !important;
+                padding-inline: 0.625rem;
+            }
+
+            .desktop-cart-copy {
+                display: none;
+            }
+
+            .desktop-hero-frame {
+                padding-top: 0.75rem !important;
+                padding-bottom: 0.75rem !important;
+            }
+
+            .utility-strip-links {
+                width: 100%;
+            }
+
+            .utility-strip {
+                display: flex !important;
+                height: auto !important;
+                min-height: 3rem;
+                padding: 0 0 0 0.875rem !important;
+                padding-right: 0 !important;
+                align-items: stretch;
+                gap: 0.625rem;
+            }
+
+            .utility-strip-highlight {
+                display: flex;
+                align-items: center;
+                align-self: stretch;
+                height: auto !important;
+                margin-left: auto;
+                margin-right: 0 !important;
+                min-height: 3rem;
+                padding-inline: 1.25rem;
+            }
+
+            .hero-banner-grid {
+                grid-template-columns: 1fr !important;
+            }
+
+            .hero-slider-card {
+                min-height: 360px;
+            }
+
+            .hero-side-panels {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                grid-template-rows: none;
+                grid-column: 1 / -1 !important;
+                height: auto !important;
+            }
+
+            .product-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .product-card {
+                height: 100%;
+                min-height: 320px;
+            }
+        }
+
+        @media (min-width: 1100px) {
+            .value-grid {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1600px) {
+            .desktop-hero-frame {
+                padding-top: 1rem !important;
+                padding-bottom: 1rem !important;
+            }
+
+            .hero-shell {
+                height: min(540px, calc(100dvh - 10rem)) !important;
+            }
+        }
+
+        @media (min-width: 1024px) and (max-height: 900px) {
+            html {
+                font-size: 14px;
+            }
+
+            .desktop-header-shell {
+                padding-top: 0.625rem !important;
+                padding-bottom: 0.625rem !important;
+            }
+
+            .desktop-hero-frame {
+                padding-top: 0.5rem !important;
+                padding-bottom: 0.5rem !important;
+            }
+
+            .hero-shell {
+                height: clamp(360px, calc(100dvh - 6.5rem), 430px) !important;
+                gap: 0.75rem !important;
+            }
+
+            .utility-strip {
+                min-height: 2.5rem;
+                padding: 0 0 0 0.75rem !important;
+                padding-right: 0 !important;
+                align-items: stretch;
+                gap: 0.5rem;
+            }
+
+            .utility-strip-links {
+                gap: 0.5rem 0.75rem;
+            }
+
+            .utility-strip-highlight {
+                display: flex;
+                align-items: center;
+                align-self: stretch;
+                height: auto !important;
+                justify-self: end;
+                margin-left: auto;
+                min-height: 2.5rem;
+                padding-inline: 0.875rem;
+            }
+
+            .desktop-cat-tab {
+                padding: 0.35rem 1rem !important;
+            }
+
+            .desktop-cat-tab span {
+                font-size: 13px !important;
+            }
+
+            .desktop-cat-tab > div {
+                gap: 0.625rem !important;
+            }
+
+            .desktop-cat-tab > div > i {
+                font-size: 18px !important;
+            }
+
+            #desktop-menu-container {
+                padding-top: 0.25rem;
+                padding-bottom: 0.25rem;
+            }
+
+            #desktop-menu-container > .px-5.mt-auto {
+                padding-top: 0.75rem !important;
+                padding-bottom: 0.25rem !important;
+            }
+
+            #desktop-mega-panel > .desktop-submenu > div:first-child,
+            #desktop-mega-panel > .desktop-submenu > div:last-child {
+                padding: 1.5rem !important;
+            }
+
+            #desktop-mega-panel h3 {
+                margin-bottom: 1rem !important;
+                padding-bottom: 0.625rem !important;
+                font-size: 12px !important;
+            }
+
+            #desktop-mega-panel ul {
+                gap: 0.75rem !important;
+            }
+
+            .hero-slider-card h1 {
+                font-size: clamp(2rem, 2.3vw, 2.9rem) !important;
+                line-height: 1.05 !important;
+                margin-bottom: 0.75rem !important;
+            }
+
+            .hero-slider-card .absolute.inset-0.p-6,
+            .hero-slider-card .absolute.inset-0.p-6.md\:p-8.xl\:p-10 {
+                padding: 1.5rem !important;
+            }
+
+            .hero-slider-card .mb-5,
+            .hero-slider-card .mb-4 {
+                margin-bottom: 0.75rem !important;
+            }
+
+            .hero-side-panels > div {
+                padding: 1rem !important;
+            }
+
+            .hero-side-panels h3 {
+                font-size: 1rem !important;
+                line-height: 1.2 !important;
+            }
+
+            .hero-side-panels .text-2xl,
+            .hero-side-panels .xl\:text-3xl {
+                font-size: 1.6rem !important;
+            }
+
+            .hero-side-panels .absolute.text-\[90px\],
+            .hero-side-panels .xl\:text-\[110px\] {
+                font-size: 72px !important;
+            }
+        }
+
+        @media (max-width: 767px) {
+            .value-grid {
+                gap: 0;
+            }
+
+            .value-grid > * {
+                padding-block: 1rem;
+            }
+
+            .value-grid > *:nth-child(odd) {
+                border-right: 1px solid rgba(51, 51, 51, 0.1);
+            }
+
+            .value-grid > *:nth-child(n+3) {
+                border-top: 1px solid rgba(51, 51, 51, 0.1);
+            }
+        }
+    </style>
+</head>
+<body class="font-sans text-browin-dark bg-browin-gray antialiased selection:bg-browin-red selection:text-browin-white overflow-x-hidden">
+
+    <!-- 1. TOP BAR (Trust, Utils) -->
+    <div class="desktop-topbar bg-browin-dark text-browin-white text-[11px] py-2 hidden md:block">
+        <div class="container mx-auto px-4 flex justify-between items-center">
+            <div class="flex space-x-6 font-medium">
+                <span class="flex items-center"><i class="ph ph-truck mr-2 text-base text-browin-white"></i> Darmowa dostawa od 149 zł</span>
+                <span class="flex items-center"><i class="ph ph-clock-countdown mr-2 text-base text-browin-white"></i> Zamów do 14:00 – wysyłka dziś</span>
+                <span class="flex items-center"><i class="ph ph-shield-check mr-2 text-base text-browin-white"></i> Polski producent od 1979</span>
+            </div>
+            <div class="flex items-center space-x-6">
+                <a href="#" class="hover:text-browin-red transition-colors font-medium">Dostawa i płatność</a>
+                <a href="#" class="hover:text-browin-red transition-colors font-medium">Kontakt</a>
+                <a href="#" class="hover:text-browin-red transition-colors font-medium">Blog</a>
+                
+                <!-- Language Switcher -->
+                <div class="relative group cursor-pointer flex items-center space-x-1 pl-4 border-l border-browin-white/20">
+                    <i class="ph ph-globe text-base"></i>
+                    <span class="font-bold tracking-wide">PL</span>
+                    <i class="ph ph-caret-down text-[10px] text-browin-white/70 ml-1"></i>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. MAIN HEADER (Sticky, Sharp UI) -->
+    <header class="sticky top-0 z-50 glass-header border-b border-browin-border transition-all duration-300">
+        <!-- Desktop Header -->
+        <div class="desktop-header-shell hidden md:flex container mx-auto px-4 py-4 items-center justify-between gap-8 relative">
+            
+            <!-- Logo -->
+            <a href="#" class="flex-shrink-0 z-10">
+                <img src="./logo_BROWIN.svg" alt="BROWIN" class="brand-logo object-contain">
+            </a>
+
+            <!-- Search Bar (Sharp Edges) -->
+            <div class="desktop-header-search flex-grow max-w-3xl relative group">
+                <div class="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                    <i class="ph ph-magnifying-glass text-xl text-browin-dark/40 group-focus-within:text-browin-red transition-colors"></i>
+                </div>
+                <input type="text" placeholder="Szukaj sprzętu, drożdży, przepisów..." 
+                    class="search-ui-copy w-full bg-browin-white border-2 border-browin-dark/10 text-browin-dark text-sm rounded-none focus:bg-browin-white focus:border-browin-red focus:ring-0 block py-3 pl-12 pr-44 outline-none transition-colors font-medium">
+                
+                <!-- Visual Search Button -->
+                <button type="button" class="absolute right-32 top-1/2 -translate-y-1/2 text-browin-dark/40 hover:text-browin-red transition-colors p-2" title="Wyszukaj wizualnie po obrazku">
+                    <i class="ph ph-camera text-[22px]"></i>
+                </button>
+
+                <button type="submit" class="search-ui-copy absolute right-1 top-1 bottom-1 w-28 bg-browin-red hover:bg-browin-red/90 text-browin-white px-0 font-bold transition-colors text-sm rounded-none flex items-center justify-center">
+                    Szukaj
+                </button>
+            </div>
+
+            <!-- Action Icons -->
+            <div class="desktop-header-actions flex items-center gap-4 flex-shrink-0">
+                <a href="#" class="text-browin-dark hover:text-browin-red transition-colors p-2 border border-transparent hover:border-browin-dark/10">
+                    <i class="ph ph-user text-[26px]"></i>
+                </a>
+                <a href="#" class="text-browin-dark hover:text-browin-red transition-colors p-2 border border-transparent hover:border-browin-dark/10 relative">
+                    <i class="ph ph-heart text-[26px]"></i>
+                    <span class="absolute top-1 right-1 bg-browin-red text-browin-white text-[9px] w-4 h-4 rounded-full flex items-center justify-center font-bold">0</span>
+                </a>
+                
+                <!-- CART (Changed to toggle drawer) -->
+                <a href="#" onclick="toggleCartDrawer(event)" class="desktop-cart-trigger flex items-center hover:bg-browin-dark/5 p-2 border border-transparent hover:border-browin-dark/10 transition-colors ml-2 cursor-pointer">
+                    <div class="relative mr-3">
+                        <i class="ph ph-shopping-cart text-[28px] text-browin-dark"></i>
+                        <span class="absolute -top-1 -right-2 bg-browin-red text-browin-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-browin-white">2</span>
+                    </div>
+                    <div class="desktop-cart-copy flex flex-col items-start">
+                        <span class="text-[10px] text-browin-dark/60 font-bold uppercase tracking-wider">Koszyk</span>
+                        <span class="text-[14px] font-extrabold text-browin-dark">149,99 zł</span>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+        <!-- Mobile Header -->
+        <div class="md:hidden flex items-center justify-between px-4 py-3 bg-browin-white">
+            <div class="flex items-center">
+                <button onclick="toggleMobileMenu()" class="text-browin-dark p-2 -ml-2 mr-2 focus:outline-none">
+                    <i class="ph ph-list text-[26px]"></i>
+                </button>
+                <a href="#" class="flex-shrink-0">
+                    <img src="./logo_BROWIN.svg" alt="BROWIN" class="brand-logo-mobile object-contain">
+                </a>
+            </div>
+            <div class="flex items-center space-x-3">
+                <a href="#" class="text-browin-dark relative">
+                    <i class="ph ph-user text-[24px]"></i>
+                </a>
+                <a href="#" onclick="toggleCartDrawer(event)" class="text-browin-dark relative cursor-pointer">
+                    <i class="ph ph-shopping-cart text-[24px]"></i>
+                    <span class="absolute -top-1 -right-1 bg-browin-red text-browin-white text-[9px] font-bold w-[16px] h-[16px] rounded-full flex items-center justify-center">2</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- Mobile Search Bar -->
+        <div class="block md:hidden bg-browin-white px-4 pb-3">
+             <div class="relative">
+                <input type="text" placeholder="Szukaj sprzętu..." 
+                    class="search-ui-copy w-full bg-browin-dark/5 border border-browin-dark/10 text-browin-dark text-sm rounded-none focus:border-browin-red focus:bg-browin-white block py-2.5 pl-10 pr-10 transition-colors font-medium">
+                <i class="ph ph-magnifying-glass absolute left-3 top-2.5 text-lg text-browin-dark/40"></i>
+                <button type="button" class="absolute right-2 top-2 text-browin-dark/40 hover:text-browin-red transition-colors" title="Wyszukaj wizualnie po obrazku">
+                    <i class="ph ph-camera text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 3. MOBILE CATEGORY SCROLL (Horizontally scrollable) -->
+    <div class="md:hidden bg-browin-white border-b border-browin-border py-3 overflow-x-auto no-scrollbar">
+        <div class="flex px-4 space-x-4 w-max">
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-fire text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Wędliny</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-flask text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center break-words">Gorzelnictwo</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-wine text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Wino</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-chart-pie-slice text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Sery</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-pint-glass text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Piwo</span>
+            </a>
+             <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-grains text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Wypieki</span>
+            </a>
+             <a href="#" class="flex flex-col items-center gap-1.5 group w-20">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-house text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Dom i ogród</span>
+            </a>
+            <a href="#" class="flex flex-col items-center gap-1.5 group w-16">
+                <div class="w-12 h-12 rounded-none bg-browin-dark/5 flex items-center justify-center text-browin-red border border-browin-dark/10 group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                    <i class="ph-fill ph-thermometer text-[22px]"></i>
+                </div>
+                <span class="text-[9px] font-bold text-browin-dark uppercase tracking-wide text-center">Termometry</span>
+            </a>
+        </div>
+    </div>
+
+    <!-- 4. DESKTOP ENTERPRISE GRID (Vertical Menu + Targeted Ads + Banners) -->
+    <section class="desktop-hero-frame bg-browin-gray py-4 md:py-6 relative z-30">
+        <div class="container mx-auto px-4 relative">
+            
+            <div class="hero-shell grid grid-cols-1 lg:grid-cols-12 gap-4 md:gap-6 lg:h-[500px] xl:h-[540px]">
+                
+                <!-- 4A. VERTICAL MEGA MENU -->
+                <div id="desktop-menu-wrapper" class="desktop-categories hidden lg:block lg:col-span-3 relative z-30 h-full" onmouseleave="hideDesktopMegaMenu()">
+                    
+                    <div id="desktop-menu-container" class="bg-browin-white border border-browin-dark/10 flex flex-col py-2 h-full justify-between relative z-30 shadow-sm">
+                        
+                        <div class="flex flex-col w-full flex-1">
+                            <!-- onmouseleave applied to all buttons to handle debounce -->
+                            <button id="tab-wedliniarstwo" onmouseenter="showDesktopSubmenu('wedliniarstwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-fire text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Wędliniarstwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-gorzelnictwo" onmouseenter="showDesktopSubmenu('gorzelnictwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-flask text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Gorzelnictwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-winiarstwo" onmouseenter="showDesktopSubmenu('winiarstwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-wine text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Winiarstwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-serowarstwo" onmouseenter="showDesktopSubmenu('serowarstwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-chart-pie-slice text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Serowarstwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-piwowarstwo" onmouseenter="showDesktopSubmenu('piwowarstwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-pint-glass text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Piwowarstwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-piekarnictwo" onmouseenter="showDesktopSubmenu('piekarnictwo')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-grains text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Piekarnictwo</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-domiogrod" onmouseenter="showDesktopSubmenu('domiogrod')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-house text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Dom i ogród</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                            <button id="tab-termometry" onmouseenter="showDesktopSubmenu('termometry')" onmouseleave="clearTimeout(intentTimeout)" class="desktop-cat-tab flex-1 flex items-center justify-between px-5 py-2 text-browin-dark hover:bg-browin-dark/5 font-bold relative group border border-transparent w-full rounded-none">
+                                <div class="flex items-center space-x-3">
+                                    <i class="ph ph-thermometer text-[22px] text-browin-red"></i>
+                                    <span class="text-[14px] tracking-wide">Termometry</span>
+                                </div>
+                                <i class="ph ph-caret-right text-xs opacity-40 tab-arrow transition-transform group-hover:translate-x-1"></i>
+                            </button>
+                        </div>
+
+                        <!-- Elegant Promo Link -->
+                        <div class="px-5 mt-auto pt-4 pb-2 border-t border-browin-dark/10 shrink-0">
+                            <a href="#" class="flex items-center text-browin-red hover:text-browin-dark transition-colors font-extrabold group">
+                                <i class="ph-fill ph-percent text-[22px] mr-3 group-hover:rotate-12 transition-transform"></i>
+                                <span class="text-[14px] tracking-wide">Outlet / Promocje</span>
+                            </a>
+                        </div>
+                    </div>
+
+                    <!-- MEGA PANEL OVERLAY (+5rem width for proper alignment) -->
+                    <div id="desktop-mega-panel" onmouseenter="cancelHideDesktopMegaMenu()" class="absolute left-[calc(100%-1px)] top-0 h-full w-[calc(300%+5rem)] bg-browin-white border border-browin-dark/10 border-l-0 shadow-panel hidden flex-col z-20 overflow-hidden opacity-0 transition-opacity duration-150">
+                        
+                        <!-- Wędliniarstwo Submenu -->
+                        <div id="content-wedliniarstwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Sprzęt wędliniarski</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zestawy startowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Szynkowary i worki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Wędzarnie i haki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Paleniska i kociołki żeliwne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Nadziewarki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Maszynki do mielenia</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pakowanie próżniowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Aplikatory, zaciskarki</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Dodatki i Akcesoria</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Jelita i osłonki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pekle, marynaty i zioła</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kultury bakterii</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zrębki wędzarnicze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Nici, sznurki, siatki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Akcesoria do peklowania</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kalkulator wędliniarski</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Literatura wędliniarstwo</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center relative group/promo border-l border-browin-dark/10">
+                                <span class="bg-browin-red text-browin-white text-[10px] font-bold px-3 py-1.5 uppercase rounded-none w-max mb-5 shadow-sharp">Dla Początkujących</span>
+                                <h4 class="font-extrabold text-[22px] xl:text-[26px] text-browin-dark mb-3 leading-tight">Wędzarnia elektryczna - dragON z generatorem dymu, cyfrowa 65 L</h4>
+                                <p class="text-sm text-browin-dark/70 mb-8 leading-relaxed">Idealna do profesjonalnego wędzenia w domowych warunkach.</p>
+                                <div class="relative w-full max-h-[220px] aspect-square bg-browin-white border border-browin-dark/10 mb-8 p-4 mx-auto overflow-hidden flex items-center justify-center">
+                                    <img src="./produkt4.webp" alt="Wędzarnia elektryczna - dragON" class="w-full h-full object-contain transform group-hover/promo:scale-105 transition-transform duration-500">
+                                </div>
+                                <button class="w-full py-3.5 bg-browin-dark hover:bg-browin-red text-browin-white font-bold transition-colors text-sm uppercase tracking-wide">
+                                    Zobacz zestaw
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Gorzelnictwo Submenu -->
+                        <div id="content-gorzelnictwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Sprzęt</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Destylatory hawkSTILL</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Destylatory i kolumny</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pojemniki i rurki fermentacyjne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Mierniki, wskaźniki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Gąsiory i damy</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Butelki i zakrętki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Beczki i karafki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zaciskarki</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Dodatki i Akcesoria</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Drożdże gorzelnicze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Węgiel aktywny</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Dodatki smakowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Substancje dodatkowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Etykiety</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Badania alkoholu</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Literatura</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group text-browin-red font-bold"><span class="w-1.5 h-1.5 bg-browin-red mr-3"></span> Kalkulator nalewek</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-flask text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Destylatory hawkSTILL</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Poznaj naszą flagową linię profesjonalnych destylatorów. Wydajność i czystość.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Sprawdź ofertę
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Winiarstwo Submenu -->
+                        <div id="content-winiarstwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Sprzęt</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zestawy winiarskie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Balony do wina i kosze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pojemniki i słoiki do fermentacji</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Prasy i rozdrabniarki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Filtrowanie i korkowanie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Gąsiory, butelki i regały</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Mierniki i wskaźniki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Korki i kapturki</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Składniki i akcesoria</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Drożdże winiarskie i pożywki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Środki do klarowania</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Środki dodatkowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Aromatyzacja wina</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Rurki fermentacyjne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Badania wina</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Oferta dla winnic</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group text-browin-red font-bold"><span class="w-1.5 h-1.5 bg-browin-red mr-3"></span> Kalkulator winiarski</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-wine text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Sezon na wino</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Gotowe zestawy balonów w promocyjnych cenach. Zacznij swój rocznik.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Przeglądaj ofertę
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Serowarstwo Submenu -->
+                        <div id="content-serowarstwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Serowarstwo</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zestawy serowarskie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Formy do sera i chusty</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Prasy serowarskie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Podpuszczki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kultury bakterii</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Substancje pomocnicze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Dodatkowe akcesoria</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group text-browin-red font-bold"><span class="w-1.5 h-1.5 bg-browin-red mr-3"></span> Kalkulator serowarski</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Mleczarstwo i Inne</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Wyrób jogurtu</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Jogurtownice</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Wyrób masła</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Przyprawy do masła</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pakowanie próżniowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Wędzenie i grillowanie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Literatura</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-chart-pie-slice text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Zrób własny ser</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Wszystko, czego potrzebujesz by zacząć przygodę z serowarstwem w domu.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Przeglądaj ofertę
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Piwowarstwo Submenu -->
+                        <div id="content-piwowarstwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Sprzęt</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zestawy (mikrobrowar)</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pojemniki fermentacyjne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Rurki fermentacyjne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kapslownice i kapsle</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Butelki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Areometry</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Akcesoria piwowarskie</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Składniki</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Brewkity Coopers</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Nienachmielone ekstrakty</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Chmiele</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Drożdże piwowarskie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Dodatki do piwa</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Specjały łódzkie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Badania piwa</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <img src="https://browin.pl/static/base_images/Coopers_button_1.png" class="mb-8 w-[150px] group-hover/promo:scale-110 transition-transform">
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Brewkity Coopers</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Australijska jakość piwa z brewkitu we własnym domu.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Sprawdź ofertę
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Piekarnictwo Submenu -->
+                        <div id="content-piekarnictwo" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Podstawy Wypieków</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Drożdże piekarskie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Zakwasy</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kamienie do pizzy</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Akcesoria</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Garnki i formy rzymskie</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-grains text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Formy Rzymskie</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Idealnie chrupiące pieczywo dzięki naturalnej glinie.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Przeglądaj ofertę
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Dom i ogród Submenu -->
+                        <div id="content-domiogrod" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Przetwórstwo i Kuchnia</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Słoiki i zakrętki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Szatkownice, drylownice i ubijaki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Maszynki do pomidorów</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Sokowniki, szybkowary, suszarki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Beczki, kamionki i worki</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Środki dodatkowe do przetworów</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Akcesoria do przetworów, Etykiety</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Młynki, moździerze, Gadżety domowe</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Ogród</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Kiełkowanie</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Nawadnianie i podłoża</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Mierniki glebowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Mocowanie roślin</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Odstraszacze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Szklarnie, tunele</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Akcesoria i narzędzia ogrodnicze</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Domki i karmniki</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-house text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Słoiki i Przetwory</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Przygotuj zapasy na zimę z naszymi niezawodnymi akcesoriami.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Sprawdź akcesoria
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Termometry Submenu -->
+                        <div id="content-termometry" class="desktop-submenu w-full h-full flex hidden">
+                            <div class="p-8 xl:p-12 w-[65%] flex gap-8">
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Termometry</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Temperatura otoczenia</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Termometry kuchenne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Termometry lodówkowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Termometry kąpielowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Termometry specjalistyczne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Termometry zoologiczne</a></li>
+                                    </ul>
+                                </div>
+                                <div class="flex-1">
+                                    <h3 class="font-extrabold text-browin-dark mb-5 border-b border-browin-dark/10 pb-3 text-[13px] uppercase tracking-wider">Stacje pogody</h3>
+                                    <ul class="space-y-4 text-[14px] text-browin-dark/80 font-medium">
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Elektroniczne</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Retro</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Czujniki bezprzewodowe</a></li>
+                                        <li><a href="#" class="hover:text-browin-red hover:pl-1 transition-all flex items-center group"><span class="w-1.5 h-1.5 bg-browin-dark/20 group-hover:bg-browin-red mr-3"></span> Pokojowe i zaokienne</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="w-[35%] bg-browin-gray p-8 xl:p-12 flex flex-col justify-center items-center text-center relative group/promo border-l border-browin-dark/10">
+                                <i class="ph-fill ph-thermometer text-[120px] text-browin-red/20 mb-8 group-hover/promo:scale-110 transition-transform"></i>
+                                <h4 class="font-extrabold text-[26px] text-browin-dark mb-4">Stacje Pogody</h4>
+                                <p class="text-sm text-browin-dark/70 mb-10 leading-relaxed">Bądź na bieżąco z warunkami. Precyzyjny pomiar w domu i ogrodzie.</p>
+                                <button class="px-8 py-3.5 border-2 border-browin-red text-browin-red hover:bg-browin-red hover:text-browin-white font-bold transition-colors w-full uppercase tracking-wide">
+                                    Sprawdź ofertę
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+                <!-- 4B. RIGHT CONTENT (Dashboard Strip + Banners + FOMO) -->
+                <div class="hero-main-content lg:col-span-9 flex flex-col gap-4 md:gap-6 h-full z-10 relative">
+                    
+                    <!-- Utility / Tools Strip -->
+                    <div class="utility-strip hidden lg:flex w-full bg-browin-white border border-browin-dark/10 h-14 items-center justify-between px-6 shadow-sm shrink-0">
+                        <div class="utility-strip-links flex items-center gap-6 xl:gap-8 overflow-hidden">
+                            <a href="#" class="flex items-center space-x-2 text-browin-dark hover:text-browin-red transition-colors font-bold text-[11px] xl:text-[12px] uppercase tracking-wider group whitespace-nowrap">
+                                <i class="ph ph-gift text-lg text-browin-red group-hover:scale-110 transition-transform"></i>
+                                <span>Karty podarunkowe</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-browin-dark hover:text-browin-red transition-colors font-bold text-[11px] xl:text-[12px] uppercase tracking-wider group whitespace-nowrap">
+                                <i class="ph ph-sliders text-lg text-browin-red group-hover:rotate-90 transition-transform"></i>
+                                <span>Konfigurator</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-browin-dark hover:text-browin-red transition-colors font-bold text-[11px] xl:text-[12px] uppercase tracking-wider group whitespace-nowrap">
+                                <i class="ph ph-calculator text-lg text-browin-red group-hover:scale-110 transition-transform"></i>
+                                <span>Kalkulatory</span>
+                            </a>
+                            <a href="#" class="flex items-center space-x-2 text-browin-dark hover:text-browin-red transition-colors font-bold text-[11px] xl:text-[12px] uppercase tracking-wider group whitespace-nowrap">
+                                <i class="ph ph-handshake text-lg text-browin-red group-hover:scale-110 transition-transform"></i>
+                                <span>Usługi</span>
+                            </a>
+                        </div>
+                        
+                        <!-- Highlighted Przepiśnik -->
+                        <a href="#" class="utility-strip-highlight flex items-center space-x-2 bg-browin-red text-browin-white h-full px-6 xl:px-8 hover:bg-browin-red/90 transition-colors font-extrabold text-[11px] xl:text-[12px] uppercase tracking-wider group -mr-6 shrink-0">
+                            <i class="ph-fill ph-book-open text-xl group-hover:scale-110 transition-transform"></i>
+                            <span>Przepiśnik</span>
+                        </a>
+                    </div>
+
+                    <!-- Banners Grid with Persuasion elements -->
+                    <div class="hero-banner-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6 flex-1 min-h-0">
+                        
+                        <!-- Main Storytelling Slider (Spans 2 cols) -->
+                        <div class="hero-slider-card lg:col-span-2 relative overflow-hidden border shadow-sm h-[300px] sm:h-auto rounded-none bg-browin-dark group">
+                            
+                            <!-- Slider Container -->
+                            <div id="hero-slider" class="flex w-full h-full transition-transform duration-500 ease-in-out">
+                                
+                                <!-- Slide 1 (Original) -->
+                                <div class="w-full h-full shrink-0 relative cursor-pointer group/slide">
+                                    <img src="./szynka.webp" alt="Wędliniarstwo" class="absolute inset-0 w-full h-full object-cover transform group-hover/slide:scale-105 transition-transform duration-1000 opacity-60">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent"></div>
+                                    
+                                    <div class="absolute inset-0 p-6 md:p-8 xl:p-10 flex flex-col justify-end">
+                                        <div class="flex items-center space-x-2 bg-browin-white/10 backdrop-blur-sm border border-browin-white/20 px-4 py-1.5 w-max mb-5 rounded-none">
+                                            <div class="flex -space-x-2">
+                                                <img class="w-6 h-6 rounded-full border border-browin-dark" src="https://i.pravatar.cc/100?img=1" alt="User">
+                                                <img class="w-6 h-6 rounded-full border border-browin-dark" src="https://i.pravatar.cc/100?img=2" alt="User">
+                                                <img class="w-6 h-6 rounded-full border border-browin-dark" src="https://i.pravatar.cc/100?img=3" alt="User">
+                                            </div>
+                                            <span class="text-[11px] font-bold text-browin-white tracking-wide">+50,000 pasjonatów craftu</span>
+                                        </div>
+
+                                        <h1 class="text-3xl md:text-4xl xl:text-5xl font-extrabold text-browin-white leading-tight mb-4 drop-shadow-md">
+                                            Prawdziwe arcydzieło. <br><span>Z Twojej kuchni.</span>
+                                        </h1>
+                                        <button class="hero-primary-cta inline-flex items-center w-max px-6 py-3 md:px-8 md:py-3.5 bg-browin-red text-browin-white text-xs md:text-sm font-extrabold uppercase tracking-wide hover:bg-browin-white hover:text-browin-dark transition-colors border border-transparent shadow-sharp">
+                                            Zobacz Bestsellery <i class="ph ph-arrow-right ml-3 text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Slide 2 (New - Winiarstwo) -->
+                                <div class="w-full h-full shrink-0 relative cursor-pointer group/slide">
+                                    <img src="https://images.unsplash.com/photo-1506377247377-2a5b3b417ebb?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Winiarstwo" class="absolute inset-0 w-full h-full object-cover transform group-hover/slide:scale-105 transition-transform duration-1000 opacity-60">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent"></div>
+                                    
+                                    <div class="absolute inset-0 p-6 md:p-8 xl:p-10 flex flex-col justify-end">
+                                        <span class="bg-browin-red text-browin-white text-[10px] font-bold px-3 py-1.5 uppercase rounded-none w-max mb-4 shadow-sharp">Sezon na wino</span>
+                                        <h1 class="text-3xl md:text-4xl xl:text-5xl font-extrabold text-browin-white leading-tight mb-4 drop-shadow-md">
+                                            Stwórz własny <br><span>niepowtarzalny rocznik.</span>
+                                        </h1>
+                                        <button class="hero-primary-cta inline-flex items-center w-max px-6 py-3 md:px-8 md:py-3.5 bg-browin-white text-browin-dark text-xs md:text-sm font-extrabold uppercase tracking-wide hover:bg-browin-red hover:text-browin-white transition-colors border border-transparent shadow-sharp">
+                                            Odkryj winiarstwo <i class="ph ph-arrow-right ml-3 text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Slide 3 (New - Serowarstwo) -->
+                                <div class="w-full h-full shrink-0 relative cursor-pointer group/slide">
+                                    <img src="https://images.unsplash.com/photo-1486297678162-eb2a19b0a32d?ixlib=rb-4.0.3&auto=format&fit=crop&w=1200&q=80" alt="Serowarstwo" class="absolute inset-0 w-full h-full object-cover transform group-hover/slide:scale-105 transition-transform duration-1000 opacity-60">
+                                    <div class="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent"></div>
+                                    
+                                    <div class="absolute inset-0 p-6 md:p-8 xl:p-10 flex flex-col justify-end items-end text-right">
+                                        <span class="bg-browin-dark/50 backdrop-blur-sm border border-browin-white/20 text-browin-white text-[10px] font-bold px-3 py-1.5 uppercase rounded-none w-max mb-4">Warsztaty domowe</span>
+                                        <h1 class="text-3xl md:text-4xl xl:text-5xl font-extrabold text-browin-white leading-tight mb-4 drop-shadow-md">
+                                            Domowa serowarnia. <br><span>To prostsze niż myślisz.</span>
+                                        </h1>
+                                        <button class="hero-primary-cta inline-flex items-center w-max px-6 py-3 md:px-8 md:py-3.5 bg-browin-red text-browin-white text-xs md:text-sm font-extrabold uppercase tracking-wide hover:bg-browin-white hover:text-browin-dark transition-colors border border-transparent shadow-sharp">
+                                            Sprzęt do serów <i class="ph ph-arrow-right ml-3 text-lg"></i>
+                                        </button>
+                                    </div>
+                                </div>
+
+                            </div>
+
+                            <!-- Slider Navigation Arrows (Enterprise UI) -->
+                            <button onclick="prevSlide(event)" class="hidden md:flex absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center bg-browin-white/90 backdrop-blur-md text-browin-dark rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 opacity-0 group-hover:opacity-100 -translate-x-4 group-hover:translate-x-0 z-20 focus:outline-none hover:bg-browin-red hover:text-browin-white border border-browin-dark/5">
+                                <i class="ph ph-caret-left text-xl"></i>
+                            </button>
+                            <button onclick="nextSlide(event)" class="hidden md:flex absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 items-center justify-center bg-browin-white/90 backdrop-blur-md text-browin-dark rounded-full shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 opacity-0 group-hover:opacity-100 translate-x-4 group-hover:translate-x-0 z-20 focus:outline-none hover:bg-browin-red hover:text-browin-white border border-browin-dark/5">
+                                <i class="ph ph-caret-right text-xl"></i>
+                            </button>
+
+                            <!-- Slider Pagination Dots -->
+                            <div class="absolute bottom-5 left-1/2 -translate-x-1/2 flex space-x-2 z-20">
+                                <button onclick="goToSlide(0, event)" class="slider-dot w-4 h-2 bg-browin-red transition-all duration-300 focus:outline-none"></button>
+                                <button onclick="goToSlide(1, event)" class="slider-dot w-2 h-2 bg-browin-white/50 hover:bg-browin-white transition-all duration-300 focus:outline-none"></button>
+                                <button onclick="goToSlide(2, event)" class="slider-dot w-2 h-2 bg-browin-white/50 hover:bg-browin-white transition-all duration-300 focus:outline-none"></button>
+                            </div>
+
+                        </div>
+
+                        <!-- Side Panels (Stacked, col-span-1, grid-rows-2) -->
+                        <div class="hero-side-panels lg:col-span-1 grid grid-cols-1 grid-rows-2 gap-4 md:gap-6 h-[400px] lg:h-full">
+                            
+                            <!-- Bestseller Side Panel -->
+                            <div class="bg-browin-white border border-browin-dark/10 p-5 xl:p-6 flex flex-col justify-between group hover:border-browin-red transition-colors relative overflow-hidden cursor-pointer shadow-sm rounded-none h-full">
+                                <div class="flex justify-between items-start relative z-10">
+                                    <div>
+                                        <span class="text-[10px] xl:text-[11px] uppercase font-bold text-browin-red tracking-wider flex items-center">
+                                            <i class="ph-fill ph-fire mr-1"></i> Hit Tygodnia
+                                        </span>
+                                        <h3 class="font-bold text-browin-dark text-base xl:text-lg mt-1 group-hover:text-browin-red transition-colors leading-tight max-w-[90%]">
+                                            Zestaw startowy Szynkowar
+                                        </h3>
+                                    </div>
+                                </div>
+                                
+                                <div class="flex items-end justify-between relative z-10 mt-auto pt-2">
+                                    <div>
+                                        <p class="text-xs text-browin-dark/50 line-through font-bold mb-0.5">149,99 zł</p>
+                                        <p class="text-2xl xl:text-3xl font-extrabold text-browin-dark leading-none">119,99 zł</p>
+                                    </div>
+                                    <button onclick="toggleCartDrawer(event)" class="w-10 h-10 xl:w-12 xl:h-12 bg-browin-dark/5 flex items-center justify-center group-hover:bg-browin-red group-hover:text-browin-white transition-colors text-browin-dark shrink-0 rounded-none">
+                                        <i class="ph ph-shopping-cart text-lg xl:text-xl"></i>
+                                    </button>
+                                </div>
+                                <i class="ph-fill ph-cooking-pot absolute -right-2 top-8 text-[90px] xl:text-[110px] text-browin-dark/5 pointer-events-none group-hover:-rotate-12 transition-transform"></i>
+                            </div>
+
+                            <!-- Scarcity / FOMO Deal Banner -->
+                            <div class="bg-browin-white border border-browin-dark/10 p-5 xl:p-6 flex flex-col justify-between group hover:border-browin-red transition-colors shadow-sm cursor-pointer rounded-none h-full relative overflow-hidden">
+                                <div class="relative z-10">
+                                    <span class="text-[10px] xl:text-[11px] uppercase font-bold text-browin-red tracking-wider flex items-center">
+                                        <i class="ph-fill ph-clock-countdown mr-1"></i> Oferta Dnia
+                                    </span>
+                                    <h3 class="font-bold text-browin-dark text-base xl:text-lg mt-1 leading-tight">Balon winiarski 15L</h3>
+                                    <span class="inline-block bg-browin-red text-browin-white text-[9px] font-bold px-2 py-0.5 mt-2">+ Drożdże GRATIS</span>
+                                </div>
+                                
+                                <i class="ph-fill ph-wine absolute -right-4 top-8 text-[90px] xl:text-[110px] text-browin-dark/5 pointer-events-none group-hover:-rotate-12 transition-transform duration-500"></i>
+                                
+                                <div class="mt-4 relative z-10">
+                                    <div class="flex items-end gap-2 mb-3">
+                                        <span class="text-2xl xl:text-3xl font-extrabold text-browin-red tracking-tight leading-none">89,99 zł</span>
+                                    </div>
+                                    
+                                    <!-- Progress bar mock (Scarcity) -->
+                                    <div class="w-full bg-browin-dark/10 h-1.5 mb-1.5 rounded-none">
+                                        <div class="bg-browin-red h-1.5 rounded-none w-[85%]"></div>
+                                    </div>
+                                    <div class="flex justify-between items-center text-[9px] font-bold text-browin-dark/60 uppercase">
+                                        <span>Sprzedano 85%</span>
+                                        <span class="text-browin-red">Zostało 15 szt.</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. VALUE PROPOSITION (Trust below hero) -->
+    <section class="border-y border-browin-dark/10 bg-browin-white relative z-20">
+        <div class="container mx-auto px-4 py-8">
+            <div class="value-grid grid grid-cols-2 lg:grid-cols-4 gap-4 text-center lg:divide-x lg:divide-browin-dark/10">
+                <div class="px-2">
+                    <i class="ph ph-package text-3xl text-browin-red mb-2"></i>
+                    <h4 class="font-bold text-browin-dark text-sm uppercase tracking-wide">Ogromny asortyment</h4>
+                    <p class="text-xs text-browin-dark/60 mt-1">Wszystko w jednym miejscu</p>
+                </div>
+                <div class="px-2">
+                    <i class="ph ph-shield-check text-3xl text-browin-red mb-2"></i>
+                    <h4 class="font-bold text-browin-dark text-sm uppercase tracking-wide">Gwarancja jakości</h4>
+                    <p class="text-xs text-browin-dark/60 mt-1">Sprawdzone materiały</p>
+                </div>
+                <div class="px-2">
+                    <i class="ph ph-users text-3xl text-browin-red mb-2"></i>
+                    <h4 class="font-bold text-browin-dark text-sm uppercase tracking-wide">Strefa porad</h4>
+                    <p class="text-xs text-browin-dark/60 mt-1">Eksperckie wsparcie</p>
+                </div>
+                <div class="px-2">
+                    <i class="ph ph-arrow-u-up-left text-3xl text-browin-red mb-2"></i>
+                    <h4 class="font-bold text-browin-dark text-sm uppercase tracking-wide">Zaufane zwroty</h4>
+                    <p class="text-xs text-browin-dark/60 mt-1">14 dni na decyzję</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. RECOMMENDED PRODUCTS (Scroll placeholder section) -->
+    <section class="py-12 md:py-16 bg-browin-gray relative z-20 border-b border-browin-dark/10">
+        <div class="container mx-auto px-4">
+            <div class="flex justify-between items-end mb-6 md:mb-8 border-b border-browin-dark/10 pb-4">
+                <h2 class="text-2xl md:text-3xl font-extrabold text-browin-dark tracking-tight uppercase">Polecane Nowości</h2>
+                <a href="#" class="hidden md:flex items-center text-sm font-bold text-browin-red hover:underline uppercase tracking-wide">Zobacz wszystkie <i class="ph ph-arrow-right ml-1"></i></a>
+            </div>
+            
+            <div class="product-grid grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-6">
+                <!-- Product 1 -->
+                <div class="product-card bg-browin-white border border-browin-dark/10 p-4 flex flex-col group hover:border-browin-red transition-colors shadow-sm cursor-pointer rounded-none h-[300px] md:h-[350px]">
+                    <div class="w-full flex-1 bg-browin-dark/5 flex items-center justify-center mb-4 relative overflow-hidden p-2">
+                        <img src="./produkt1.webp" alt="Aromat dymu wędzarniczego w płynie" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500">
+                        <span class="absolute top-2 left-2 bg-browin-red text-browin-white text-[9px] font-bold px-2 py-1 uppercase shadow-sharp">Nowość</span>
+                    </div>
+                    <h3 class="font-bold text-browin-dark text-xs md:text-sm mb-1 leading-tight line-clamp-2 group-hover:text-browin-red transition-colors">Aromat dymu wędzarniczego w płynie – wiśniowy, 250ml</h3>
+                    <div class="mt-auto flex justify-between items-end pt-2">
+                        <div class="font-extrabold text-browin-dark text-lg md:text-xl">19,99 zł</div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-browin-dark/5 flex items-center justify-center group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                            <i class="ph ph-shopping-cart text-base md:text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 2 -->
+                <div class="product-card bg-browin-white border border-browin-dark/10 p-4 flex flex-col group hover:border-browin-red transition-colors shadow-sm cursor-pointer rounded-none h-[300px] md:h-[350px]">
+                    <div class="w-full flex-1 bg-browin-dark/5 flex items-center justify-center mb-4 relative overflow-hidden p-2">
+                        <img src="./produkt2.webp" alt="Jelita naturalne wieprzowe" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-browin-dark text-xs md:text-sm mb-1 leading-tight line-clamp-2 group-hover:text-browin-red transition-colors">Jelita naturalne wieprzowe kal. 28/30 mm, 20 m</h3>
+                    <div class="mt-auto flex justify-between items-end pt-2">
+                        <div class="font-extrabold text-browin-dark text-lg md:text-xl">24,99 zł</div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-browin-dark/5 flex items-center justify-center group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                            <i class="ph ph-shopping-cart text-base md:text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 3 -->
+                <div class="product-card bg-browin-white border border-browin-dark/10 p-4 flex flex-col group hover:border-browin-red transition-colors shadow-sm cursor-pointer rounded-none h-[300px] md:h-[350px]">
+                    <div class="w-full flex-1 bg-browin-dark/5 flex items-center justify-center mb-4 relative overflow-hidden p-2">
+                        <img src="./produkt3.webp" alt="Elektroniczny termometr pokojowy marki Soens" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500">
+                    </div>
+                    <h3 class="font-bold text-browin-dark text-xs md:text-sm mb-1 leading-tight line-clamp-2 group-hover:text-browin-red transition-colors">Elektroniczny termometr pokojowy marki Soens, czarny</h3>
+                    <div class="mt-auto flex justify-between items-end pt-2">
+                        <div class="font-extrabold text-browin-dark text-lg md:text-xl">45,90 zł</div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-browin-dark/5 flex items-center justify-center group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                            <i class="ph ph-shopping-cart text-base md:text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Product 4 -->
+                <div class="product-card bg-browin-white border border-browin-dark/10 p-4 flex flex-col group hover:border-browin-red transition-colors shadow-sm cursor-pointer rounded-none h-[300px] md:h-[350px]">
+                    <div class="w-full flex-1 bg-browin-dark/5 flex items-center justify-center mb-4 relative overflow-hidden p-2">
+                        <img src="./produkt4.webp" alt="Wędzarnia elektryczna dragON" class="w-full h-full object-contain group-hover:scale-105 transition-transform duration-500">
+                        <span class="absolute top-2 left-2 bg-browin-dark text-browin-white text-[9px] font-bold px-2 py-1 uppercase shadow-sharp">Bestseller</span>
+                    </div>
+                    <h3 class="font-bold text-browin-dark text-xs md:text-sm mb-1 leading-tight line-clamp-2 group-hover:text-browin-red transition-colors">Wędzarnia elektryczna - dragON z generatorem dymu, cyfrowa 65 L</h3>
+                    <div class="mt-auto flex justify-between items-end pt-2">
+                        <div class="font-extrabold text-browin-dark text-lg md:text-xl">1 299,00 zł</div>
+                        <div class="w-8 h-8 md:w-10 md:h-10 bg-browin-dark/5 flex items-center justify-center group-hover:bg-browin-red group-hover:text-browin-white transition-colors">
+                            <i class="ph ph-shopping-cart text-base md:text-lg"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <a href="#" class="md:hidden mt-6 flex items-center justify-center text-xs font-bold text-browin-red hover:underline uppercase tracking-wide border border-browin-red/20 py-3 bg-browin-white">
+                Zobacz wszystkie <i class="ph ph-arrow-right ml-1"></i>
+            </a>
+        </div>
+    </section>
+
+    <!-- ========================================== -->
+    <!-- MOBILE FULLSCREEN MEGA-MENU (ACCORDION UI) -->
+    <!-- ========================================== -->
+    <div id="mobile-mega-menu" class="fixed inset-0 z-[60] bg-browin-gray flex flex-col transform -translate-x-full transition-transform duration-300 ease-in-out md:hidden">
+        
+        <!-- 1. STICKY HEADER -->
+        <div class="flex items-center justify-between px-4 py-3 border-b border-browin-dark/10 bg-browin-white shrink-0 shadow-sm">
+            <img src="./logo_BROWIN.svg" alt="BROWIN" class="brand-logo-menu object-contain">
+            
+            <div class="flex items-center space-x-2">
+                <!-- Pill Language Selector -->
+                <div class="relative group cursor-pointer">
+                    <button onclick="toggleMobileLang()" class="flex items-center justify-center space-x-1 px-3 py-1.5 text-browin-dark font-bold bg-browin-dark/5 rounded-none text-[11px] hover:bg-browin-dark/10 transition-colors focus:outline-none shrink-0 border border-transparent hover:border-browin-dark/10">
+                        <i class="ph ph-globe text-sm text-browin-dark/70"></i>
+                        <span>PL</span>
+                        <i class="ph ph-caret-down text-[10px] text-browin-dark/50 ml-0.5"></i>
+                    </button>
+                    <!-- Dropdown for Language -->
+                    <div id="mobile-lang-menu" class="absolute top-full right-0 mt-2 w-40 bg-browin-white border border-browin-dark/10 shadow-sharp hidden flex-col overflow-hidden z-50 py-1">
+                        <a href="#" class="px-4 py-2.5 flex items-center justify-between text-sm font-bold text-browin-red bg-browin-red/5">
+                            <span>Polski</span>
+                            <i class="ph ph-check text-base"></i>
+                        </a>
+                        <a href="#" class="px-4 py-2.5 flex items-center text-sm text-browin-dark/70 hover:bg-browin-dark/5 transition-colors font-medium">English</a>
+                        <a href="#" class="px-4 py-2.5 flex items-center text-sm text-browin-dark/70 hover:bg-browin-dark/5 transition-colors font-medium">Deutsch</a>
+                    </div>
+                </div>
+
+                <button onclick="toggleMobileMenu()" class="w-8 h-8 flex items-center justify-center bg-browin-dark/5 text-browin-dark hover:text-browin-red transition-colors focus:outline-none shrink-0 rounded-none border border-transparent hover:border-browin-dark/10">
+                    <i class="ph ph-x text-lg"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 2. MAIN MENU VIEW (Level 0 with Accordions) -->
+        <div class="relative flex-1 overflow-y-auto bg-browin-white flex flex-col pb-8 no-scrollbar">
+            
+            <!-- Mobile Menu Search Bar + VISUAL SEARCH -->
+            <div class="relative m-4 mb-2 shrink-0">
+                <input type="text" placeholder="Czego szukasz?" 
+                    class="search-ui-copy w-full bg-browin-dark/5 border border-browin-dark/10 text-browin-dark text-sm rounded-none focus:ring-0 focus:border-browin-red focus:bg-browin-white block py-3.5 pl-11 pr-10 transition-colors font-medium">
+                <i class="ph ph-magnifying-glass absolute left-3.5 top-3.5 text-xl text-browin-dark/40"></i>
+                <button type="button" class="absolute right-3 top-3.5 text-browin-dark/40 hover:text-browin-red transition-colors" title="Wyszukaj obrazem">
+                    <i class="ph ph-camera text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Promo Row -->
+            <a href="#" class="flex items-center justify-between py-3 px-4 border-y border-browin-dark/5 mb-2 bg-browin-dark/5 hover:bg-browin-dark/10 transition-colors shrink-0">
+                <div class="flex items-center space-x-3">
+                    <i class="ph ph-tag text-xl text-browin-red"></i>
+                    <span class="font-bold text-browin-red text-[15px] tracking-wide">Promocje Outlet do -30%</span>
+                </div>
+                <i class="ph ph-arrow-right text-browin-dark/40"></i>
+            </a>
+
+            <!-- Categories Accordion List (Progresywne Ujawnianie z pełnymi oryginalnymi listami) -->
+            <div class="divide-y divide-browin-dark/5 px-4 shrink-0">
+                
+                <!-- Wędliniarstwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-wedliniarstwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-fire text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Wędliniarstwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-wedliniarstwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zestawy startowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Szynkowary i worki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Wędzarnie i haki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zrębki wędzarnicze</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Paleniska</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kociołki i naczynia żeliwne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Grillowanie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Nadziewarki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Maszynki do mielenia</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pakowanie próżniowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Akcesoria do peklowania</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Aplikatory, zaciskarki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Nici, sznurki, siatki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Osłonki i Jelita</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pekle, marynaty i zioła</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kultury bakterii</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kalkulator wędliniarski</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Literatura wędliniarstwo</a>
+                    </div>
+                </div>
+
+                <!-- Gorzelnictwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-gorzelnictwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-flask text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Gorzelnictwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-gorzelnictwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Destylatory hawkSTILL</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Destylatory i Kolumny</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pojemniki fermentacyjne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Rurki fermentacyjne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Mierniki, wskaźniki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Gąsiory i Damy</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Butelki i Zakrętki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Beczki i karafki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zaciskarki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Drożdże gorzelnicze</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Węgiel aktywny</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Dodatki smakowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zaprawki i esencje</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Substancje dodatkowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Vypito</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kalkulator nalewek</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Badania alkoholu</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Etykiety i Literatura</a>
+                    </div>
+                </div>
+
+                <!-- Winiarstwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-winiarstwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-wine text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Winiarstwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-winiarstwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zestawy winiarskie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Balony do wina i Kosze</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pojemniki i Słoiki do fermentacji</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Rurki fermentacyjne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Mierniki, wskaźniki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Gąsiory, Butelki i Regały</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Prasy i Rozdrabniarki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Filtrowanie i Korkowanie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Korki i kapturki do balonów</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Drożdże winiarskie i pożywki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Środki do klarowania i dodatkowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Aromatyzacja wina</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kalkulator winiarski</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Badania wina i Oferta dla winnic</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Akcesoria winiarskie i Literatura</a>
+                    </div>
+                </div>
+
+                <!-- Serowarstwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-serowarstwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-chart-pie-slice text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Serowarstwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-serowarstwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zestawy serowarskie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Podpuszczki i Kultury bakterii</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Substancje pomocnicze</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Chusty serowarskie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Formy do sera</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Prasy</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Wyrób jogurtu i Jogurtownice</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Wyrób masła i Przyprawy</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pakowanie próżniowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kalkulator serowarski</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Literatura i Dodatkowe akcesoria</a>
+                    </div>
+                </div>
+
+                <!-- Piwowarstwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-piwowarstwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-pint-glass text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Piwowarstwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-piwowarstwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zestawy (Mikrobrowary)</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Brewkity Coopers</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Nienachmielone ekstrakty</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Chmiele</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Drożdże do piwa</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Dodatki do piwa i Specjały łódzkie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Pojemniki fermentacyjne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Rurki fermentacyjne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Areometry</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kapsle i Kapslownice</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Butelki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Akcesoria piwowarskie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Badania piwa</a>
+                    </div>
+                </div>
+
+                <!-- Piekarnictwo -->
+                <div>
+                    <button onclick="toggleAccordion('acc-piekarnictwo', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-grains text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Piekarnictwo</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-piekarnictwo" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Drożdże piekarskie</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Zakwasy</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kamienie do pizzy</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Garnki i formy rzymskie</a>
+                    </div>
+                </div>
+
+                <!-- Dom i Ogród -->
+                <div>
+                    <button onclick="toggleAccordion('acc-domiogrod', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-house text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Dom i ogród</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-domiogrod" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Słoiki i zakrętki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Szatkownice, drylownice i ubijaki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Maszynki do pomidorów</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Sokowniki i szybkowary</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Suszarki do żywności</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Beczki, worki i kamionka</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Środki i akcesoria do przetworów</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kiełkowanie i podłoża</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Nawadnianie i mierniki glebowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Mocowanie roślin i Odstraszacze</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Szklarnie, tunele i akcesoria</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Domki i karmniki</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Młynki, moździerze i gadżety</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Motoryzacja</a>
+                    </div>
+                </div>
+
+                <!-- Termometry -->
+                <div>
+                    <button onclick="toggleAccordion('acc-termometry', this)" class="w-full flex items-center justify-between py-4 focus:outline-none group transition-all">
+                        <div class="flex items-center space-x-4">
+                            <i class="ph ph-thermometer text-2xl text-browin-dark group-hover:text-browin-red transition-colors"></i>
+                            <span class="font-bold text-browin-dark text-[15px] tracking-wide">Termometry</span>
+                        </div>
+                        <i class="ph ph-caret-down text-browin-dark/40 transition-transform duration-300 chevron"></i>
+                    </button>
+                    <div id="acc-termometry" class="hidden flex-col bg-browin-dark/5 rounded-none mb-2 mobile-accordion-content divide-y divide-browin-dark/5">
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Temperatura otoczenia</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kuchenne do mięs i wędlin</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Do wina i piwa</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Lodówkowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Kąpielowe</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Specjalistyczne i zoologiczne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Stacje pogody - Elektroniczne</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Stacje pogody - Retro</a>
+                        <a href="#" class="block py-3 px-6 text-[13px] font-bold text-browin-dark hover:text-browin-red transition-colors">Czujniki bezprzewodowe</a>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Solid Divider -->
+            <div class="h-2 w-full bg-browin-gray my-4 shrink-0 border-y border-browin-dark/5"></div>
+
+            <!-- Utilities / Tools Grid -->
+            <div class="px-4 shrink-0">
+                <h3 class="font-bold text-browin-dark/50 text-[10px] uppercase tracking-wider mb-4 ml-1">Narzędzia i wsparcie</h3>
+                <div class="grid grid-cols-6 gap-3 mb-6">
+                    <a href="#" class="col-span-2 bg-browin-dark/5 p-3 flex flex-col items-center justify-center text-center border border-browin-dark/10 hover:border-browin-red transition-colors group aspect-square rounded-none">
+                        <i class="ph ph-calculator text-2xl text-browin-dark mb-2 group-hover:text-browin-red transition-colors"></i>
+                        <span class="font-bold text-browin-dark text-[10px] leading-tight">Kalkulatory</span>
+                    </a>
+                    <a href="#" class="col-span-2 bg-browin-red border border-browin-red p-3 flex flex-col items-center justify-center text-center hover:bg-browin-red/90 transition-colors group aspect-square rounded-none shadow-sharp">
+                        <i class="ph-fill ph-book-open text-2xl text-browin-white mb-2 group-hover:scale-110 transition-transform"></i>
+                        <span class="font-extrabold text-browin-white text-[10px] leading-tight">Przepiśnik</span>
+                    </a>
+                    <a href="#" class="col-span-2 bg-browin-dark/5 p-3 flex flex-col items-center justify-center text-center border border-browin-dark/10 hover:border-browin-red transition-colors group aspect-square rounded-none">
+                        <i class="ph ph-sliders text-2xl text-browin-dark mb-2 group-hover:text-browin-red transition-colors"></i>
+                        <span class="font-bold text-browin-dark text-[10px] leading-tight">Konfigurator</span>
+                    </a>
+                    <a href="#" class="col-span-3 bg-browin-dark/5 p-3 flex flex-col items-center justify-center text-center border border-browin-dark/10 hover:border-browin-red transition-colors group aspect-[3/2] rounded-none">
+                        <i class="ph ph-gift text-2xl text-browin-dark mb-2 group-hover:text-browin-red transition-colors"></i>
+                        <span class="font-bold text-browin-dark text-[11px] uppercase tracking-wide">Karty podarunkowe</span>
+                    </a>
+                    <a href="#" class="col-span-3 bg-browin-dark/5 p-3 flex flex-col items-center justify-center text-center border border-browin-dark/10 hover:border-browin-red transition-colors group aspect-[3/2] rounded-none">
+                        <i class="ph ph-handshake text-2xl text-browin-dark mb-2 group-hover:text-browin-red transition-colors"></i>
+                        <span class="font-bold text-browin-dark text-[11px] uppercase tracking-wide">Nasze usługi</span>
+                    </a>
+                </div>
+            </div>
+        </div> 
+    </div>
+
+    <!-- 7. MOBILE BOTTOM NAV (Modified Cart Drawer trigger) -->
+    <div class="md:hidden fixed bottom-0 left-0 w-full bg-browin-white border-t border-browin-dark/10 shadow-[0_-10px_20px_-10px_rgba(0,0,0,0.1)] z-50 px-8 py-2 flex justify-between items-center text-browin-dark/60 pb-safe">
+        <a href="#" class="flex flex-col items-center text-browin-red w-16">
+            <i class="ph-fill ph-house text-[26px] mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase">Główna</span>
+        </a>
+        <button onclick="toggleMobileMenu()" class="flex flex-col items-center hover:text-browin-red transition-colors focus:outline-none w-16">
+            <i class="ph ph-list text-[26px] mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase">Kategorie</span>
+        </button>
+        <a href="#" class="flex flex-col items-center hover:text-browin-red transition-colors relative w-16">
+            <i class="ph ph-book-open text-[26px] mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase">Przepisy</span>
+        </a>
+        <button onclick="toggleCartDrawer(event)" class="flex flex-col items-center hover:text-browin-red transition-colors relative w-16 focus:outline-none">
+            <i class="ph ph-shopping-cart text-[26px] text-browin-dark mb-0.5"></i>
+            <span class="text-[9px] font-bold uppercase text-browin-dark">Koszyk</span>
+            <span class="absolute -top-1 right-2 bg-browin-red text-browin-white text-[9px] font-bold w-4 h-4 rounded-full flex items-center justify-center">2</span>
+        </button>
+    </div>
+
+    <!-- 8. CART DRAWER COMPONENT -->
+    <div id="cart-drawer-overlay" class="fixed inset-0 bg-browin-dark/50 z-[70] hidden opacity-0 transition-opacity duration-300" onclick="toggleCartDrawer()"></div>
+    <div id="cart-drawer" class="fixed top-0 right-0 h-full w-full sm:w-[400px] bg-browin-white z-[80] transform translate-x-full transition-transform duration-300 flex flex-col shadow-panel">
+        
+        <!-- Header -->
+        <div class="flex items-center justify-between p-5 border-b border-browin-dark/10 bg-browin-white shrink-0">
+            <h2 class="text-xl font-extrabold text-browin-dark uppercase tracking-wide">Twój Koszyk (2)</h2>
+            <button onclick="toggleCartDrawer()" class="text-browin-dark hover:text-browin-red transition-colors bg-browin-dark/5 p-2 focus:outline-none">
+                <i class="ph ph-x text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Free Shipping Progression -->
+        <div class="p-5 bg-browin-gray border-b border-browin-dark/10 shrink-0">
+            <p class="text-[13px] font-bold text-browin-dark mb-3">Brakuje Ci <span class="text-browin-red">30,01 zł</span> do darmowej dostawy!</p>
+            <div class="w-full bg-browin-dark/10 h-2 rounded-none overflow-hidden">
+                <div class="bg-browin-red h-full w-[80%]"></div>
+            </div>
+        </div>
+
+        <!-- Product List -->
+        <div class="flex-1 overflow-y-auto p-5 space-y-6 no-scrollbar">
+            
+            <!-- Item 1 -->
+            <div class="flex gap-4 group">
+                <div class="w-20 h-20 bg-browin-white border border-browin-dark/10 p-1 flex-shrink-0">
+                    <img src="./produkt1.webp" alt="Produkt" class="w-full h-full object-contain">
+                </div>
+                <div class="flex-1 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-[13px] font-bold text-browin-dark leading-tight pr-2">Aromat dymu wędzarniczego w płynie – wiśniowy, 250ml</h3>
+                        <button class="text-browin-dark/30 hover:text-browin-red transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                    </div>
+                    <div class="flex justify-between items-end mt-2">
+                        <div class="flex items-center border border-browin-dark/10 bg-browin-gray">
+                            <button class="w-7 h-7 flex items-center justify-center hover:bg-browin-dark hover:text-browin-white text-browin-dark transition-colors font-bold">-</button>
+                            <span class="w-8 text-center text-[13px] font-bold">1</span>
+                            <button class="w-7 h-7 flex items-center justify-center hover:bg-browin-dark hover:text-browin-white text-browin-dark transition-colors font-bold">+</button>
+                        </div>
+                        <span class="font-extrabold text-[15px] text-browin-dark">19,99 zł</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Item 2 -->
+            <div class="flex gap-4 group">
+                <div class="w-20 h-20 bg-browin-white border border-browin-dark/10 p-1 flex-shrink-0">
+                    <img src="./produkt2.webp" alt="Produkt" class="w-full h-full object-contain">
+                </div>
+                <div class="flex-1 flex flex-col justify-between">
+                    <div class="flex justify-between items-start">
+                        <h3 class="text-[13px] font-bold text-browin-dark leading-tight pr-2">Jelita naturalne wieprzowe kal. 28/30 mm, 20 m</h3>
+                        <button class="text-browin-dark/30 hover:text-browin-red transition-colors"><i class="ph ph-trash text-lg"></i></button>
+                    </div>
+                    <div class="flex justify-between items-end mt-2">
+                        <div class="flex items-center border border-browin-dark/10 bg-browin-gray">
+                            <button class="w-7 h-7 flex items-center justify-center hover:bg-browin-dark hover:text-browin-white text-browin-dark transition-colors font-bold">-</button>
+                            <span class="w-8 text-center text-[13px] font-bold">1</span>
+                            <button class="w-7 h-7 flex items-center justify-center hover:bg-browin-dark hover:text-browin-white text-browin-dark transition-colors font-bold">+</button>
+                        </div>
+                        <span class="font-extrabold text-[15px] text-browin-dark">24,99 zł</span>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- Footer -->
+        <div class="p-5 border-t border-browin-dark/10 bg-browin-gray shrink-0">
+            <div class="flex justify-between items-center mb-4">
+                <span class="text-[13px] font-bold text-browin-dark/70 uppercase tracking-wider">Suma:</span>
+                <span class="text-2xl font-extrabold text-browin-dark tracking-tight">149,99 zł</span>
+            </div>
+            <button class="checkout-cta w-full py-4 bg-browin-red hover:bg-browin-dark text-browin-white font-extrabold transition-colors uppercase tracking-wide text-sm shadow-sharp">
+                Przejdź do kasy <i class="ph ph-arrow-right ml-2 text-lg align-text-bottom"></i>
+            </button>
+        </div>
+    </div>
+
+
+    <!-- JS for Interactivity -->
+    <script>
+        // --- DESKTOP MEGA MENU (HOVER TUNNEL FIX) ---
+        let megaMenuTimeout;
+        let intentTimeout;
+
+        function showDesktopSubmenu(catId) {
+            clearTimeout(megaMenuTimeout);
+            clearTimeout(intentTimeout);
+
+            const panel = document.getElementById('desktop-mega-panel');
+            
+            panel.classList.remove('hidden');
+            panel.classList.add('flex');
+            
+            setTimeout(() => {
+                panel.classList.remove('opacity-0');
+                panel.classList.add('opacity-100');
+            }, 10);
+
+            document.querySelectorAll('.desktop-submenu').forEach(el => el.classList.add('hidden'));
+            
+            document.querySelectorAll('.desktop-cat-tab').forEach(el => {
+                el.classList.remove('bg-browin-white', 'text-browin-red', 'z-40', 'w-[calc(100%+2px)]', 'border-browin-dark/10', 'border-r-transparent', '-mr-[1px]', 'border-y', 'border-l');
+                el.classList.add('text-browin-dark', 'hover:bg-browin-dark/5', 'w-full', 'border-transparent');
+                
+                const arrow = el.querySelector('.tab-arrow');
+                if(arrow) { arrow.classList.remove('opacity-0'); arrow.classList.add('opacity-40'); }
+            });
+
+            const content = document.getElementById('content-' + catId);
+            if(content) content.classList.remove('hidden');
+
+            const tab = document.getElementById('tab-' + catId);
+            if(tab) {
+                tab.classList.remove('text-browin-dark', 'hover:bg-browin-dark/5', 'w-full', 'border-transparent');
+                tab.classList.add('bg-browin-white', 'text-browin-red', 'z-40', 'w-[calc(100%+2px)]', '-mr-[1px]', 'border-y', 'border-l', 'border-browin-dark/10', 'border-r-transparent');
+                
+                const arrow = tab.querySelector('.tab-arrow');
+                if(arrow) { arrow.classList.remove('opacity-40'); arrow.classList.add('opacity-0'); }
+            }
+        }
+
+        function hideDesktopMegaMenu() {
+            clearTimeout(intentTimeout);
+            
+            // 150ms Debounce przy wyjeżdżaniu kursorem poza obszar CAŁEGO menu
+            megaMenuTimeout = setTimeout(() => {
+                const panel = document.getElementById('desktop-mega-panel');
+                panel.classList.remove('opacity-100');
+                panel.classList.add('opacity-0');
+                
+                setTimeout(() => {
+                    panel.classList.add('hidden');
+                    panel.classList.remove('flex');
+                }, 150);
+                
+                document.querySelectorAll('.desktop-cat-tab').forEach(el => {
+                    el.classList.remove('bg-browin-white', 'text-browin-red', 'z-40', 'w-[calc(100%+2px)]', 'border-browin-dark/10', 'border-r-transparent', 'border-y', 'border-l', '-mr-[1px]');
+                    el.classList.add('text-browin-dark', 'hover:bg-browin-dark/5', 'w-full', 'border-transparent');
+                    
+                    const arrow = el.querySelector('.tab-arrow');
+                    if(arrow) { arrow.classList.remove('opacity-0'); arrow.classList.add('opacity-40'); }
+                });
+            }, 150); 
+        }
+
+        // Zabezpieczenie przed zamknięciem, gdy użytkownik porusza się wewnątrz panelu
+        function cancelHideDesktopMegaMenu() {
+            clearTimeout(megaMenuTimeout);
+        }
+
+        // --- MOBILE MENU LOGIC (ACCORDIONS) ---
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-mega-menu');
+            if (menu.classList.contains('-translate-x-full')) {
+                menu.classList.remove('-translate-x-full');
+                document.body.style.overflow = 'hidden'; 
+            } else {
+                menu.classList.add('-translate-x-full');
+                document.body.style.overflow = ''; 
+            }
+        }
+
+        function toggleAccordion(id, btn) {
+            const acc = document.getElementById(id);
+            const chevron = btn.querySelector('.chevron');
+            
+            // Auto zamykanie innych akordeonów
+            document.querySelectorAll('.mobile-accordion-content').forEach(el => {
+                if(el.id !== id) {
+                    el.classList.add('hidden');
+                    el.previousElementSibling.querySelector('.chevron').classList.remove('rotate-180');
+                }
+            });
+
+            if(acc.classList.contains('hidden')) {
+                acc.classList.remove('hidden');
+                chevron.classList.add('rotate-180');
+            } else {
+                acc.classList.add('hidden');
+                chevron.classList.remove('rotate-180');
+            }
+        }
+
+        function toggleMobileLang() {
+            const langMenu = document.getElementById('mobile-lang-menu');
+            if (langMenu.classList.contains('hidden')) {
+                langMenu.classList.remove('hidden');
+                langMenu.classList.add('flex');
+            } else {
+                langMenu.classList.add('hidden');
+                langMenu.classList.remove('flex');
+            }
+        }
+
+        // --- CART DRAWER LOGIC ---
+        function toggleCartDrawer(e) {
+            if(e) e.preventDefault();
+            const drawer = document.getElementById('cart-drawer');
+            const overlay = document.getElementById('cart-drawer-overlay');
+            
+            if (drawer.classList.contains('translate-x-full')) {
+                drawer.classList.remove('translate-x-full');
+                overlay.classList.remove('hidden');
+                setTimeout(() => overlay.classList.remove('opacity-0'), 10);
+                document.body.style.overflow = 'hidden';
+            } else {
+                drawer.classList.add('translate-x-full');
+                overlay.classList.add('opacity-0');
+                setTimeout(() => overlay.classList.add('hidden'), 300);
+                document.body.style.overflow = '';
+            }
+        }
+
+        // --- HERO SLIDER LOGIC (AUTOPLAY REMOVED) ---
+        let currentSlide = 0;
+        const totalSlides = 3;
+        
+        // Touch variables for mobile swipe
+        let touchStartX = 0;
+        let touchEndX = 0;
+
+        function updateSlider() {
+            const slider = document.getElementById('hero-slider');
+            if(!slider) return;
+            
+            slider.style.transform = `translateX(-${currentSlide * 100}%)`;
+            
+            const dots = document.querySelectorAll('.slider-dot');
+            dots.forEach((dot, index) => {
+                if(index === currentSlide) {
+                    dot.classList.remove('bg-browin-white/50', 'w-2');
+                    dot.classList.add('bg-browin-red', 'w-4');
+                } else {
+                    dot.classList.add('bg-browin-white/50', 'w-2');
+                    dot.classList.remove('bg-browin-red', 'w-4');
+                }
+            });
+        }
+
+        function nextSlide(e) {
+            if(e) e.stopPropagation();
+            currentSlide = (currentSlide + 1) % totalSlides;
+            updateSlider();
+        }
+
+        function prevSlide(e) {
+            if(e) e.stopPropagation();
+            currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+            updateSlider();
+        }
+
+        function goToSlide(index, e) {
+            if(e) e.stopPropagation();
+            currentSlide = index;
+            updateSlider();
+        }
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            if (touchEndX < touchStartX - swipeThreshold) {
+                nextSlide();
+            }
+            if (touchEndX > touchStartX + swipeThreshold) {
+                prevSlide();
+            }
+        }
+
+        // Initialize slider touch events when page loads (interval completely removed)
+        document.addEventListener('DOMContentLoaded', () => {
+            const sliderContainer = document.getElementById('hero-slider');
+            if(sliderContainer) {
+                const parent = sliderContainer.parentElement;
+                parent.addEventListener('touchstart', e => {
+                    touchStartX = e.changedTouches[0].screenX;
+                }, {passive: true});
+
+                parent.addEventListener('touchend', e => {
+                    touchEndX = e.changedTouches[0].screenX;
+                    handleSwipe();
+                }, {passive: true});
+            }
+        });
+    </script>
+</body>
+</html>

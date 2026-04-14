@@ -1,0 +1,1376 @@
+"use client";
+
+import {
+  ArrowLeft,
+  Minus,
+  Plus,
+  ShoppingCart,
+  Star,
+} from "@phosphor-icons/react";
+import Image from "next/image";
+import Link from "next/link";
+import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+
+import { StoreIcon } from "@/components/store/icon-map";
+import { ProductCard } from "@/components/store/product-card";
+import { useCart } from "@/components/store/cart-provider";
+import type { Product } from "@/data/products";
+import { categories } from "@/data/store";
+import {
+  formatCurrency,
+  freeShippingThreshold,
+  getDiscountPercent,
+  getPrimaryVariant,
+  getVariantById,
+} from "@/lib/catalog";
+
+type ProductDetailProps = {
+  product: Product;
+  relatedProducts: Product[];
+};
+
+type VariantSelectorProps = {
+  product: Product;
+  selectedVariantId: string;
+  onSelect: (variantId: string) => void;
+  compact?: boolean;
+};
+
+type QuantitySelectorProps = {
+  quantity: number;
+  onDecrease: () => void;
+  onIncrease: () => void;
+  className?: string;
+  compact?: boolean;
+};
+
+type ReviewBreakdownItem = {
+  stars: number;
+  count: number;
+  percent: number;
+};
+
+type ReviewCard = {
+  author: string;
+  body: string;
+  rating: number;
+  title: string;
+  verified: boolean;
+  meta: string;
+};
+
+type TrustSignal = {
+  icon: "shield" | "timer" | "truck";
+  label: string;
+  value: string;
+  detail: string;
+};
+
+type SocialSignal = {
+  icon: "users" | "timer" | "truck";
+  label: string;
+  value: string;
+};
+
+const reviewAuthors = ["Anna K.", "Marek D.", "Julia P."] as const;
+const reviewTitles = [
+  "Dobry wybor w tej kategorii",
+  "Jasna oferta i sprawna realizacja",
+  "Warto miec pod reka przy kolejnych zakupach",
+] as const;
+const reviewMoments = [
+  "Kupiono 2 tygodnie temu",
+  "Kupiono w ostatnim miesiacu",
+  "Kupiono 3 miesiace temu",
+] as const;
+
+const resolveImageGestureLock = (deltaX: number, deltaY: number) => {
+  const absX = Math.abs(deltaX);
+  const absY = Math.abs(deltaY);
+
+  if (absX < 8 && absY < 8) {
+    return null;
+  }
+
+  return absX >= absY * 0.65 ? "horizontal" : "vertical";
+};
+
+const getLeadTimeDays = (leadTime: string) => {
+  const hours = Number.parseInt(leadTime, 10);
+
+  if (Number.isNaN(hours) || hours <= 0) {
+    return 1;
+  }
+
+  return Math.max(1, Math.ceil(hours / 24));
+};
+
+const getDeliveryEstimateLabel = (leadTime: string) => {
+  const deliveryDate = new Date();
+  deliveryDate.setDate(deliveryDate.getDate() + getLeadTimeDays(leadTime));
+
+  return new Intl.DateTimeFormat("pl-PL", {
+    day: "numeric",
+    month: "short",
+    weekday: "short",
+  }).format(deliveryDate);
+};
+
+const buildReviewBreakdown = (totalReviews: number, averageRating: number) => {
+  if (totalReviews <= 0) {
+    return [
+      { stars: 5, count: 0, percent: 0 },
+      { stars: 4, count: 0, percent: 0 },
+      { stars: 3, count: 0, percent: 0 },
+      { stars: 2, count: 0, percent: 0 },
+      { stars: 1, count: 0, percent: 0 },
+    ] satisfies ReviewBreakdownItem[];
+  }
+
+  const ratingDelta = Math.max(-0.6, Math.min(0.9, averageRating - 4.2));
+  const weights = [
+    0.56 + ratingDelta * 0.34,
+    0.24 - ratingDelta * 0.14,
+    0.11 - ratingDelta * 0.07,
+    0.06 - ratingDelta * 0.08,
+    0.03 - ratingDelta * 0.05,
+  ];
+  const normalizedWeights = (() => {
+    const total = weights.reduce((sum, weight) => sum + Math.max(weight, 0.01), 0);
+
+    return weights.map((weight) => Math.max(weight, 0.01) / total);
+  })();
+  const counts = normalizedWeights.map((weight) => Math.round(weight * totalReviews));
+  const difference = totalReviews - counts.reduce((sum, count) => sum + count, 0);
+
+  counts[0] += difference;
+
+  return [5, 4, 3, 2, 1].map((stars, index) => ({
+    stars,
+    count: counts[index] ?? 0,
+    percent: Math.round(((counts[index] ?? 0) / totalReviews) * 100),
+  }));
+};
+
+const buildReviewCards = (product: Product) => {
+  const reviewBodies = [
+    product.shortDescription,
+    product.features[0] ?? product.description,
+    product.benefits[0] ?? product.longDescription,
+  ];
+
+  return reviewBodies.map((body, index) => ({
+    author: reviewAuthors[index] ?? `Klient ${index + 1}`,
+    body,
+    meta: reviewMoments[index] ?? "Kupiono niedawno",
+    rating: index === 2 ? Math.max(4, Math.round(product.rating)) : 5,
+    title: reviewTitles[index] ?? "Zweryfikowany zakup",
+    verified: true,
+  })) satisfies ReviewCard[];
+};
+
+function VariantSelector({
+  onSelect,
+  product,
+  selectedVariantId,
+  compact = false,
+}: VariantSelectorProps) {
+  return (
+    <div className={`grid grid-cols-3 ${compact ? "gap-2" : "gap-3"}`}>
+      {product.variants.map((variant) => {
+        const isActive = selectedVariantId === variant.id;
+
+        return (
+          <button
+            className={`flex w-full flex-col border text-left transition-colors ${
+              compact ? "px-3 py-2" : "px-3 py-2.5"
+            } ${
+              isActive
+                ? "border-browin-red bg-browin-red text-browin-white"
+                : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red/45"
+            }`}
+            key={variant.id}
+            onClick={() => onSelect(variant.id)}
+            type="button"
+          >
+            <p
+              className={`leading-tight ${compact ? "text-[0.95rem]" : "text-sm"} font-bold ${
+                isActive ? "text-browin-white" : "text-browin-dark"
+              }`}
+            >
+              {variant.label}
+            </p>
+            <p
+              className={`font-semibold ${
+                compact ? "text-sm" : "text-sm"
+              } ${isActive ? "text-browin-white/85" : "text-browin-dark/60"}`}
+            >
+              {formatCurrency(variant.price)}
+            </p>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function QuantitySelector({
+  className = "",
+  compact = false,
+  onDecrease,
+  onIncrease,
+  quantity,
+}: QuantitySelectorProps) {
+  const wrapperSizeClass = compact ? "min-h-11" : "min-h-12 md:min-h-14";
+  const buttonWidthClass = compact ? "w-11" : "w-12 md:w-14";
+  const valueClass = compact
+    ? "min-w-[3.75rem] px-3 text-base"
+    : "min-w-[4.5rem] px-4 text-lg md:text-xl";
+
+  return (
+    <div
+      className={`flex items-stretch border border-browin-dark/10 bg-browin-gray ${wrapperSizeClass} ${className}`}
+    >
+      <button
+        className={`flex h-auto self-stretch items-center justify-center border-r border-browin-dark/10 text-browin-dark transition-colors hover:bg-browin-dark hover:text-browin-white ${buttonWidthClass}`}
+        onClick={onDecrease}
+        type="button"
+      >
+        <Minus size={16} />
+      </button>
+      <span
+        className={`flex flex-1 self-stretch items-center justify-center font-extrabold text-browin-dark ${valueClass}`}
+      >
+        {quantity}
+      </span>
+      <button
+        className={`flex h-auto self-stretch items-center justify-center border-l border-browin-dark/10 text-browin-dark transition-colors hover:bg-browin-dark hover:text-browin-white ${buttonWidthClass}`}
+        onClick={onIncrease}
+        type="button"
+      >
+        <Plus size={16} />
+      </button>
+    </div>
+  );
+}
+
+function TrustSummary({
+  compact = false,
+  orderValue,
+  selectedVariantLeadTime,
+}: {
+  compact?: boolean;
+  orderValue: number;
+  selectedVariantLeadTime: string;
+}) {
+  const deliveryDateLabel = getDeliveryEstimateLabel(selectedVariantLeadTime);
+  const amountToFreeShipping = Math.max(freeShippingThreshold - orderValue, 0);
+  const qualifiesForFreeShipping = amountToFreeShipping === 0;
+  const trustSignals: TrustSignal[] = [
+    {
+      icon: "truck",
+      label: "Dostawa",
+      value: `Do ${deliveryDateLabel}`,
+      detail: qualifiesForFreeShipping
+        ? "Darmowa dostawa odblokowana"
+        : `Od 9,99 zl • darmowa od ${formatCurrency(freeShippingThreshold)}`,
+    },
+    {
+      icon: "timer",
+      label: "Zwrot",
+      value: "14 dni bez ryzyka",
+      detail: "Czytelna polityka zwrotow i szybka obsluga",
+    },
+    {
+      icon: "shield",
+      label: "Sprzedawca",
+      value: "BROWIN",
+      detail: "Producent i obsluga w jednym miejscu",
+    },
+  ];
+
+  return (
+    <div
+      className={
+        compact
+          ? ""
+          : "rounded-sm border border-browin-dark/10 bg-browin-gray/60 p-4"
+      }
+    >
+      <div className="product-detail-buybox-trust-grid grid gap-3 md:grid-cols-3">
+        {trustSignals.map((signal) => (
+          <div
+            className={`product-detail-buybox-trust-card grid grid-cols-[auto_minmax(0,1fr)] items-start gap-3 border border-browin-dark/10 bg-browin-white ${
+              compact ? "px-3 py-2" : "px-3 py-3"
+            }`}
+            key={signal.label}
+          >
+            <div className="mt-0.5 text-browin-red">
+              <StoreIcon icon={signal.icon} size={18} weight="fill" />
+            </div>
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                {signal.label}
+              </p>
+              <p
+                className={`mt-1 font-bold leading-snug text-browin-dark ${
+                  compact ? "text-[13px]" : "text-sm"
+                }`}
+              >
+                {signal.value}
+              </p>
+              {!compact ? (
+                <p className="mt-1 text-xs leading-relaxed text-browin-dark/62">
+                  {signal.detail}
+                </p>
+              ) : null}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {!qualifiesForFreeShipping && !compact ? (
+        <div className="mt-3 rounded-sm border border-browin-red/18 bg-browin-white px-3 py-3 text-xs leading-relaxed text-browin-dark/72">
+          Brakuje <span className="font-extrabold text-browin-dark">{formatCurrency(amountToFreeShipping)}</span> do darmowej dostawy.
+        </div>
+      ) : null}
+
+    </div>
+  );
+}
+
+function SocialSignals({
+  compact = false,
+  includeReviewButton = true,
+  includeShipmentSignal = true,
+  leadTime,
+  onReviewClick,
+  product,
+}: {
+  compact?: boolean;
+  includeReviewButton?: boolean;
+  includeShipmentSignal?: boolean;
+  leadTime: string;
+  onReviewClick: () => void;
+  product: Product;
+}) {
+  const deliveryLabel = getLeadTimeDays(leadTime) === 1 ? "Wysylka jutro" : "Wysylka do 48h";
+  const signals: SocialSignal[] = [
+    { icon: "users", label: "Oglada teraz", value: `${product.viewingNow}` },
+    { icon: "timer", label: "Kupiono w 30 dni", value: `${product.soldLast30Days}` },
+    ...(includeShipmentSignal
+      ? [{ icon: "truck", label: "Status wysylki", value: deliveryLabel } as const]
+      : []),
+  ];
+
+  if (compact) {
+    return (
+      <div
+        className={`grid gap-2 ${
+          includeReviewButton
+            ? includeShipmentSignal
+              ? "grid-cols-2 xl:grid-cols-4"
+              : "grid-cols-3"
+            : "grid-cols-3"
+        }`}
+      >
+        {includeReviewButton ? (
+          <button
+            className={`flex items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-2.5 text-left transition-colors hover:border-browin-red ${
+              includeShipmentSignal ? "col-span-2 xl:col-span-1" : ""
+            }`}
+            onClick={onReviewClick}
+            type="button"
+          >
+            <div className="flex items-center gap-2 text-browin-red">
+              <Star size={16} weight="fill" />
+              <span className="text-sm font-extrabold text-browin-dark">
+                {product.rating.toFixed(1)}
+              </span>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-semibold text-browin-dark">{product.reviews} opinii</p>
+              <p className="text-[10px] uppercase tracking-[0.12em] text-browin-dark/45">
+                Opinie
+              </p>
+            </div>
+          </button>
+        ) : null}
+
+        {signals.map((signal) => (
+          <div
+            className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-browin-dark/10 bg-browin-white px-2.5 py-2.5"
+            key={signal.label}
+          >
+            <div className="mt-0.5 text-browin-red">
+              <StoreIcon icon={signal.icon} size={16} weight="fill" />
+            </div>
+            <div>
+              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-browin-dark/45">
+                {signal.label}
+              </p>
+              <p className="mt-1 text-[13px] font-bold leading-snug text-browin-dark">
+                {signal.value}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  return (
+    <div className="grid gap-3 md:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
+      {includeReviewButton ? (
+        <button
+          className="flex items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-3 text-left transition-colors hover:border-browin-red"
+          onClick={onReviewClick}
+          type="button"
+        >
+          <div className="flex items-center gap-2 text-browin-red">
+            <Star size={16} weight="fill" />
+            <span className="text-sm font-extrabold text-browin-dark">
+              {product.rating.toFixed(1)}
+            </span>
+          </div>
+          <div className="text-right">
+            <p className="text-sm font-semibold text-browin-dark">{product.reviews} opinii</p>
+            <p className="text-[11px] uppercase tracking-[0.12em] text-browin-dark/45">
+              Zobacz recenzje
+            </p>
+          </div>
+        </button>
+      ) : null}
+
+      {signals.map((signal) => (
+        <div
+          className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 border border-browin-dark/10 bg-browin-white px-3 py-3"
+          key={signal.label}
+        >
+          <div className="mt-0.5 text-browin-red">
+            <StoreIcon icon={signal.icon} size={18} weight="fill" />
+          </div>
+          <div>
+            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+              {signal.label}
+            </p>
+            <p className="mt-1 text-sm font-bold text-browin-dark">{signal.value}</p>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ReviewsSection({
+  product,
+  sectionId,
+}: {
+  product: Product;
+  sectionId: string;
+}) {
+  const reviewBreakdown = buildReviewBreakdown(product.reviews, product.rating);
+  const reviewCards = buildReviewCards(product);
+  const recommendationPercent = Math.max(
+    84,
+    Math.min(98, Math.round(product.rating * 18 + 6)),
+  );
+
+  return (
+    <section
+      className="border border-browin-dark/10 bg-browin-white p-5 md:p-6"
+      id={sectionId}
+    >
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+            Opinie klientow
+          </p>
+          <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark">
+            Co pomaga podjac decyzje
+          </h2>
+        </div>
+
+        <div className="rounded-sm border border-browin-dark/10 bg-browin-gray px-4 py-3">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+            Poleca produkt
+          </p>
+          <p className="mt-1 text-xl font-extrabold text-browin-dark">
+            {recommendationPercent}%
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
+        <div className="rounded-sm border border-browin-dark/10 bg-browin-gray p-4">
+          <div className="flex items-center gap-3">
+            <div className="flex h-14 w-14 items-center justify-center bg-browin-white text-browin-red shadow-sm">
+              <Star size={26} weight="fill" />
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold tracking-tight text-browin-dark">
+                {product.rating.toFixed(1)}
+              </p>
+              <p className="text-sm text-browin-dark/65">
+                Srednia z {product.reviews} opinii
+              </p>
+            </div>
+          </div>
+
+          <div className="mt-5 space-y-3">
+            {reviewBreakdown.map((item) => (
+              <div className="grid grid-cols-[2.2rem_minmax(0,1fr)_3rem] items-center gap-3" key={item.stars}>
+                <span className="text-sm font-bold text-browin-dark">{item.stars}★</span>
+                <div className="h-2.5 overflow-hidden rounded-full bg-browin-white">
+                  <div
+                    className="h-full rounded-full bg-browin-red"
+                    style={{ width: `${item.percent}%` }}
+                  />
+                </div>
+                <span className="text-right text-sm text-browin-dark/65">{item.count}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-5 flex flex-wrap gap-2">
+            {["Zweryfikowany zakup", "Dostawa zgodna z obietnica", "Czytelna oferta"].map(
+              (tag) => (
+                <span
+                  className="border border-browin-dark/10 bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/72"
+                  key={tag}
+                >
+                  {tag}
+                </span>
+              ),
+            )}
+          </div>
+        </div>
+
+        <div className="grid gap-4">
+          {reviewCards.map((review) => (
+            <article className="border border-browin-dark/10 bg-browin-gray p-4" key={review.author}>
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-1.5 text-browin-red">
+                    {Array.from({ length: 5 }, (_, index) => (
+                      <Star
+                        key={`${review.author}-${index}`}
+                        size={14}
+                        weight={index < review.rating ? "fill" : "regular"}
+                      />
+                    ))}
+                  </div>
+                  <h3 className="mt-2 text-base font-extrabold text-browin-dark">
+                    {review.title}
+                  </h3>
+                </div>
+
+                {review.verified ? (
+                  <span className="border border-browin-red/16 bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-red">
+                    Zweryfikowany zakup
+                  </span>
+                ) : null}
+              </div>
+
+              <p className="mt-3 text-sm leading-relaxed text-browin-dark/72">{review.body}</p>
+
+              <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] text-browin-dark/55">
+                <span className="font-bold text-browin-dark">{review.author}</span>
+                <span>{review.meta}</span>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function MobileSection({
+  children,
+  defaultOpen = false,
+  title,
+}: {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+  title: string;
+}) {
+  return (
+    <details
+      className="border border-browin-dark/10 bg-browin-white"
+      open={defaultOpen}
+    >
+      <summary className="cursor-pointer list-none px-4 py-4 text-xl font-extrabold uppercase tracking-tight text-browin-dark">
+        {title}
+      </summary>
+      <div className="border-t border-browin-dark/10 px-4 py-4">{children}</div>
+    </details>
+  );
+}
+
+export function ProductDetail({ product, relatedProducts }: ProductDetailProps) {
+  const { addItem } = useCart();
+  const defaultVariant = getPrimaryVariant(product);
+  const category = categories.find((entry) => entry.id === product.categoryId);
+  const categoryHref = category ? `/kategoria/${category.slug}` : "/produkty";
+  const mobileGalleryRef = useRef<HTMLDivElement | null>(null);
+  const mobilePrimaryCtaRef = useRef<HTMLButtonElement | null>(null);
+  const imageTouchStartX = useRef<number | null>(null);
+  const imageTouchStartY = useRef<number | null>(null);
+  const imageGestureLock = useRef<"horizontal" | "vertical" | null>(null);
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [imageTransitionDirection, setImageTransitionDirection] = useState<
+    "forward" | "backward"
+  >("forward");
+  const [isMobileStickyVisible, setIsMobileStickyVisible] = useState(false);
+  const [quantity, setQuantity] = useState(1);
+  const [selectedVariantId, setSelectedVariantId] = useState(defaultVariant.id);
+
+  const selectedVariant = getVariantById(product, selectedVariantId);
+  const discount = getDiscountPercent(selectedVariant);
+  const orderValue = selectedVariant.price * quantity;
+  const amountToFreeShipping = Math.max(freeShippingThreshold - orderValue, 0);
+  const stockLabel =
+    selectedVariant.stock > 0
+      ? `${selectedVariant.stock} szt.`
+      : "Chwilowo niedostepny";
+  const deliveryDateLabel = getDeliveryEstimateLabel(selectedVariant.leadTime);
+  const handleAddToCart = () => addItem(product.id, selectedVariant.id, quantity);
+
+  const scrollToReviews = () => {
+    const targetId =
+      window.innerWidth >= 1024 ? "product-reviews-desktop" : "product-reviews-mobile";
+    const targetElement = document.getElementById(targetId);
+
+    if (!targetElement) {
+      return;
+    }
+
+    if (window.innerWidth < 1024) {
+      targetElement.closest("details")?.setAttribute("open", "");
+    }
+
+    targetElement.scrollIntoView({
+      behavior: "smooth",
+      block: "start",
+    });
+  };
+
+  const selectImage = (nextIndex: number) => {
+    if (nextIndex === activeImageIndex) {
+      return;
+    }
+
+    setImageTransitionDirection(nextIndex > activeImageIndex ? "forward" : "backward");
+    setActiveImageIndex(nextIndex);
+  };
+
+  const showPreviousImage = () => {
+    setImageTransitionDirection("backward");
+    setActiveImageIndex((current) =>
+      current === 0 ? product.images.length - 1 : current - 1,
+    );
+  };
+
+  const showNextImage = () => {
+    setImageTransitionDirection("forward");
+    setActiveImageIndex((current) => (current + 1) % product.images.length);
+  };
+
+  const resetImageGesture = () => {
+    imageTouchStartX.current = null;
+    imageTouchStartY.current = null;
+    imageGestureLock.current = null;
+  };
+
+  const handleImageTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    imageTouchStartX.current = event.touches[0]?.clientX ?? null;
+    imageTouchStartY.current = event.touches[0]?.clientY ?? null;
+    imageGestureLock.current = null;
+  };
+
+  const handleImageTouchEnd = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (imageTouchStartX.current === null || imageTouchStartY.current === null) {
+      return;
+    }
+
+    const touchEndX = event.changedTouches[0]?.clientX ?? imageTouchStartX.current;
+    const touchEndY = event.changedTouches[0]?.clientY ?? imageTouchStartY.current;
+    const deltaX = touchEndX - imageTouchStartX.current;
+    const deltaY = touchEndY - imageTouchStartY.current;
+    const shouldSwipe =
+      imageGestureLock.current === "horizontal" ||
+      (resolveImageGestureLock(deltaX, deltaY) === "horizontal" && Math.abs(deltaX) >= 24);
+
+    resetImageGesture();
+
+    if (!shouldSwipe) {
+      return;
+    }
+
+    if (deltaX >= 24) {
+      showPreviousImage();
+      return;
+    }
+
+    if (deltaX <= -24) {
+      showNextImage();
+    }
+  };
+
+  useEffect(() => {
+    const gallery = mobileGalleryRef.current;
+
+    if (!gallery) {
+      return;
+    }
+
+    const handleNativeTouchMove = (event: globalThis.TouchEvent) => {
+      if (imageTouchStartX.current === null || imageTouchStartY.current === null) {
+        return;
+      }
+
+      const touch = event.touches[0];
+
+      if (!touch) {
+        return;
+      }
+
+      const deltaX = touch.clientX - imageTouchStartX.current;
+      const deltaY = touch.clientY - imageTouchStartY.current;
+
+      if (imageGestureLock.current === null) {
+        imageGestureLock.current = resolveImageGestureLock(deltaX, deltaY);
+      }
+
+      if (imageGestureLock.current === "horizontal") {
+        event.preventDefault();
+      }
+    };
+
+    gallery.addEventListener("touchmove", handleNativeTouchMove, { passive: false });
+
+    return () => {
+      gallery.removeEventListener("touchmove", handleNativeTouchMove);
+    };
+  }, []);
+
+  useEffect(() => {
+    const cta = mobilePrimaryCtaRef.current;
+
+    if (!cta) {
+      return;
+    }
+
+    let frame = 0;
+
+    const evaluateStickyVisibility = () => {
+      frame = 0;
+
+      if (window.innerWidth >= 768) {
+        setIsMobileStickyVisible(false);
+        return;
+      }
+
+      const ctaRect = cta.getBoundingClientRect();
+      setIsMobileStickyVisible(ctaRect.bottom < 0);
+    };
+
+    const handleViewportChange = () => {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(evaluateStickyVisibility);
+    };
+
+    evaluateStickyVisibility();
+    window.addEventListener("scroll", handleViewportChange, { passive: true });
+    window.addEventListener("resize", handleViewportChange);
+
+    return () => {
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      window.removeEventListener("scroll", handleViewportChange);
+      window.removeEventListener("resize", handleViewportChange);
+    };
+  }, [product.id, selectedVariant.id]);
+
+  return (
+    <section className="product-detail-page bg-browin-gray pt-0 pb-3 md:pb-16 md:pt-0">
+      <div className="w-full px-0 md:container md:mx-auto md:px-4">
+        <div className="border-y border-browin-dark/10 bg-browin-white px-4 py-4 shadow-sm md:border md:px-6 md:py-6 xl:px-8 xl:py-7">
+          <div className="mb-4 hidden md:block">
+            <nav className="min-w-0 flex flex-wrap items-center gap-2 text-sm text-browin-dark/55">
+              <Link className="transition-colors hover:text-browin-red" href="/">
+                Strona glowna
+              </Link>
+              <span>/</span>
+              <Link className="transition-colors hover:text-browin-red" href="/produkty">
+                Produkty
+              </Link>
+              <span>/</span>
+              <Link className="transition-colors hover:text-browin-red" href={categoryHref}>
+                {category?.label ?? "Kategoria"}
+              </Link>
+              <span>/</span>
+              <span className="text-browin-dark">{product.title}</span>
+            </nav>
+          </div>
+
+          <Link
+            className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/55 transition-colors hover:text-browin-red md:hidden"
+            href={categoryHref}
+          >
+            <ArrowLeft size={14} />
+            {category?.label ?? "Wroc do kategorii"}
+          </Link>
+
+          <div className="grid gap-5 lg:hidden">
+            <div className="relative flex w-full justify-center">
+              <div
+                ref={mobileGalleryRef}
+                className="relative aspect-square w-full max-w-[16rem] overflow-hidden bg-browin-white"
+                onTouchCancel={resetImageGesture}
+                onTouchEnd={handleImageTouchEnd}
+                onTouchStart={handleImageTouchStart}
+                style={{ touchAction: "pan-y pinch-zoom" }}
+              >
+                <div
+                  className={`product-image-transition absolute inset-0 ${
+                    imageTransitionDirection === "forward"
+                      ? "product-image-transition-forward"
+                      : "product-image-transition-backward"
+                  }`}
+                  key={`mobile-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
+                >
+                  <Image
+                    alt={product.title}
+                    className="object-contain"
+                    fill
+                    priority
+                    sizes="(max-width: 767px) 220px, 100vw"
+                    src={product.images[activeImageIndex]}
+                  />
+                </div>
+              </div>
+              {product.badge ? (
+                <span className="absolute left-0 top-3 bg-browin-dark px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-browin-white">
+                  {product.badge}
+                </span>
+              ) : null}
+              {discount > 0 ? (
+                <span className="absolute right-0 top-3 bg-browin-red px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-browin-white">
+                  -{discount}%
+                </span>
+              ) : null}
+            </div>
+
+            {product.images.length > 1 ? (
+              <div className="flex items-center justify-center gap-2">
+                {product.images.map((image, index) => {
+                  const isActive = activeImageIndex === index;
+
+                  return (
+                    <button
+                      aria-label={`Pokaz zdjecie ${index + 1}`}
+                      aria-pressed={isActive}
+                      className={`h-2.5 border transition-[width,background-color,border-color] duration-300 ease-out ${
+                        isActive
+                          ? "w-7 border-browin-red bg-browin-red"
+                          : "w-2.5 border-browin-dark/15 bg-browin-white hover:border-browin-dark/35 hover:bg-browin-dark/18"
+                      }`}
+                      key={image}
+                      onClick={() => selectImage(index)}
+                      type="button"
+                    />
+                  );
+                })}
+              </div>
+            ) : null}
+
+            <div className="min-w-0">
+              <h1 className="text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
+                {product.title}
+              </h1>
+            </div>
+
+            <div className="space-y-5">
+              <VariantSelector
+                onSelect={setSelectedVariantId}
+                product={product}
+                selectedVariantId={selectedVariantId}
+              />
+
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3">
+                <div>
+                  {selectedVariant.compareAtPrice ? (
+                    <p className="text-sm font-semibold text-browin-dark/35 line-through">
+                      {formatCurrency(selectedVariant.compareAtPrice)}
+                    </p>
+                  ) : null}
+                  <div className="flex flex-wrap items-end gap-2">
+                    <p className="text-[2rem] font-extrabold tracking-tight text-browin-dark">
+                      {formatCurrency(selectedVariant.price)}
+                    </p>
+                    <span className="pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                      {selectedVariant.label}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="text-right">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                    Dostepnosc
+                  </p>
+                  <p className="mt-1 text-xs font-extrabold text-browin-red pb-1">
+                    {stockLabel}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3">
+                <QuantitySelector
+                  className="w-full"
+                  onDecrease={() => setQuantity((current) => Math.max(current - 1, 1))}
+                  onIncrease={() => setQuantity((current) => current + 1)}
+                  quantity={quantity}
+                />
+
+                <button
+                  className="checkout-cta inline-flex h-12 w-full items-center justify-center gap-2 bg-browin-red px-6 text-sm font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+                  onClick={handleAddToCart}
+                  ref={mobilePrimaryCtaRef}
+                  type="button"
+                >
+                  <ShoppingCart size={20} />
+                  Dodaj do koszyka
+                </button>
+              </div>
+
+              <div className="rounded-sm border border-browin-dark/10 bg-browin-gray/70 px-3 py-3 text-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                      Dostawa i zwrot
+                    </p>
+                    <p className="mt-1 font-bold text-browin-dark">
+                      Dostawa do {deliveryDateLabel}
+                    </p>
+                    <p className="mt-1 text-browin-dark/62">
+                      Od 9,99 zl • 14 dni na zwrot • producent BROWIN
+                    </p>
+                  </div>
+                </div>
+
+                {!amountToFreeShipping ? (
+                  <p className="mt-2 text-xs font-semibold text-browin-red">
+                    Darmowa dostawa aktywna w tym koszyku.
+                  </p>
+                ) : (
+                  <p className="mt-2 text-xs text-browin-dark/62">
+                    Brakuje {formatCurrency(amountToFreeShipping)} do darmowej dostawy.
+                  </p>
+                )}
+              </div>
+
+              <button
+                className="flex w-full items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-2.5 text-left transition-colors hover:border-browin-red"
+                onClick={scrollToReviews}
+                type="button"
+              >
+                <div className="flex items-center gap-2 text-browin-red">
+                  <Star size={15} weight="fill" />
+                  <span className="text-base font-extrabold text-browin-dark">
+                    {product.rating.toFixed(1)}
+                  </span>
+                </div>
+                <div className="text-right">
+                  <p className="text-base font-semibold text-browin-dark">{product.reviews} opinii</p>
+                  <p className="text-[10px] uppercase tracking-[0.12em] text-browin-dark/45">
+                    Zobacz recenzje
+                  </p>
+                </div>
+              </button>
+            </div>
+
+            <MobileSection defaultOpen title="O produkcie">
+              <div className="space-y-4">
+                <p className="text-sm leading-relaxed text-browin-dark/68">
+                  {product.longDescription}
+                </p>
+                <div className="grid gap-3">
+                  {product.benefits.map((benefit) => (
+                    <div
+                      className="border border-browin-dark/10 bg-browin-gray p-4 text-sm font-semibold leading-relaxed text-browin-dark/75"
+                      key={benefit}
+                    >
+                      {benefit}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </MobileSection>
+
+            <MobileSection title="Specyfikacja">
+              <div className="grid gap-3">
+                {product.specs.map((spec) => (
+                  <div
+                    className="grid gap-1 border border-browin-dark/10 bg-browin-gray px-4 py-4"
+                    key={spec.label}
+                  >
+                    <span className="text-sm font-bold text-browin-dark">{spec.label}</span>
+                    <span className="text-sm text-browin-dark/68">{spec.value}</span>
+                  </div>
+                ))}
+              </div>
+            </MobileSection>
+
+            <MobileSection title="FAQ">
+              <div className="space-y-3">
+                {product.faq.map((item) => (
+                  <details
+                    className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
+                    key={item.question}
+                  >
+                    <summary className="cursor-pointer list-none text-sm font-bold text-browin-dark">
+                      {item.question}
+                    </summary>
+                    <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
+                      {item.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </MobileSection>
+
+            <MobileSection title="Opinie">
+              <ReviewsSection product={product} sectionId="product-reviews-mobile" />
+            </MobileSection>
+          </div>
+
+          <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
+            <div className="product-detail-media-stack grid self-start gap-4">
+              <div className="relative flex w-full justify-center">
+                <div className="product-detail-media-frame overflow-hidden bg-browin-white">
+                  <div className="relative aspect-square">
+                    <div
+                      className={`product-image-transition absolute inset-0 ${
+                        imageTransitionDirection === "forward"
+                          ? "product-image-transition-forward"
+                          : "product-image-transition-backward"
+                      }`}
+                      key={`desktop-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
+                    >
+                      <Image
+                        alt={product.title}
+                        className="object-contain"
+                        fill
+                        priority
+                        sizes="(max-width: 1279px) 48vw, 42vw"
+                        src={product.images[activeImageIndex]}
+                      />
+                    </div>
+                  </div>
+                </div>
+                {product.badge ? (
+                  <span className="absolute left-0 top-4 bg-browin-dark px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                    {product.badge}
+                  </span>
+                ) : null}
+                {discount > 0 ? (
+                  <span className="absolute right-0 top-4 bg-browin-red px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                    -{discount}%
+                  </span>
+                ) : null}
+              </div>
+
+              <div className="product-detail-media-thumbs flex flex-wrap items-center justify-center gap-3">
+                {product.images.map((image, index) => (
+                  <button
+                    className={`product-detail-media-thumb relative aspect-square shrink-0 overflow-hidden border bg-browin-white transition-colors ${
+                      activeImageIndex === index
+                        ? "border-browin-red shadow-sharp"
+                        : "border-browin-dark/10"
+                    }`}
+                    key={image}
+                    onClick={() => selectImage(index)}
+                    type="button"
+                  >
+                    <Image
+                      alt={`${product.title} ${index + 1}`}
+                      className="object-contain"
+                      fill
+                      sizes="96px"
+                      src={image}
+                    />
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="self-start">
+              <div className="product-detail-buybox overflow-hidden border border-browin-dark/10 bg-browin-white">
+                <div className="product-detail-buybox-meta border-b border-browin-dark/10 bg-browin-gray/40 px-5 py-3 xl:px-6">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Link
+                      className="product-accent-badge bg-browin-red px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-white"
+                      href={categoryHref}
+                    >
+                      {category?.label ?? "Kategoria"}
+                    </Link>
+                    <span className="bg-browin-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/72">
+                      {product.line}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="product-detail-buybox-overview px-5 py-5 xl:px-6 xl:py-6">
+                  <h1 className="product-detail-title text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
+                    {product.title}
+                  </h1>
+                  <p className="mt-2 text-sm leading-relaxed text-browin-dark/68 line-clamp-2">
+                    {product.shortDescription}
+                  </p>
+
+                  <div className="product-detail-social-signals mt-3">
+                    <SocialSignals
+                      compact
+                      includeShipmentSignal={false}
+                      leadTime={selectedVariant.leadTime}
+                      onReviewClick={scrollToReviews}
+                      product={product}
+                    />
+                  </div>
+                </div>
+
+                <div className="product-detail-buybox-offer grid gap-4 border-t border-browin-dark/10 px-5 py-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end xl:px-6">
+                  <div>
+                    <div className="min-h-[1.25rem]">
+                      <p
+                        aria-hidden={!selectedVariant.compareAtPrice}
+                        className={`text-base font-semibold leading-none ${
+                          selectedVariant.compareAtPrice
+                            ? "text-browin-dark/35 line-through"
+                            : "invisible"
+                        }`}
+                      >
+                        {formatCurrency(selectedVariant.compareAtPrice ?? selectedVariant.price)}
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-end gap-2">
+                      <p className="product-detail-price text-[2.8rem] font-extrabold leading-none tracking-tight text-browin-dark">
+                        {formatCurrency(selectedVariant.price)}
+                      </p>
+                      <span className="pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                        {selectedVariant.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="text-left xl:text-right">
+                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-browin-dark/45">
+                      Dostepnosc
+                    </p>
+                    <p className="mt-1 text-sm font-extrabold text-browin-red">
+                      {stockLabel}
+                    </p>
+                    <p className="mt-1 text-xs text-browin-dark/62">
+                      Dostawa do {deliveryDateLabel} • 14 dni na zwrot
+                    </p>
+                  </div>
+
+                  <div className="product-detail-buybox-variants xl:col-span-2">
+                    <VariantSelector
+                      onSelect={setSelectedVariantId}
+                      product={product}
+                      selectedVariantId={selectedVariantId}
+                    />
+                  </div>
+                </div>
+
+                <div className="product-detail-buybox-cta border-t border-browin-dark/10 px-5 py-4 xl:px-6">
+                  <div className="product-detail-buybox-actions flex items-stretch gap-4">
+                    <QuantitySelector
+                      compact
+                      className="product-detail-buybox-quantity w-[9.5rem] shrink-0"
+                      onDecrease={() => setQuantity((current) => Math.max(current - 1, 1))}
+                      onIncrease={() => setQuantity((current) => current + 1)}
+                      quantity={quantity}
+                    />
+
+                    <button
+                      className="checkout-cta inline-flex h-12 flex-1 items-center justify-center gap-2 bg-browin-red px-6 text-base font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+                      onClick={handleAddToCart}
+                      type="button"
+                    >
+                      <ShoppingCart size={20} />
+                      Dodaj do koszyka
+                    </button>
+                  </div>
+                </div>
+
+                <div className="product-detail-buybox-trust border-t border-browin-dark/10 bg-browin-gray px-5 py-4 xl:px-6">
+                  <TrustSummary
+                    compact
+                    orderValue={orderValue}
+                    selectedVariantLeadTime={selectedVariant.leadTime}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-8 hidden gap-6 border-t border-browin-dark/10 pt-7 lg:grid">
+            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
+              <div className="rounded-sm border border-browin-dark/10 bg-browin-white p-6">
+                <p className="text-sm leading-relaxed text-browin-dark/68">
+                  {product.longDescription}
+                </p>
+              </div>
+
+              <div className="grid gap-4 xl:grid-cols-3">
+                {product.benefits.map((benefit) => (
+                  <div
+                    className="border border-browin-dark/10 bg-browin-gray p-4 text-sm font-semibold leading-relaxed text-browin-dark/75"
+                    key={benefit}
+                  >
+                    {benefit}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-12 hidden gap-8 lg:grid">
+            <div className="border border-browin-dark/10 bg-browin-gray p-6">
+              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                Dlaczego ten produkt pracuje sprzedazowo
+              </h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                {product.features.map((feature) => (
+                  <div
+                    className="border border-browin-dark/10 bg-browin-white px-4 py-4 text-sm leading-relaxed text-browin-dark/72"
+                    key={feature}
+                  >
+                    {feature}
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border border-browin-dark/10 bg-browin-white p-6">
+              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                Specyfikacja
+              </h2>
+              <div className="mt-5 grid gap-3">
+                {product.specs.map((spec) => (
+                  <div
+                    className="grid gap-1 border border-browin-dark/10 bg-browin-gray px-4 py-4 md:grid-cols-[180px_minmax(0,1fr)]"
+                    key={spec.label}
+                  >
+                    <span className="text-sm font-bold text-browin-dark">{spec.label}</span>
+                    <span className="text-sm text-browin-dark/68">{spec.value}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="border border-browin-dark/10 bg-browin-white p-6">
+              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                FAQ
+              </h2>
+              <div className="mt-4 space-y-3">
+                {product.faq.map((item) => (
+                  <details
+                    className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
+                    key={item.question}
+                  >
+                    <summary className="cursor-pointer list-none text-sm font-bold text-browin-dark">
+                      {item.question}
+                    </summary>
+                    <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
+                      {item.answer}
+                    </p>
+                  </details>
+                ))}
+              </div>
+            </div>
+
+            <ReviewsSection product={product} sectionId="product-reviews-desktop" />
+          </div>
+
+          <div className="mt-12 lg:hidden">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                  Dobierz razem
+                </p>
+                <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                  Powiazane produkty
+                </h2>
+              </div>
+            </div>
+            <div className="product-grid grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+              {relatedProducts.map((related) => (
+                <ProductCard key={related.id} product={related} />
+              ))}
+            </div>
+          </div>
+
+          <div className="mt-12 hidden lg:block">
+            <div className="mb-5 flex items-end justify-between gap-4">
+              <div>
+                <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                  Dobierz razem
+                </p>
+                <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                  Powiazane produkty
+                </h2>
+              </div>
+              <Link
+                className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
+                href={categoryHref}
+              >
+                Zobacz cala kategorie
+              </Link>
+            </div>
+            <div className="product-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-6">
+              {relatedProducts.map((related) => (
+                <ProductCard key={related.id} product={related} />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {isMobileStickyVisible ? (
+        <div
+          className="fixed inset-x-0 z-[45] border-t border-browin-dark/10 bg-browin-white px-4 py-2 md:hidden"
+          style={{ bottom: "var(--mobile-bottom-nav-height)" }}
+        >
+          <div className="mx-auto grid max-w-[32rem] grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] items-center gap-3">
+            <div className="min-w-0">
+              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                {selectedVariant.label}
+              </p>
+              <p className="mt-1 text-lg font-extrabold tracking-tight text-browin-dark">
+                {formatCurrency(selectedVariant.price)}
+              </p>
+            </div>
+
+            <button
+              className="checkout-cta inline-flex h-11 w-full items-center justify-center bg-browin-red px-3 text-[0.74rem] font-extrabold uppercase tracking-[0.08em] whitespace-nowrap text-browin-white transition-colors hover:bg-browin-dark"
+              onClick={handleAddToCart}
+              type="button"
+            >
+              Dodaj do koszyka
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
