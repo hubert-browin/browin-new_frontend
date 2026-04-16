@@ -29,6 +29,7 @@ import { useEffect, useState } from "react";
 import { CartDrawer } from "@/components/store/cart-drawer";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
+import { useFavorites } from "@/components/store/favorites-provider";
 import {
   categories,
   trustBadges,
@@ -71,7 +72,8 @@ const getUniqueTopics = (category: StoreCategory) => {
 export function StoreChrome({ children }: StoreChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { count, isOpen, openCart, subtotal } = useCart();
+  const { count: cartCount, isOpen, openCart, subtotal } = useCart();
+  const { count: favoritesCount } = useFavorites();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [activeMobileCategoryId, setActiveMobileCategoryId] =
@@ -157,27 +159,29 @@ export function StoreChrome({ children }: StoreChromeProps) {
           </Link>
 
           <form
-            className="desktop-header-search group relative w-full max-w-none flex-grow overflow-hidden border-2 border-browin-dark/10 bg-browin-white shadow-sm transition-[border-color,box-shadow] focus-within:border-browin-red focus-within:shadow-[0_0_0_4px_rgba(148,41,64,0.08)]"
+            className="desktop-header-search group relative flex min-h-[3.25rem] w-full max-w-none flex-grow items-stretch overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red"
             onSubmit={handleSearchSubmit}
           >
-            <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
-              <MagnifyingGlass className="text-browin-dark/40 group-focus-within:text-browin-red transition-colors" size={20} />
+            <div className="relative min-w-0 flex-1">
+              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4">
+                <MagnifyingGlass className="text-browin-dark/40 transition-colors group-focus-within:text-browin-red" size={20} />
+              </div>
+              <input
+                className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent py-3.5 pl-12 pr-14 text-sm text-browin-dark outline-none transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
+                defaultValue={searchSeed}
+                name="search"
+                placeholder="Szukaj sprzętu, drożdży, przepisów..."
+              />
+              <button
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-2 text-browin-dark/35 transition-colors hover:text-browin-red"
+                title="Wyszukaj wizualnie po obrazku"
+                type="button"
+              >
+                <Camera size={22} />
+              </button>
             </div>
-            <input
-              className="search-ui-copy block w-full rounded-none border-0 bg-transparent py-3.5 pl-12 pr-44 text-sm text-browin-dark outline-none transition-colors focus:bg-transparent"
-              defaultValue={searchSeed}
-              name="search"
-              placeholder="Szukaj sprzętu, drożdży, przepisów..."
-            />
             <button
-              className="absolute right-32 top-1/2 -translate-y-1/2 p-2 text-browin-dark/40 transition-colors hover:text-browin-red"
-              title="Wyszukaj wizualnie po obrazku"
-              type="button"
-            >
-              <Camera size={22} />
-            </button>
-            <button
-              className="search-ui-copy absolute bottom-0 right-0 top-0 flex w-[7.5rem] items-center justify-center rounded-none bg-browin-red px-0 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
+              className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-7 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
               type="submit"
             >
               Szukaj
@@ -191,7 +195,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
             <button className="relative border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red" type="button">
               <Heart size={26} />
               <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
-                0
+                {favoritesCount}
               </span>
             </button>
             <button
@@ -202,7 +206,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
               <div className="relative mr-3">
                 <ShoppingCart className="text-browin-dark" size={28} />
                 <span className="absolute -right-2 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-browin-white bg-browin-red text-[10px] font-bold text-browin-white">
-                  {count}
+                  {cartCount}
                 </span>
               </div>
               <div className="desktop-cart-copy flex flex-col items-start">
@@ -238,7 +242,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
             <button className="relative cursor-pointer p-1 text-browin-dark" onClick={openCart} type="button">
               <ShoppingCart size={24} />
               <span className="absolute -right-1 -top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
-                {count}
+                {cartCount}
               </span>
             </button>
           </div>
@@ -246,21 +250,23 @@ export function StoreChrome({ children }: StoreChromeProps) {
 
         <div className="block border-t border-browin-dark/8 bg-browin-white px-4 pb-3 pt-2 md:hidden">
           <form
-            className="group relative overflow-hidden border-2 border-browin-dark/10 bg-browin-white shadow-sm transition-[border-color,box-shadow] focus-within:border-browin-red focus-within:shadow-[0_0_0_4px_rgba(148,41,64,0.08)]"
+            className="group relative flex min-h-12 items-stretch overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red"
             onSubmit={handleSearchSubmit}
           >
-            <input
-              className="search-ui-copy block h-12 w-full rounded-none border-0 bg-transparent pl-11 pr-[5.5rem] text-browin-dark transition-colors focus:bg-transparent"
-              defaultValue={searchSeed}
-              name="search"
-              placeholder="Szukaj produktów, akcesoriów i porad..."
-            />
-            <MagnifyingGlass
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
-              size={18}
-            />
+            <div className="relative min-w-0 flex-1">
+              <input
+                className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent pl-11 pr-4 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
+                defaultValue={searchSeed}
+                name="search"
+                placeholder="szukaj produktów"
+              />
+              <MagnifyingGlass
+                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
+                size={18}
+              />
+            </div>
             <button
-              className="search-ui-copy absolute bottom-0 right-0 top-0 flex w-20 items-center justify-center bg-browin-red px-0 text-xs font-bold text-browin-white transition-colors hover:bg-browin-red/90"
+              className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-5 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
               type="submit"
             >
               Szukaj
@@ -352,19 +358,22 @@ export function StoreChrome({ children }: StoreChromeProps) {
         </div>
 
         <div className="relative flex-1 overflow-y-auto bg-browin-white pb-8 no-scrollbar">
-          <form className="relative m-4 mb-2 shrink-0" onSubmit={handleSearchSubmit}>
+          <form
+            className="group relative m-4 mb-2 shrink-0 overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red"
+            onSubmit={handleSearchSubmit}
+          >
             <input
-              className="search-ui-copy block h-14 w-full rounded-none border border-browin-dark/10 bg-browin-dark/5 pl-11 pr-10 text-browin-dark transition-colors focus:border-browin-red focus:bg-browin-white focus:ring-0"
+              className="search-ui-copy block h-14 w-full rounded-none border-0 bg-transparent pl-11 pr-12 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent focus:ring-0"
               defaultValue={searchSeed}
               name="search"
-              placeholder="Czego szukasz?"
+              placeholder="szukaj produktów"
             />
             <MagnifyingGlass
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40"
+              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
               size={20}
             />
             <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors hover:text-browin-red"
+              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-browin-dark/35 transition-colors hover:text-browin-red"
               title="Wyszukaj obrazem"
               type="button"
             >
@@ -550,7 +559,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
           <ShoppingCart className="text-browin-dark" size={26} />
           <span className="text-[9px] font-bold uppercase text-browin-dark">Koszyk</span>
           <span className="absolute right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
-            {count}
+            {cartCount}
           </span>
         </button>
       </div>

@@ -364,8 +364,8 @@ button.search-ui-copy {
   input.search-ui-copy:focus,
   input.search-ui-copy:focus-visible {
     outline: none;
-    border-color: var(--browin-red) !important;
-    box-shadow: 0 0 0 1px rgb(148 41 64 / 0.16);
+    border-color: transparent !important;
+    box-shadow: none;
   }
 
   .product-card-title-3 {
@@ -465,15 +465,16 @@ button.search-ui-copy {
     padding-top: clamp(0.75rem, 0.68rem + 0.18vw, 0.875rem) !important;
     padding-bottom: clamp(0.75rem, 0.68rem + 0.18vw, 0.875rem) !important;
     padding-left: clamp(2.75rem, 2.5rem + 0.4vw, 3rem) !important;
-    padding-right: clamp(7.5rem, 6.4rem + 1.8vw, 9rem) !important;
+    padding-right: clamp(3.5rem, 3.15rem + 0.75vw, 4.25rem) !important;
   }
 
   .desktop-header-search button[title] {
-    right: clamp(5.9rem, 5.15rem + 1vw, 6.9rem);
+    right: clamp(0.5rem, 0.38rem + 0.24vw, 0.75rem);
   }
 
   .desktop-header-search button[type="submit"] {
-    width: clamp(5.75rem, 5rem + 1vw, 7rem);
+    min-width: clamp(5.75rem, 5rem + 1vw, 7rem);
+    padding-inline: clamp(1.25rem, 1rem + 0.4vw, 1.75rem);
     font-size: clamp(0.75rem, 0.72rem + 0.1vw, 0.875rem) !important;
   }
 

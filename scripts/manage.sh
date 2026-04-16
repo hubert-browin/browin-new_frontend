@@ -2,15 +2,39 @@
 
 set -euo pipefail
 
-APP_DIR="/var/www/browin"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="${APP_DIR:-$(cd "$SCRIPT_DIR/.." && pwd)}"
 SERVICE_NAME="nowy-ecommerce.service"
 
 action="${1:-help}"
 
+if [[ "${EUID}" -ne 0 ]]; then
+  if ! command -v sudo >/dev/null 2>&1; then
+    echo "Ten skrypt wymaga roota albo dostepnego polecenia sudo." >&2
+    exit 1
+  fi
+
+  sudo_cmd=(sudo)
+else
+  sudo_cmd=()
+fi
+
 cd "$APP_DIR"
 
+run_systemctl() {
+  "${sudo_cmd[@]}" systemctl "$@"
+}
+
+run_journalctl() {
+  "${sudo_cmd[@]}" journalctl "$@"
+}
+
+run_nginx() {
+  "${sudo_cmd[@]}" nginx "$@"
+}
+
 status() {
-  systemctl status "$SERVICE_NAME" --no-pager --lines=12
+  run_systemctl status "$SERVICE_NAME" --no-pager --lines=12
 }
 
 health() {
@@ -45,7 +69,7 @@ case "$action" in
     npm run build
     echo
     echo "Restarting $SERVICE_NAME"
-    systemctl restart "$SERVICE_NAME"
+    run_systemctl restart "$SERVICE_NAME"
     echo
     echo "Waiting for application to become ready"
     wait_for_app
@@ -55,19 +79,19 @@ case "$action" in
     health
     ;;
   restart)
-    systemctl restart "$SERVICE_NAME"
+    run_systemctl restart "$SERVICE_NAME"
     status
     ;;
   status)
     status
     ;;
   logs)
-    journalctl -u "$SERVICE_NAME" -n 100 -f
+    run_journalctl -u "$SERVICE_NAME" -n 100 -f
     ;;
   reload-nginx)
-    nginx -t
-    systemctl reload nginx
-    systemctl status nginx --no-pager --lines=8
+    run_nginx -t
+    run_systemctl reload nginx
+    run_systemctl status nginx --no-pager --lines=8
     ;;
   health)
     health

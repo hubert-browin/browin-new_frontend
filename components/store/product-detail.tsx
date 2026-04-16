@@ -2,6 +2,9 @@
 
 import {
   ArrowLeft,
+  ArrowRight,
+  CaretDown,
+  CaretUp,
   Minus,
   Plus,
   ShoppingCart,
@@ -9,7 +12,13 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useEffect, useRef, useState, type TouchEvent as ReactTouchEvent } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type MouseEvent as ReactMouseEvent,
+  type TouchEvent as ReactTouchEvent,
+} from "react";
 
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
@@ -38,8 +47,11 @@ type VariantSelectorProps = {
 
 type QuantitySelectorProps = {
   quantity: number;
+  quantityInput: string;
   onDecrease: () => void;
   onIncrease: () => void;
+  onQuantityInputBlur: () => void;
+  onQuantityInputChange: (value: string) => void;
   className?: string;
   compact?: boolean;
 };
@@ -66,12 +78,6 @@ type TrustSignal = {
   detail: string;
 };
 
-type SocialSignal = {
-  icon: "users" | "timer" | "truck";
-  label: string;
-  value: string;
-};
-
 const reviewAuthors = ["Anna K.", "Marek D.", "Julia P."] as const;
 const reviewTitles = [
   "Dobry wybor w tej kategorii",
@@ -93,6 +99,17 @@ const resolveImageGestureLock = (deltaX: number, deltaY: number) => {
   }
 
   return absX >= absY * 0.65 ? "horizontal" : "vertical";
+};
+
+const MOBILE_GALLERY_FALLBACK_WIDTH = 256;
+const MOBILE_SWIPE_SETTLE_MS = 220;
+
+const getWrappedImageIndex = (length: number, index: number) => {
+  if (length <= 0) {
+    return 0;
+  }
+
+  return (index + length) % length;
 };
 
 const getLeadTimeDays = (leadTime: string) => {
@@ -219,7 +236,10 @@ function QuantitySelector({
   compact = false,
   onDecrease,
   onIncrease,
+  onQuantityInputBlur,
+  onQuantityInputChange,
   quantity,
+  quantityInput,
 }: QuantitySelectorProps) {
   const wrapperSizeClass = compact ? "min-h-11" : "min-h-12 md:min-h-14";
   const buttonWidthClass = compact ? "w-11" : "w-12 md:w-14";
@@ -238,11 +258,25 @@ function QuantitySelector({
       >
         <Minus size={16} />
       </button>
-      <span
-        className={`flex flex-1 self-stretch items-center justify-center font-extrabold text-browin-dark ${valueClass}`}
-      >
-        {quantity}
-      </span>
+      <input
+        aria-label={`Wpisz ilosc produktu, aktualnie ${quantity}`}
+        autoComplete="off"
+        className={`appearance-none flex flex-1 self-stretch items-center justify-center bg-transparent text-center font-black tabular-nums tracking-tight text-browin-dark outline-none ${valueClass}`}
+        enterKeyHint="done"
+        inputMode="numeric"
+        onBlur={onQuantityInputBlur}
+        onChange={(event) => onQuantityInputChange(event.target.value)}
+        onFocus={(event) => event.target.select()}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") {
+            event.currentTarget.blur();
+          }
+        }}
+        pattern="[0-9]*"
+        spellCheck={false}
+        type="text"
+        value={quantityInput}
+      />
       <button
         className={`flex h-auto self-stretch items-center justify-center border-l border-browin-dark/10 text-browin-dark transition-colors hover:bg-browin-dark hover:text-browin-white ${buttonWidthClass}`}
         onClick={onIncrease}
@@ -270,7 +304,7 @@ function TrustSummary({
     {
       icon: "truck",
       label: "Dostawa",
-      value: `Do ${deliveryDateLabel}`,
+      value: compact ? deliveryDateLabel : `Do ${deliveryDateLabel}`,
       detail: qualifiesForFreeShipping
         ? "Darmowa dostawa odblokowana"
         : `Od 9,99 zl • darmowa od ${formatCurrency(freeShippingThreshold)}`,
@@ -278,12 +312,12 @@ function TrustSummary({
     {
       icon: "timer",
       label: "Zwrot",
-      value: "14 dni bez ryzyka",
+      value: compact ? "14 dni" : "14 dni bez ryzyka",
       detail: "Czytelna polityka zwrotow i szybka obsluga",
     },
     {
       icon: "shield",
-      label: "Sprzedawca",
+      label: compact ? "Sprzedawca" : "Sprzedawca",
       value: "BROWIN",
       detail: "Producent i obsluga w jednym miejscu",
     },
@@ -339,125 +373,117 @@ function TrustSummary({
   );
 }
 
-function SocialSignals({
-  compact = false,
-  includeReviewButton = true,
-  includeShipmentSignal = true,
-  leadTime,
+function ReviewSummaryRow({
   onReviewClick,
   product,
 }: {
-  compact?: boolean;
-  includeReviewButton?: boolean;
-  includeShipmentSignal?: boolean;
-  leadTime: string;
   onReviewClick: () => void;
   product: Product;
 }) {
-  const deliveryLabel = getLeadTimeDays(leadTime) === 1 ? "Wysylka jutro" : "Wysylka do 48h";
-  const signals: SocialSignal[] = [
-    { icon: "users", label: "Oglada teraz", value: `${product.viewingNow}` },
-    { icon: "timer", label: "Kupiono w 30 dni", value: `${product.soldLast30Days}` },
-    ...(includeShipmentSignal
-      ? [{ icon: "truck", label: "Status wysylki", value: deliveryLabel } as const]
-      : []),
-  ];
-
-  if (compact) {
-    return (
-      <div
-        className={`grid gap-2 ${
-          includeReviewButton
-            ? includeShipmentSignal
-              ? "grid-cols-2 xl:grid-cols-4"
-              : "grid-cols-3"
-            : "grid-cols-3"
-        }`}
-      >
-        {includeReviewButton ? (
-          <button
-            className={`flex items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-2.5 text-left transition-colors hover:border-browin-red ${
-              includeShipmentSignal ? "col-span-2 xl:col-span-1" : ""
-            }`}
-            onClick={onReviewClick}
-            type="button"
-          >
-            <div className="flex items-center gap-2 text-browin-red">
-              <Star size={16} weight="fill" />
-              <span className="text-sm font-extrabold text-browin-dark">
-                {product.rating.toFixed(1)}
-              </span>
-            </div>
-            <div className="text-right">
-              <p className="text-sm font-semibold text-browin-dark">{product.reviews} opinii</p>
-              <p className="text-[10px] uppercase tracking-[0.12em] text-browin-dark/45">
-                Opinie
-              </p>
-            </div>
-          </button>
-        ) : null}
-
-        {signals.map((signal) => (
-          <div
-            className="grid grid-cols-[auto_minmax(0,1fr)] gap-2 border border-browin-dark/10 bg-browin-white px-2.5 py-2.5"
-            key={signal.label}
-          >
-            <div className="mt-0.5 text-browin-red">
-              <StoreIcon icon={signal.icon} size={16} weight="fill" />
-            </div>
-            <div>
-              <p className="text-[9px] font-bold uppercase tracking-[0.12em] text-browin-dark/45">
-                {signal.label}
-              </p>
-              <p className="mt-1 text-[13px] font-bold leading-snug text-browin-dark">
-                {signal.value}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    );
-  }
+  const roundedRating = Math.max(1, Math.min(5, Math.round(product.rating)));
 
   return (
-    <div className="grid gap-3 md:grid-cols-[auto_repeat(3,minmax(0,1fr))]">
-      {includeReviewButton ? (
-        <button
-          className="flex items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-3 text-left transition-colors hover:border-browin-red"
-          onClick={onReviewClick}
-          type="button"
-        >
-          <div className="flex items-center gap-2 text-browin-red">
-            <Star size={16} weight="fill" />
-            <span className="text-sm font-extrabold text-browin-dark">
-              {product.rating.toFixed(1)}
-            </span>
-          </div>
-          <div className="text-right">
-            <p className="text-sm font-semibold text-browin-dark">{product.reviews} opinii</p>
-            <p className="text-[11px] uppercase tracking-[0.12em] text-browin-dark/45">
-              Zobacz recenzje
-            </p>
-          </div>
-        </button>
-      ) : null}
+    <button
+      className="product-detail-review-row flex w-full items-center justify-between gap-4 border border-browin-dark/10 bg-browin-white px-4 py-3 text-left transition-colors hover:border-browin-red"
+      onClick={onReviewClick}
+      type="button"
+    >
+      <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2">
+        <div className="flex items-center gap-1 text-browin-red">
+          {Array.from({ length: 5 }, (_, index) => (
+            <Star
+              key={`review-summary-${index}`}
+              size={14}
+              weight={index < roundedRating ? "fill" : "regular"}
+            />
+          ))}
+        </div>
+        <span className="text-sm font-extrabold text-browin-dark">{product.rating.toFixed(1)}</span>
+        <span className="text-sm font-semibold text-browin-dark/68">{product.reviews} opinii</span>
+      </div>
+      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+        Zobacz recenzje
+      </span>
+    </button>
+  );
+}
 
-      {signals.map((signal) => (
-        <div
-          className="grid grid-cols-[auto_minmax(0,1fr)] gap-3 border border-browin-dark/10 bg-browin-white px-3 py-3"
-          key={signal.label}
-        >
-          <div className="mt-0.5 text-browin-red">
-            <StoreIcon icon={signal.icon} size={18} weight="fill" />
+function AvailabilitySummary({
+  amountToFreeShipping,
+  isInStock,
+  orderValue,
+  selectedVariantStock,
+}: {
+  amountToFreeShipping: number;
+  isInStock: boolean;
+  orderValue: number;
+  selectedVariantStock: number;
+}) {
+  const qualifiesForFreeShipping = amountToFreeShipping === 0;
+  const shippingProgress = Math.min((orderValue / freeShippingThreshold) * 100, 100);
+
+  return (
+    <div className="border border-browin-dark/10 bg-browin-white px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="flex min-w-0 items-start gap-3">
+          <div
+            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border ${
+              isInStock
+                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
+                : "border-browin-dark/10 bg-browin-gray text-browin-dark/68"
+            }`}
+          >
+            <StoreIcon icon={isInStock ? "package" : "timer"} size={18} weight="fill" />
           </div>
-          <div>
-            <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
-              {signal.label}
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              Dostepnosc
             </p>
-            <p className="mt-1 text-sm font-bold text-browin-dark">{signal.value}</p>
+            <p className="mt-1 text-base font-extrabold text-browin-dark">
+              {isInStock ? "Produkt dostepny" : "Chwilowo niedostepny"}
+            </p>
+            <p className="mt-1 text-sm text-browin-dark/62">
+              {isInStock
+                ? `${selectedVariantStock} szt. w magazynie`
+                : "Ten wariant wroci po uzupelnieniu stanow magazynowych."}
+            </p>
           </div>
         </div>
-      ))}
+
+        <span
+          className={`px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${
+            isInStock
+              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
+              : "border border-browin-dark/10 bg-browin-gray text-browin-dark/62"
+          }`}
+        >
+          {isInStock ? "Dostepny" : "Brak teraz"}
+        </span>
+      </div>
+
+      <div className="mt-4 border-t border-browin-dark/10 pt-3">
+        <p
+          className={`text-[13px] font-bold ${
+            qualifiesForFreeShipping ? "text-browin-red" : "text-browin-dark"
+          }`}
+        >
+          {qualifiesForFreeShipping ? (
+            "Masz juz darmowa dostawe."
+          ) : (
+            <>
+              Brakuje Ci <span className="text-browin-red">{formatCurrency(amountToFreeShipping)}</span>{" "}
+              do darmowej dostawy.
+            </>
+          )}
+        </p>
+
+        <div className="mt-3 h-2 w-full overflow-hidden rounded-none bg-browin-dark/10">
+          <div
+            className="h-full bg-browin-red transition-[width] duration-300"
+            style={{ width: `${shippingProgress}%` }}
+          />
+        </div>
+      </div>
     </div>
   );
 }
@@ -595,15 +621,45 @@ function MobileSection({
   defaultOpen?: boolean;
   title: string;
 }) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
   return (
     <details
       className="border border-browin-dark/10 bg-browin-white"
-      open={defaultOpen}
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      open={isOpen}
     >
-      <summary className="cursor-pointer list-none px-4 py-4 text-xl font-extrabold uppercase tracking-tight text-browin-dark">
-        {title}
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-xl font-extrabold uppercase tracking-tight text-browin-dark">
+        <span>{title}</span>
+        {isOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
       </summary>
       <div className="border-t border-browin-dark/10 px-4 py-4">{children}</div>
+    </details>
+  );
+}
+
+function FaqItem({
+  answer,
+  question,
+}: {
+  answer: string;
+  question: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+
+  return (
+    <details
+      className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
+      onToggle={(event) => setIsOpen(event.currentTarget.open)}
+      open={isOpen}
+    >
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-browin-dark">
+        <span>{question}</span>
+        {isOpen ? <CaretUp size={16} /> : <CaretDown size={16} />}
+      </summary>
+      <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
+        {answer}
+      </p>
     </details>
   );
 }
@@ -613,29 +669,110 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   const defaultVariant = getPrimaryVariant(product);
   const category = categories.find((entry) => entry.id === product.categoryId);
   const categoryHref = category ? `/kategoria/${category.slug}` : "/produkty";
+  const desktopZoomFrameRef = useRef<HTMLDivElement | null>(null);
   const mobileGalleryRef = useRef<HTMLDivElement | null>(null);
   const mobilePrimaryCtaRef = useRef<HTMLButtonElement | null>(null);
   const imageTouchStartX = useRef<number | null>(null);
   const imageTouchStartY = useRef<number | null>(null);
   const imageGestureLock = useRef<"horizontal" | "vertical" | null>(null);
+  const mobileSwipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [imageTransitionDirection, setImageTransitionDirection] = useState<
     "forward" | "backward"
   >("forward");
+  const [mobileGalleryWidth, setMobileGalleryWidth] = useState(
+    MOBILE_GALLERY_FALLBACK_WIDTH,
+  );
+  const [mobileSwipeOffset, setMobileSwipeOffset] = useState(0);
+  const [mobileSwipeState, setMobileSwipeState] = useState<
+    "idle" | "dragging" | "settling"
+  >("idle");
   const [isMobileStickyVisible, setIsMobileStickyVisible] = useState(false);
+  const [isDesktopImageZoomed, setIsDesktopImageZoomed] = useState(false);
   const [quantity, setQuantity] = useState(1);
+  const [quantityInput, setQuantityInput] = useState("1");
   const [selectedVariantId, setSelectedVariantId] = useState(defaultVariant.id);
 
   const selectedVariant = getVariantById(product, selectedVariantId);
   const discount = getDiscountPercent(selectedVariant);
   const orderValue = selectedVariant.price * quantity;
   const amountToFreeShipping = Math.max(freeShippingThreshold - orderValue, 0);
+  const isInStock = selectedVariant.stock > 0;
   const stockLabel =
-    selectedVariant.stock > 0
+    isInStock
       ? `${selectedVariant.stock} szt.`
       : "Chwilowo niedostepny";
   const deliveryDateLabel = getDeliveryEstimateLabel(selectedVariant.leadTime);
   const handleAddToCart = () => addItem(product.id, selectedVariant.id, quantity);
+  const safeMobileGalleryWidth = Math.max(mobileGalleryWidth, 1);
+
+  const applyQuantity = (nextValue: number) => {
+    const safeQuantity = Math.max(1, Math.floor(nextValue));
+    setQuantity(safeQuantity);
+    setQuantityInput(String(safeQuantity));
+  };
+
+  const handleQuantityInputChange = (nextValue: string) => {
+    const digitsOnly = nextValue.replace(/\D/g, "");
+    const normalizedValue = digitsOnly.replace(/^0+(?=\d)/, "");
+
+    setQuantityInput(normalizedValue);
+
+    if (!normalizedValue) {
+      return;
+    }
+
+    const parsedQuantity = Number.parseInt(normalizedValue, 10);
+
+    if (!Number.isNaN(parsedQuantity) && parsedQuantity >= 1) {
+      setQuantity(parsedQuantity);
+    }
+  };
+
+  const handleQuantityInputBlur = () => {
+    if (!quantityInput) {
+      setQuantityInput(String(quantity));
+      return;
+    }
+
+    const parsedQuantity = Number.parseInt(quantityInput, 10);
+
+    if (Number.isNaN(parsedQuantity) || parsedQuantity < 1) {
+      setQuantityInput(String(quantity));
+      return;
+    }
+
+    applyQuantity(parsedQuantity);
+  };
+
+  const clearMobileSwipeTimeout = () => {
+    if (mobileSwipeTimeoutRef.current) {
+      clearTimeout(mobileSwipeTimeoutRef.current);
+      mobileSwipeTimeoutRef.current = null;
+    }
+  };
+
+  const resetMobileSwipePreview = () => {
+    clearMobileSwipeTimeout();
+    setMobileSwipeOffset(0);
+    setMobileSwipeState("idle");
+  };
+
+  const settleMobileSwipe = (
+    targetOffset: number,
+    onComplete?: () => void,
+  ) => {
+    clearMobileSwipeTimeout();
+    setMobileSwipeState("settling");
+    setMobileSwipeOffset(targetOffset);
+
+    mobileSwipeTimeoutRef.current = setTimeout(() => {
+      mobileSwipeTimeoutRef.current = null;
+      onComplete?.();
+      setMobileSwipeOffset(0);
+      setMobileSwipeState("idle");
+    }, MOBILE_SWIPE_SETTLE_MS);
+  };
 
   const scrollToReviews = () => {
     const targetId =
@@ -658,23 +795,28 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
   const selectImage = (nextIndex: number) => {
     if (nextIndex === activeImageIndex) {
+      resetMobileSwipePreview();
       return;
     }
 
+    resetMobileSwipePreview();
+    resetDesktopImageZoom();
     setImageTransitionDirection(nextIndex > activeImageIndex ? "forward" : "backward");
     setActiveImageIndex(nextIndex);
   };
 
   const showPreviousImage = () => {
+    resetMobileSwipePreview();
+    resetDesktopImageZoom();
     setImageTransitionDirection("backward");
-    setActiveImageIndex((current) =>
-      current === 0 ? product.images.length - 1 : current - 1,
-    );
+    setActiveImageIndex((current) => getWrappedImageIndex(product.images.length, current - 1));
   };
 
   const showNextImage = () => {
+    resetMobileSwipePreview();
+    resetDesktopImageZoom();
     setImageTransitionDirection("forward");
-    setActiveImageIndex((current) => (current + 1) % product.images.length);
+    setActiveImageIndex((current) => getWrappedImageIndex(product.images.length, current + 1));
   };
 
   const resetImageGesture = () => {
@@ -684,6 +826,13 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
   };
 
   const handleImageTouchStart = (event: ReactTouchEvent<HTMLDivElement>) => {
+    if (product.images.length <= 1) {
+      return;
+    }
+
+    clearMobileSwipeTimeout();
+    setMobileSwipeOffset(0);
+    setMobileSwipeState("idle");
     imageTouchStartX.current = event.touches[0]?.clientX ?? null;
     imageTouchStartY.current = event.touches[0]?.clientY ?? null;
     imageGestureLock.current = null;
@@ -698,30 +847,79 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
     const touchEndY = event.changedTouches[0]?.clientY ?? imageTouchStartY.current;
     const deltaX = touchEndX - imageTouchStartX.current;
     const deltaY = touchEndY - imageTouchStartY.current;
-    const shouldSwipe =
-      imageGestureLock.current === "horizontal" ||
-      (resolveImageGestureLock(deltaX, deltaY) === "horizontal" && Math.abs(deltaX) >= 24);
+    const gestureLock =
+      imageGestureLock.current ?? resolveImageGestureLock(deltaX, deltaY);
+    const swipeThreshold = Math.min(
+      84,
+      Math.max(40, safeMobileGalleryWidth * 0.18),
+    );
 
     resetImageGesture();
 
-    if (!shouldSwipe) {
+    if (gestureLock !== "horizontal" || product.images.length <= 1) {
+      if (mobileSwipeState !== "idle" || Math.abs(mobileSwipeOffset) > 0) {
+        settleMobileSwipe(0);
+      }
       return;
     }
 
-    if (deltaX >= 24) {
-      showPreviousImage();
+    if (deltaX >= swipeThreshold) {
+      settleMobileSwipe(safeMobileGalleryWidth, () => {
+        setActiveImageIndex((current) =>
+          current === 0 ? product.images.length - 1 : current - 1,
+        );
+      });
       return;
     }
 
-    if (deltaX <= -24) {
-      showNextImage();
+    if (deltaX <= -swipeThreshold) {
+      settleMobileSwipe(-safeMobileGalleryWidth, () => {
+        setActiveImageIndex((current) => (current + 1) % product.images.length);
+      });
+      return;
     }
+
+    settleMobileSwipe(0);
+  };
+
+  const handleImageTouchCancel = () => {
+    resetImageGesture();
+
+    if (mobileSwipeState !== "idle" || Math.abs(mobileSwipeOffset) > 0) {
+      settleMobileSwipe(0);
+    }
+  };
+
+  const resetDesktopImageZoom = () => {
+    setIsDesktopImageZoomed(false);
+
+    if (!desktopZoomFrameRef.current) {
+      return;
+    }
+
+    desktopZoomFrameRef.current.style.setProperty("--product-image-zoom-origin-x", "50%");
+    desktopZoomFrameRef.current.style.setProperty("--product-image-zoom-origin-y", "50%");
+  };
+
+  const handleDesktopImageMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
+    const bounds = event.currentTarget.getBoundingClientRect();
+
+    if (!bounds.width || !bounds.height) {
+      return;
+    }
+
+    const x = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100));
+    const y = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100));
+
+    event.currentTarget.style.setProperty("--product-image-zoom-origin-x", `${x}%`);
+    event.currentTarget.style.setProperty("--product-image-zoom-origin-y", `${y}%`);
+    setIsDesktopImageZoomed(true);
   };
 
   useEffect(() => {
     const gallery = mobileGalleryRef.current;
 
-    if (!gallery) {
+    if (!gallery || product.images.length <= 1) {
       return;
     }
 
@@ -745,6 +943,13 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
       if (imageGestureLock.current === "horizontal") {
         event.preventDefault();
+        setMobileSwipeState("dragging");
+        setMobileSwipeOffset(
+          Math.max(
+            -safeMobileGalleryWidth * 0.92,
+            Math.min(safeMobileGalleryWidth * 0.92, deltaX),
+          ),
+        );
       }
     };
 
@@ -752,6 +957,31 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
 
     return () => {
       gallery.removeEventListener("touchmove", handleNativeTouchMove);
+    };
+  }, [product.images.length, safeMobileGalleryWidth]);
+
+  useEffect(() => {
+    const gallery = mobileGalleryRef.current;
+
+    if (!gallery) {
+      return;
+    }
+
+    const syncWidth = () => {
+      setMobileGalleryWidth(gallery.clientWidth || MOBILE_GALLERY_FALLBACK_WIDTH);
+    };
+
+    syncWidth();
+    window.addEventListener("resize", syncWidth);
+
+    return () => {
+      window.removeEventListener("resize", syncWidth);
+    };
+  }, [product.id]);
+
+  useEffect(() => {
+    return () => {
+      clearMobileSwipeTimeout();
     };
   }, []);
 
@@ -798,6 +1028,37 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
     };
   }, [product.id, selectedVariant.id]);
 
+  useEffect(() => {
+    resetDesktopImageZoom();
+  }, [activeImageIndex, product.id]);
+
+  const mobilePreviousImageIndex = getWrappedImageIndex(
+    product.images.length,
+    activeImageIndex - 1,
+  );
+  const mobileNextImageIndex = getWrappedImageIndex(
+    product.images.length,
+    activeImageIndex + 1,
+  );
+  const mobileSwipePreviewActive =
+    product.images.length > 1 &&
+    (mobileSwipeState !== "idle" || Math.abs(mobileSwipeOffset) > 0);
+  const mobileSwipeTransition =
+    mobileSwipeState === "settling"
+      ? `transform ${MOBILE_SWIPE_SETTLE_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${MOBILE_SWIPE_SETTLE_MS}ms ease-out`
+      : "none";
+  const mobileSwipeOpacityProgress = Math.min(
+    Math.abs(mobileSwipeOffset) / safeMobileGalleryWidth,
+    1,
+  );
+  const mobileActiveDotIndex =
+    mobileSwipeState === "settling" &&
+    Math.abs(mobileSwipeOffset) > safeMobileGalleryWidth * 0.5
+      ? mobileSwipeOffset > 0
+        ? mobilePreviousImageIndex
+        : mobileNextImageIndex
+      : activeImageIndex;
+
   return (
     <section className="product-detail-page bg-browin-gray pt-0 pb-3 md:pb-16 md:pt-0">
       <div className="w-full px-0 md:container md:mx-auto md:px-4">
@@ -832,29 +1093,87 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             <div className="relative flex w-full justify-center">
               <div
                 ref={mobileGalleryRef}
-                className="relative aspect-square w-full max-w-[16rem] overflow-hidden bg-browin-white"
-                onTouchCancel={resetImageGesture}
+                className="relative h-64 w-full overflow-hidden bg-browin-white"
+                onTouchCancel={handleImageTouchCancel}
                 onTouchEnd={handleImageTouchEnd}
                 onTouchStart={handleImageTouchStart}
                 style={{ touchAction: "pan-y pinch-zoom" }}
               >
-                <div
-                  className={`product-image-transition absolute inset-0 ${
-                    imageTransitionDirection === "forward"
-                      ? "product-image-transition-forward"
-                      : "product-image-transition-backward"
-                  }`}
-                  key={`mobile-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
-                >
-                  <Image
-                    alt={product.title}
-                    className="object-contain"
-                    fill
-                    priority
-                    sizes="(max-width: 767px) 220px, 100vw"
-                    src={product.images[activeImageIndex]}
-                  />
-                </div>
+                {mobileSwipePreviewActive ? (
+                  <>
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        opacity:
+                          mobileSwipeOffset > 0
+                            ? 0.72 + mobileSwipeOpacityProgress * 0.28
+                            : 0.42,
+                        transform: `translate3d(${mobileSwipeOffset - safeMobileGalleryWidth}px, 0, 0)`,
+                        transition: mobileSwipeTransition,
+                        willChange: "transform, opacity",
+                      }}
+                    >
+                      <Image
+                        alt={`${product.title} ${mobilePreviousImageIndex + 1}`}
+                        className="object-contain"
+                        fill
+                        priority
+                        sizes="(max-width: 767px) 220px, 100vw"
+                        src={product.images[mobilePreviousImageIndex]}
+                      />
+                    </div>
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        opacity: Math.max(0.76, 1 - mobileSwipeOpacityProgress * 0.24),
+                        transform: `translate3d(${mobileSwipeOffset}px, 0, 0)`,
+                        transition: mobileSwipeTransition,
+                        willChange: "transform, opacity",
+                      }}
+                    >
+                      <Image
+                        alt={product.title}
+                        className="object-contain"
+                        fill
+                        priority
+                        sizes="(max-width: 767px) 220px, 100vw"
+                        src={product.images[activeImageIndex]}
+                      />
+                    </div>
+                    <div
+                      className="absolute inset-0"
+                      style={{
+                        opacity:
+                          mobileSwipeOffset < 0
+                            ? 0.72 + mobileSwipeOpacityProgress * 0.28
+                            : 0.42,
+                        transform: `translate3d(${mobileSwipeOffset + safeMobileGalleryWidth}px, 0, 0)`,
+                        transition: mobileSwipeTransition,
+                        willChange: "transform, opacity",
+                      }}
+                    >
+                      <Image
+                        alt={`${product.title} ${mobileNextImageIndex + 1}`}
+                        className="object-contain"
+                        fill
+                        priority
+                        sizes="(max-width: 767px) 220px, 100vw"
+                        src={product.images[mobileNextImageIndex]}
+                      />
+                    </div>
+                  </>
+                ) : (
+                  <div className="absolute inset-0">
+                    <Image
+                      alt={product.title}
+                      className="object-contain"
+                      fill
+                      priority
+                      sizes="(max-width: 767px) 220px, 100vw"
+                      src={product.images[activeImageIndex]}
+                    />
+                  </div>
+                )}
               </div>
               {product.badge ? (
                 <span className="absolute left-0 top-3 bg-browin-dark px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-browin-white">
@@ -871,7 +1190,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             {product.images.length > 1 ? (
               <div className="flex items-center justify-center gap-2">
                 {product.images.map((image, index) => {
-                  const isActive = activeImageIndex === index;
+                  const isActive = mobileActiveDotIndex === index;
 
                   return (
                     <button
@@ -915,9 +1234,6 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                     <p className="text-[2rem] font-extrabold tracking-tight text-browin-dark">
                       {formatCurrency(selectedVariant.price)}
                     </p>
-                    <span className="pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-                      {selectedVariant.label}
-                    </span>
                   </div>
                 </div>
 
@@ -934,9 +1250,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               <div className="grid gap-3">
                 <QuantitySelector
                   className="w-full"
-                  onDecrease={() => setQuantity((current) => Math.max(current - 1, 1))}
-                  onIncrease={() => setQuantity((current) => current + 1)}
+                  onDecrease={() => applyQuantity(quantity - 1)}
+                  onIncrease={() => applyQuantity(quantity + 1)}
+                  onQuantityInputBlur={handleQuantityInputBlur}
+                  onQuantityInputChange={handleQuantityInputChange}
                   quantity={quantity}
+                  quantityInput={quantityInput}
                 />
 
                 <button
@@ -996,7 +1315,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               </button>
             </div>
 
-            <MobileSection defaultOpen title="O produkcie">
+            <MobileSection title="O produkcie">
               <div className="space-y-4">
                 <p className="text-sm leading-relaxed text-browin-dark/68">
                   {product.longDescription}
@@ -1031,17 +1350,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             <MobileSection title="FAQ">
               <div className="space-y-3">
                 {product.faq.map((item) => (
-                  <details
-                    className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
-                    key={item.question}
-                  >
-                    <summary className="cursor-pointer list-none text-sm font-bold text-browin-dark">
-                      {item.question}
-                    </summary>
-                    <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
-                      {item.answer}
-                    </p>
-                  </details>
+                  <FaqItem answer={item.answer} key={item.question} question={item.question} />
                 ))}
               </div>
             </MobileSection>
@@ -1051,10 +1360,10 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             </MobileSection>
           </div>
 
-          <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
-            <div className="product-detail-media-stack grid self-start gap-4">
+          <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
+            <div className="product-detail-media-stack group grid self-start gap-4">
               <div className="relative flex w-full justify-center">
-                <div className="product-detail-media-frame overflow-hidden bg-browin-white">
+                <div className="product-detail-media-frame relative overflow-hidden bg-browin-white">
                   <div className="relative aspect-square">
                     <div
                       className={`product-image-transition absolute inset-0 ${
@@ -1087,27 +1396,54 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                 ) : null}
               </div>
 
-              <div className="product-detail-media-thumbs flex flex-wrap items-center justify-center gap-3">
-                {product.images.map((image, index) => (
+              <div className="flex items-center justify-center gap-3">
+                {product.images.length > 1 ? (
                   <button
-                    className={`product-detail-media-thumb relative aspect-square shrink-0 overflow-hidden border bg-browin-white transition-colors ${
-                      activeImageIndex === index
-                        ? "border-browin-red shadow-sharp"
-                        : "border-browin-dark/10"
-                    }`}
-                    key={image}
-                    onClick={() => selectImage(index)}
+                    aria-label="Poprzednie zdjecie"
+                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                    onClick={showPreviousImage}
                     type="button"
                   >
-                    <Image
-                      alt={`${product.title} ${index + 1}`}
-                      className="object-contain"
-                      fill
-                      sizes="96px"
-                      src={image}
-                    />
+                    <ArrowLeft size={14} />
                   </button>
-                ))}
+                ) : null}
+
+                <div className="product-detail-media-thumbs flex flex-wrap items-center justify-center gap-3">
+                  {product.images.map((image, index) => (
+                    <button
+                      aria-label={`Pokaz zdjecie ${index + 1}`}
+                      aria-pressed={activeImageIndex === index}
+                      className={`product-detail-media-thumb relative aspect-square shrink-0 overflow-hidden border bg-browin-white transition-colors ${
+                        activeImageIndex === index
+                          ? "border-browin-red"
+                          : "border-browin-dark/10"
+                      }`}
+                      key={image}
+                      onFocus={() => selectImage(index)}
+                      onMouseEnter={() => selectImage(index)}
+                      type="button"
+                    >
+                      <Image
+                        alt={`${product.title} ${index + 1}`}
+                        className="object-contain"
+                        fill
+                        sizes="96px"
+                        src={image}
+                      />
+                    </button>
+                  ))}
+                </div>
+
+                {product.images.length > 1 ? (
+                  <button
+                    aria-label="Nastepne zdjecie"
+                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                    onClick={showNextImage}
+                    type="button"
+                  >
+                    <ArrowRight size={14} />
+                  </button>
+                ) : null}
               </div>
             </div>
 
@@ -1131,11 +1467,8 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                   <h1 className="product-detail-title text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
                     {product.title}
                   </h1>
-                  <p className="mt-2 text-sm leading-relaxed text-browin-dark/68 line-clamp-2">
-                    {product.shortDescription}
-                  </p>
 
-                  <div className="product-detail-social-signals mt-3">
+                  <div className="product-detail-social-signals mt-4">
                     <SocialSignals
                       compact
                       includeShipmentSignal={false}
@@ -1164,9 +1497,6 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                       <p className="product-detail-price text-[2.8rem] font-extrabold leading-none tracking-tight text-browin-dark">
                         {formatCurrency(selectedVariant.price)}
                       </p>
-                      <span className="pb-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-                        {selectedVariant.label}
-                      </span>
                     </div>
                   </div>
 
@@ -1196,9 +1526,12 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                     <QuantitySelector
                       compact
                       className="product-detail-buybox-quantity w-[9.5rem] shrink-0"
-                      onDecrease={() => setQuantity((current) => Math.max(current - 1, 1))}
-                      onIncrease={() => setQuantity((current) => current + 1)}
+                      onDecrease={() => applyQuantity(quantity - 1)}
+                      onIncrease={() => applyQuantity(quantity + 1)}
+                      onQuantityInputBlur={handleQuantityInputBlur}
+                      onQuantityInputChange={handleQuantityInputChange}
                       quantity={quantity}
+                      quantityInput={quantityInput}
                     />
 
                     <button
@@ -1284,17 +1617,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               </h2>
               <div className="mt-4 space-y-3">
                 {product.faq.map((item) => (
-                  <details
-                    className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
-                    key={item.question}
-                  >
-                    <summary className="cursor-pointer list-none text-sm font-bold text-browin-dark">
-                      {item.question}
-                    </summary>
-                    <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
-                      {item.answer}
-                    </p>
-                  </details>
+                  <FaqItem answer={item.answer} key={item.question} question={item.question} />
                 ))}
               </div>
             </div>

@@ -2,7 +2,9 @@ import type { Metadata, Viewport } from "next";
 import { Montserrat } from "next/font/google";
 
 import { CartProvider } from "@/components/store/cart-provider";
+import { FavoritesProvider } from "@/components/store/favorites-provider";
 import { StoreChrome } from "@/components/store/store-chrome";
+import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
 const montserrat = Montserrat({
@@ -11,7 +13,7 @@ const montserrat = Montserrat({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://browin-demo.local"),
+  metadataBase: getMetadataBase(),
   title: {
     default: "BROWIN - Stwórz własne arcydzieło | Sklep",
     template: "%s | BROWIN",
@@ -51,7 +53,9 @@ export default function RootLayout({
     <html lang="pl" className={`${montserrat.variable} h-full scroll-smooth antialiased`}>
       <body className="min-h-full bg-background font-sans text-foreground antialiased selection:bg-browin-red selection:text-white">
         <CartProvider>
-          <StoreChrome>{children}</StoreChrome>
+          <FavoritesProvider>
+            <StoreChrome>{children}</StoreChrome>
+          </FavoritesProvider>
         </CartProvider>
       </body>
     </html>

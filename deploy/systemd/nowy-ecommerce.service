@@ -1,0 +1,22 @@
+[Unit]
+Description=BROWIN storefront (Next.js)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=hudzi
+Group=hudzi
+WorkingDirectory=/var/www/browin
+Environment=NODE_ENV=production
+Environment=PORT=3000
+EnvironmentFile=-/etc/nowy-ecommerce.env
+ExecStart=/usr/bin/npm run start -- --hostname 127.0.0.1 --port 3000
+Restart=always
+RestartSec=5
+TimeoutStartSec=60
+KillSignal=SIGINT
+SyslogIdentifier=nowy-ecommerce
+
+[Install]
+WantedBy=multi-user.target
