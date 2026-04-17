@@ -1459,7 +1459,7 @@ export function ProductDetail({
           </div>
 
           <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
-            <div className="product-detail-media-stack group grid self-start gap-4">
+            <div className="product-detail-media-stack group grid self-stretch gap-4">
               <div className="product-detail-media-layout">
                 <div className="product-detail-media-preview relative flex w-full justify-center">
                   <div className="product-detail-media-frame relative overflow-hidden bg-browin-white">
@@ -1499,6 +1499,34 @@ export function ProductDetail({
                       -{discount}%
                     </span>
                   ) : null}
+
+                  {product.images.length > 1 ? (
+                    <div className="product-detail-media-nav absolute inset-x-0 bottom-0 flex items-center justify-center gap-3">
+                      <button
+                        aria-label="Poprzednie zdjecie"
+                        className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                        onClick={showPreviousImage}
+                        type="button"
+                      >
+                        <ArrowLeft size={14} />
+                      </button>
+
+                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+                        <span>{activeImageIndex + 1}</span>
+                        <span>/</span>
+                        <span>{product.images.length}</span>
+                      </div>
+
+                      <button
+                        aria-label="Nastepne zdjecie"
+                        className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                        onClick={showNextImage}
+                        type="button"
+                      >
+                        <ArrowRight size={14} />
+                      </button>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="product-detail-media-thumbs flex flex-col items-stretch justify-start">
@@ -1527,34 +1555,6 @@ export function ProductDetail({
                   ))}
                 </div>
               </div>
-
-              {product.images.length > 1 ? (
-                <div className="flex items-center justify-center gap-3">
-                  <button
-                    aria-label="Poprzednie zdjecie"
-                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
-                    onClick={showPreviousImage}
-                    type="button"
-                  >
-                    <ArrowLeft size={14} />
-                  </button>
-
-                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
-                    <span>{activeImageIndex + 1}</span>
-                    <span>/</span>
-                    <span>{product.images.length}</span>
-                  </div>
-
-                  <button
-                    aria-label="Nastepne zdjecie"
-                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
-                    onClick={showNextImage}
-                    type="button"
-                  >
-                    <ArrowRight size={14} />
-                  </button>
-                </div>
-              ) : null}
             </div>
 
             <div className="self-start">
