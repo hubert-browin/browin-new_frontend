@@ -1201,7 +1201,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                           ? "w-7 border-browin-red bg-browin-red"
                           : "w-2.5 border-browin-dark/15 bg-browin-white hover:border-browin-dark/35 hover:bg-browin-dark/18"
                       }`}
-                      key={image}
+                      key={`${image}-${index}`}
                       onClick={() => selectImage(index)}
                       type="button"
                     />
@@ -1418,7 +1418,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                           ? "border-browin-red"
                           : "border-browin-dark/10"
                       }`}
-                      key={image}
+                      key={`${image}-${index}`}
                       onFocus={() => selectImage(index)}
                       onMouseEnter={() => selectImage(index)}
                       type="button"
