@@ -1,6 +1,6 @@
 import { CatalogView } from "@/components/store/catalog-view";
-import { products } from "@/data/products";
 import type { SortOption } from "@/lib/catalog";
+import { getProducts } from "@/lib/product-feed";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
@@ -27,6 +27,7 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<SearchParamRecord>;
 }) {
+  const products = await getProducts();
   const params = await searchParams;
   const search = readString(params.search);
   const sortCandidate = readString(params.sort) as SortOption;
@@ -44,7 +45,7 @@ export default async function ProductsPage({
   return (
     <CatalogView
       key={viewKey}
-      description="Działająca wyszukiwarka, filtrowanie i sortowanie po mock danych z wariantami gotowymi do podmiany na realne API."
+      description="Pełny katalog produktów zasilany publicznym JSON-em BROWIN i gotowy do dalszej integracji sklepowej."
       eyebrow="Pełny listing"
       initialDealsOnly={initialDealsOnly}
       initialInStockOnly={initialInStockOnly}

@@ -1,4 +1,4 @@
-import type { CategoryId } from "@/data/store";
+import type { CategoryId } from "./store";
 
 export type ProductVariant = {
   id: string;
@@ -8,6 +8,7 @@ export type ProductVariant = {
   compareAtPrice?: number;
   stock: number;
   leadTime: string;
+  availabilityLabel?: string;
   badge?: string;
 };
 
@@ -27,6 +28,8 @@ export type ProductFileType =
   | "instrukcja"
   | "bezpieczenstwo"
   | "karta-produktu"
+  | "deklaracja"
+  | "karta-charakterystyki"
   | "inne";
 
 export type ProductFile = {
@@ -34,6 +37,24 @@ export type ProductFile = {
   href: string;
   type: ProductFileType;
   sizeLabel?: string;
+};
+
+export type ProductBundleItem = {
+  id: string;
+  slug?: string;
+  name: string;
+  quantity: number;
+  image?: string;
+};
+
+export type ProductTaxonomy = {
+  lineName: string;
+  lineSlug: string;
+  categoryName: string;
+  categorySlug: string;
+  subcategoryName?: string;
+  subcategorySlug?: string;
+  categoryId?: CategoryId;
 };
 
 export type Product = {
@@ -50,6 +71,7 @@ export type Product = {
   shortDescription: string;
   description: string;
   longDescription: string;
+  descriptionHtml?: string;
   images: string[];
   badge?: string;
   status: ProductStatus;
@@ -65,9 +87,17 @@ export type Product = {
   specs: ProductSpec[];
   faq: ProductFaq[];
   files: ProductFile[];
+  bundleItems: ProductBundleItem[];
+  relatedProductIds: string[];
   complementaryProductIds: string[];
+  taxonomy: ProductTaxonomy[];
   variants: ProductVariant[];
 };
+
+export type CartProductSummary = Pick<
+  Product,
+  "id" | "slug" | "title" | "subtitle" | "images" | "variants"
+>;
 
 type ProductSeed = {
   id: string;
@@ -837,7 +867,18 @@ export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
       specs: seed.specs,
       faq: seed.faq,
       files,
+      bundleItems: [],
+      relatedProductIds: [],
       complementaryProductIds: [],
+      taxonomy: [
+        {
+          lineName: profile.line,
+          lineSlug: profile.key,
+          categoryName: seed.title,
+          categorySlug: seed.slug,
+          categoryId: seed.categoryId,
+        },
+      ],
       variants,
     };
   }),

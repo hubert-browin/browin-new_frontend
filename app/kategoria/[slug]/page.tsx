@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { CatalogView } from "@/components/store/catalog-view";
-import { products } from "@/data/products";
 import { getCategoryBySlug, type SortOption } from "@/lib/catalog";
+import { getProducts } from "@/lib/product-feed";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
@@ -73,6 +73,7 @@ export default async function CategoryPage({
   }
 
   const paramsRecord = await searchParams;
+  const products = await getProducts();
   const sortCandidate = readString(paramsRecord.sort) as SortOption;
   const sort = sortOptions.has(sortCandidate) ? sortCandidate : "featured";
   const initialSearch = readString(paramsRecord.search);

@@ -199,6 +199,12 @@ button.search-ui-copy {
   background: rgb(255 255 255 / 0.95);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
+  box-shadow: none !important;
+}
+
+.utility-strip,
+.store-mobile-bottom-nav {
+  box-shadow: none !important;
 }
 
 .desktop-header-shell,
@@ -1142,7 +1148,22 @@ button.search-ui-copy {
   padding-bottom: clamp(0.65rem, 0.42rem + 0.34vh, 0.95rem);
 }
 
+.product-detail-fold {
+  min-height: clamp(34rem, calc(100dvh - 12rem), 48rem);
+}
+
+.product-detail-mobile-gallery {
+  height: clamp(18rem, 42dvh, 30rem);
+}
+
+.product-detail-buybox {
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+}
+
 .product-detail-buybox-trust {
+  margin-top: auto;
   padding-top: clamp(0.75rem, 0.64rem + 0.16vw, 0.9rem) !important;
   padding-bottom: clamp(0.75rem, 0.64rem + 0.16vw, 0.9rem) !important;
 }
@@ -1176,13 +1197,16 @@ button.search-ui-copy {
 .product-detail-media-preview {
   grid-column: 2;
   grid-row: 1;
-  align-items: flex-end;
+  align-items: center;
+  flex-direction: column;
+  gap: clamp(0.7rem, 0.56rem + 0.24vw, 0.95rem);
   height: 100%;
   min-width: 0;
   position: relative;
 }
 
 .product-detail-media-frame {
+  min-height: var(--desktop-pdp-media-height, clamp(28rem, calc(100dvh - 14rem), 42rem));
   width: 100%;
   max-width: none;
 }
@@ -1204,35 +1228,27 @@ button.search-ui-copy {
 }
 
 .product-detail-media-nav {
-  pointer-events: none;
-  z-index: 2;
-  bottom: clamp(0.55rem, 0.46rem + 0.18vw, 0.8rem);
-  padding-inline: clamp(0.35rem, 0.25rem + 0.16vw, 0.6rem);
+  margin-top: clamp(0.15rem, 0.08rem + 0.12vw, 0.3rem);
+  min-height: 2.25rem;
 }
 
 .product-detail-media-nav > button {
-  pointer-events: auto;
+  flex: 0 0 auto;
 }
 
 .product-detail-media-stage {
-  --product-image-zoom-origin-x: 50%;
-  --product-image-zoom-origin-y: 50%;
-  cursor: zoom-in;
+  cursor: grab;
+  min-height: var(--desktop-pdp-media-height, clamp(28rem, calc(100dvh - 14rem), 42rem));
   overflow: hidden;
-}
-
-.product-detail-media-stage[data-zoom-active="true"] {
-  cursor: zoom-out;
+  user-select: none;
 }
 
 .product-detail-main-image {
-  transform-origin: var(--product-image-zoom-origin-x) var(--product-image-zoom-origin-y);
   transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
-  will-change: transform;
 }
 
-.product-detail-media-stage[data-zoom-active="true"] .product-detail-main-image {
-  transform: scale(1.72);
+.product-detail-media-stage:active {
+  cursor: grabbing;
 }
 
 .product-detail-media-thumb img {
@@ -1263,12 +1279,16 @@ button.search-ui-copy {
 }
 
 @media (min-width: 1440px) {
+  :root {
+    --desktop-pdp-media-height: clamp(30rem, calc(100dvh - 15rem), 46rem);
+  }
+
   .product-detail-shell {
     display: flex;
     flex-direction: column;
   }
 
-  .product-detail-grid {
+  .product-detail-fold {
     min-height: max(33rem, calc(100dvh - 13rem)) !important;
     align-items: start;
   }
@@ -1277,10 +1297,11 @@ button.search-ui-copy {
 @media (min-width: 1024px) and (max-width: 1439px) {
   :root {
     --desktop-pdp-media-size: clamp(29rem, calc(100dvh - 12rem), 38rem);
+    --desktop-pdp-media-height: clamp(28rem, calc(100dvh - 13rem), 40rem);
     --desktop-pdp-thumb-size: clamp(3.45rem, 3.2rem + 0.22vw, 3.9rem);
   }
 
-  .product-detail-grid {
+  .product-detail-fold {
     min-height: calc(100dvh - 11.5rem) !important;
     align-items: stretch !important;
   }
@@ -1298,13 +1319,7 @@ button.search-ui-copy {
   }
 
   .product-detail-media-nav {
-    bottom: clamp(0.45rem, 0.34rem + 0.14vw, 0.65rem);
-  }
-
-  .product-detail-media-nav > button {
-    pointer-events: auto !important;
-    transform: none !important;
-    opacity: 1 !important;
+    margin-top: 0.15rem;
   }
 
   .product-detail-media-frame {
@@ -1337,6 +1352,7 @@ button.search-ui-copy {
 @media (min-width: 1024px) and (max-width: 1439px) and (max-height: 860px) {
   :root {
     --desktop-pdp-media-size: clamp(27rem, calc(100dvh - 12rem), 34rem);
+    --desktop-pdp-media-height: clamp(25rem, calc(100dvh - 14rem), 34rem);
     --desktop-pdp-thumb-size: clamp(3.25rem, 3.05rem + 0.18vw, 3.6rem);
   }
 
@@ -1358,6 +1374,10 @@ button.search-ui-copy {
 }
 
 @media (min-width: 1440px) and (min-height: 860px) {
+  :root {
+    --desktop-pdp-media-height: clamp(31rem, calc(100dvh - 15.5rem), 47rem);
+  }
+
   .product-detail-buybox-shipping-progress {
     display: block;
     margin-bottom: clamp(0.6rem, 0.52rem + 0.16vh, 0.8rem);

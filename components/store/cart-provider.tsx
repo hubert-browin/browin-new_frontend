@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
 
-import { products } from "@/data/products";
+import type { CartProductSummary } from "@/data/products";
 import {
   freeShippingThreshold,
   getPrimaryVariant,
@@ -16,7 +16,7 @@ type CartLine = {
 };
 
 type CartDetailedLine = {
-  product: (typeof products)[number];
+  product: CartProductSummary;
   variant: ReturnType<typeof getPrimaryVariant>;
   quantity: number;
 };
@@ -40,7 +40,13 @@ const STORAGE_KEY = "browin-enterprise-cart";
 
 const CartContext = createContext<CartContextValue | null>(null);
 
-export function CartProvider({ children }: { children: React.ReactNode }) {
+export function CartProvider({
+  children,
+  products,
+}: {
+  children: React.ReactNode;
+  products: CartProductSummary[];
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const [lines, setLines] = useState<CartLine[]>([]);
   const [hasHydrated, setHasHydrated] = useState(false);

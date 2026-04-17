@@ -1,5 +1,5 @@
 import { categories, type CategoryId } from "@/data/store";
-import { products, type Product, type ProductVariant } from "@/data/products";
+import type { Product, ProductVariant } from "@/data/products";
 
 export type SortOption =
   | "featured"
@@ -54,15 +54,19 @@ export const formatCurrency = (value: number) =>
     currency: "PLN",
   }).format(value);
 
-export const getPrimaryVariant = (product: Product) => product.variants[0];
+type ProductWithVariants = {
+  variants: ProductVariant[];
+};
 
-export const getVariantById = (product: Product, variantId?: string) =>
+export const getPrimaryVariant = <T extends ProductWithVariants>(product: T) => product.variants[0];
+
+export const getVariantById = <T extends ProductWithVariants>(product: T, variantId?: string) =>
   product.variants.find((variant) => variant.id === variantId) ?? getPrimaryVariant(product);
 
 export const getProductPrice = (product: Product) => getPrimaryVariant(product).price;
 
 export const hasPromotion = (product: Product) =>
-  product.variants.some((variant) => variant.compareAtPrice);
+  product.variants.some((variant) => variant.compareAtPrice) || Boolean(product.badge);
 
 export const getDiscountPercent = (variant: ProductVariant) => {
   if (!variant.compareAtPrice || variant.compareAtPrice <= variant.price) {
@@ -75,34 +79,34 @@ export const getDiscountPercent = (variant: ProductVariant) => {
 export const getCategoryBySlug = (slug: string) =>
   categories.find((category) => category.slug === slug);
 
-export const getProductBySlug = (slug: string) =>
-  products.find((product) => product.slug === slug);
+export const getProductBySlug = (source: Product[], slug: string) =>
+  source.find((product) => product.slug === slug);
 
-export const getCanonicalProductSlug = (slug: string) => {
-  const directMatch = getProductBySlug(slug);
+export const getCanonicalProductSlug = (source: Product[], slug: string) => {
+  const directMatch = getProductBySlug(source, slug);
 
   if (directMatch) {
     return directMatch.slug;
   }
 
   return (
-    products.find(
+    source.find(
       (product) =>
         product.baseSlug === slug && product.slug === `${product.baseSlug}-${defaultProductLineSlug}`,
     )?.slug ??
-    products.find((product) => product.baseSlug === slug)?.slug ??
+    source.find((product) => product.baseSlug === slug)?.slug ??
     null
   );
 };
 
-export const resolveProductSlug = (slug: string) => {
-  const canonicalSlug = getCanonicalProductSlug(slug);
+export const resolveProductSlug = (source: Product[], slug: string) => {
+  const canonicalSlug = getCanonicalProductSlug(source, slug);
 
   if (!canonicalSlug) {
     return null;
   }
 
-  const product = getProductBySlug(canonicalSlug);
+  const product = getProductBySlug(source, canonicalSlug);
 
   if (!product) {
     return null;
@@ -132,9 +136,16 @@ export const matchesSearch = (product: Product, query: string) => {
       product.longDescription,
       categoryLabel,
       product.line,
+      ...product.taxonomy.flatMap((taxonomy) => [
+        taxonomy.lineName,
+        taxonomy.categoryName,
+        taxonomy.subcategoryName ?? "",
+      ]),
       ...product.tags,
       ...product.features,
       ...product.benefits,
+      ...product.bundleItems.map((item) => item.name),
+      ...product.specs.flatMap((spec) => [spec.label, spec.value]),
     ].join(" "),
   );
 
@@ -142,7 +153,7 @@ export const matchesSearch = (product: Product, query: string) => {
 };
 
 export const filterProducts = ({
-  source = products,
+  source,
   query = "",
   categoryId,
   dealsOnly = false,
@@ -150,7 +161,7 @@ export const filterProducts = ({
   minPrice,
   maxPrice,
 }: {
-  source?: Product[];
+  source: Product[];
   query?: string;
   categoryId?: CategoryId;
   dealsOnly?: boolean;
@@ -211,14 +222,14 @@ export const sortProducts = (source: Product[], sort: SortOption) => {
   }
 };
 
-export const getFeaturedProducts = (limit = 8) =>
-  sortProducts(products, "featured").slice(0, limit);
+export const getFeaturedProducts = (source: Product[], limit = 8) =>
+  sortProducts(source, "featured").slice(0, limit);
 
-export const getNewestProducts = (limit = 8) =>
-  sortProducts(products, "newest").slice(0, limit);
+export const getNewestProducts = (source: Product[], limit = 8) =>
+  sortProducts(source, "newest").slice(0, limit);
 
-export const getHomepageShowcaseProducts = (limit = 16) =>
-  [...products]
+export const getHomepageShowcaseProducts = (source: Product[], limit = 16) =>
+  [...source]
     .sort((left, right) => {
       const imageScoreDiff =
         homepageImageScore(right.images[0] ?? "") - homepageImageScore(left.images[0] ?? "");
@@ -234,38 +245,75 @@ export const getHomepageShowcaseProducts = (limit = 16) =>
     })
     .slice(0, limit);
 
-export const getHeroRailProducts = (limit = 14) =>
-  sortProducts(products, "popular").slice(0, limit);
+export const getHeroRailProducts = (source: Product[], limit = 14) =>
+  sortProducts(source, "popular").slice(0, limit);
 
-export const getRelatedProducts = (product: Product, limit = 4) =>
-  sortProducts(
-    products.filter(
-      (candidate) =>
-        candidate.baseProductId !== product.baseProductId &&
-        candidate.categoryId === product.categoryId,
-    ),
-    "featured",
-  )
-    .filter((candidate, index, source) => {
-      return (
-        source.findIndex(
-          (entry) => entry.baseProductId === candidate.baseProductId,
-        ) === index
-      );
-    })
-    .slice(0, limit);
+export const getRelatedProducts = (source: Product[], product: Product, limit = 4) =>
+  (() => {
+    const index = new Map(source.map((candidate) => [candidate.id, candidate]));
+    const seen = new Set<string>();
+    const directMatches: Product[] = [];
 
-export const getComplementaryProducts = (product: Product, limit = 8): Product[] => {
+    for (const id of product.relatedProductIds) {
+      const candidate = index.get(id);
+
+      if (!candidate || seen.has(candidate.baseProductId) || candidate.id === product.id) {
+        continue;
+      }
+
+      seen.add(candidate.baseProductId);
+      directMatches.push(candidate);
+
+      if (directMatches.length >= limit) {
+        return directMatches;
+      }
+    }
+
+    const fallbackMatches = sortProducts(
+      source.filter(
+        (candidate) =>
+          candidate.baseProductId !== product.baseProductId &&
+          candidate.categoryId === product.categoryId &&
+          !seen.has(candidate.baseProductId),
+      ),
+      "featured",
+    )
+      .filter((candidate, candidateIndex, filteredSource) => {
+        return (
+          filteredSource.findIndex(
+            (entry) => entry.baseProductId === candidate.baseProductId,
+          ) === candidateIndex
+        );
+      })
+      .slice(0, Math.max(0, limit - directMatches.length));
+
+    return [...directMatches, ...fallbackMatches].slice(0, limit);
+  })();
+
+export const getComplementaryProducts = (
+  source: Product[],
+  product: Product,
+  limit = 8,
+): Product[] => {
   if (product.complementaryProductIds.length === 0) return [];
-  const index = new Map(products.map((candidate) => [candidate.id, candidate]));
+  const index = new Map(source.map((candidate) => [candidate.id, candidate]));
   const seen = new Set<string>();
   const result: Product[] = [];
+
   for (const id of product.complementaryProductIds) {
     const candidate = index.get(id);
-    if (!candidate || seen.has(candidate.baseProductId)) continue;
+
+    if (!candidate || seen.has(candidate.baseProductId)) {
+      continue;
+    }
+
     seen.add(candidate.baseProductId);
     result.push(candidate);
-    if (result.length >= limit) break;
+
+    if (result.length >= limit) {
+      break;
+    }
   }
+
   return result;
 };

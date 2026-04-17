@@ -23,14 +23,9 @@ import { useEffect, useRef, useState } from "react";
 import { ProductCard } from "@/components/store/product-card";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
-import { categories, type CategoryId } from "@/data/store";
-import { products } from "@/data/products";
-import {
-  formatCurrency,
-  getHomepageShowcaseProducts,
-  getNewestProducts,
-  getPrimaryVariant,
-} from "@/lib/catalog";
+import type { Product } from "@/data/products";
+import type { CategoryId, StoreCategory } from "@/data/store";
+import { formatCurrency, getPrimaryVariant } from "@/lib/catalog";
 
 type HeroSlide = {
   id: string;
@@ -99,28 +94,32 @@ const heroSlides: HeroSlide[] = [
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
 
-export function HomePage() {
+type HomePageProps = {
+  featuredProducts: Product[];
+  weeklyHit: Product | null;
+  offerDay: Product | null;
+  storeCategories: StoreCategory[];
+};
+
+export function HomePage({
+  featuredProducts,
+  offerDay,
+  storeCategories,
+  weeklyHit,
+}: HomePageProps) {
   const { addItem } = useCart();
   const [desktopMenuOpen, setDesktopMenuOpen] = useState(false);
   const [activeDesktopCategory, setActiveDesktopCategory] = useState<CategoryId>(
-    categories[0]?.id ?? "wedliniarstwo",
+    storeCategories[0]?.id ?? "wedliniarstwo",
   );
   const [currentSlide, setCurrentSlide] = useState(0);
   const openDesktopMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeDesktopMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const touchStartX = useRef(0);
-  const featuredProducts = getHomepageShowcaseProducts(16);
-  const newestProducts = getNewestProducts(4);
-  const weeklyHit =
-    products.find((product) => product.slug === "zestaw-startowy-szynkowar-classic") ??
-    newestProducts[0];
-  const offerDay =
-    products.find((product) => product.slug === "balon-winiarski-15l-classic") ??
-    newestProducts[1] ??
-    newestProducts[0];
 
   const activeDesktopData =
-    categories.find((category) => category.id === activeDesktopCategory) ?? categories[0];
+    storeCategories.find((category) => category.id === activeDesktopCategory) ??
+    storeCategories[0];
   const activePromo = activeDesktopData.promo;
   const isEditorialDesktopPromo = activePromo.type === "editorial";
   const activePromoHref =
@@ -242,7 +241,7 @@ export function HomePage() {
                 id="desktop-menu-container"
               >
                 <div className="flex flex-1 flex-col w-full">
-                  {categories.map((category) => {
+                  {storeCategories.map((category) => {
                     const isActive = desktopMenuOpen && activeDesktopCategory === category.id;
 
                     return (
@@ -391,7 +390,7 @@ export function HomePage() {
             </div>
 
             <div className="hero-main-content relative z-10 flex h-full flex-col gap-4 md:gap-6 lg:col-span-9">
-              <div className="utility-strip hidden h-14 w-full shrink-0 items-center justify-between border border-browin-dark/10 bg-browin-white px-6 shadow-sm lg:flex">
+              <div className="utility-strip hidden h-14 w-full shrink-0 items-center justify-between border border-browin-dark/10 bg-browin-white px-6 shadow-none lg:flex">
                 <div className="utility-strip-links flex items-center gap-6 overflow-hidden xl:gap-8">
                   <Link
                     className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
@@ -554,70 +553,120 @@ export function HomePage() {
                 </div>
 
                 <div className="hero-side-panels grid h-[400px] grid-cols-1 grid-rows-2 gap-4 md:gap-6 lg:col-span-1 lg:h-full">
-                  <div className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-none border border-browin-dark/10 bg-browin-white p-5 shadow-sm transition-colors hover:border-browin-red xl:p-6">
-                    <div className="relative z-10 flex items-start justify-between">
+                  {weeklyHit ? (
+                    <div className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-none border border-browin-dark/10 bg-browin-white p-5 shadow-sm transition-colors hover:border-browin-red xl:p-6">
+                      <Link
+                        aria-label={`Przejdź do produktu ${weeklyHit.title}`}
+                        className="absolute inset-0 z-10"
+                        href={`/produkt/${weeklyHit.slug}`}
+                      />
+
+                      <div className="relative z-10 flex items-start justify-between">
+                        <div>
+                          <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                            <Fire className="mr-1" size={16} weight="fill" />
+                            Hit Tygodnia
+                          </span>
+                          <h3 className="mt-1 max-w-[90%] text-base font-bold leading-tight text-browin-dark transition-colors group-hover:text-browin-red xl:text-lg">
+                            {weeklyHit.title}
+                          </h3>
+                        </div>
+                      </div>
+
+                      <div className="relative z-10 mt-auto flex items-end justify-between pt-2">
+                        <div>
+                          <p className="mb-0.5 text-xs font-bold text-browin-dark/50 line-through">
+                            {formatCurrency(
+                              (getPrimaryVariant(weeklyHit).compareAtPrice ??
+                                getPrimaryVariant(weeklyHit).price) + 12,
+                            )}
+                          </p>
+                          <p className="text-2xl font-extrabold leading-none text-browin-dark xl:text-3xl">
+                            {formatCurrency(getPrimaryVariant(weeklyHit).price)}
+                          </p>
+                        </div>
+                        <button
+                          className="relative z-20 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border border-browin-dark/10 bg-browin-white text-browin-dark transition-[width,padding,justify-content,gap,background-color,border-color,color] duration-200 hover:border-browin-red hover:bg-browin-red hover:text-browin-white focus-visible:border-browin-red focus-visible:bg-browin-red focus-visible:text-browin-white xl:h-12 xl:w-12 xl:group-hover:w-[7.4rem] xl:group-hover:justify-start xl:group-hover:gap-2 xl:group-hover:border-browin-red xl:group-hover:bg-browin-red xl:group-hover:px-3 xl:group-hover:text-browin-white xl:hover:w-[7.4rem] xl:hover:justify-start xl:hover:gap-2 xl:hover:px-3 xl:focus-visible:w-[7.4rem] xl:focus-visible:justify-start xl:focus-visible:gap-2 xl:focus-visible:px-3"
+                          onClick={(event) => {
+                            event.preventDefault();
+                            event.stopPropagation();
+                            addItem(weeklyHit.id, getPrimaryVariant(weeklyHit).id);
+                          }}
+                          type="button"
+                        >
+                          <ShoppingCart className="shrink-0" size={20} />
+                          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 xl:block xl:group-hover:max-w-[3.8rem] xl:group-hover:translate-x-0 xl:group-hover:opacity-100 xl:hover:max-w-[3.8rem] xl:hover:translate-x-0 xl:hover:opacity-100 xl:focus-visible:max-w-[3.8rem] xl:focus-visible:translate-x-0 xl:focus-visible:opacity-100">
+                            Dodaj
+                          </span>
+                        </button>
+                      </div>
+                      <CookingPot className="pointer-events-none absolute -right-2 top-8 text-browin-dark/5 transition-transform group-hover:-rotate-12" size={96} weight="fill" />
+                    </div>
+                  ) : (
+                    <div className="flex h-full flex-col justify-between border border-browin-dark/10 bg-browin-white p-5 shadow-sm xl:p-6">
                       <div>
                         <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
                           <Fire className="mr-1" size={16} weight="fill" />
-                          Hit Tygodnia
+                          Feed aktywny
                         </span>
-                        <h3 className="mt-1 max-w-[90%] text-base font-bold leading-tight text-browin-dark transition-colors group-hover:text-browin-red xl:text-lg">
-                          {weeklyHit.title}
+                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                          Produkty są wczytywane z publicznego JSON-a BROWIN.
                         </h3>
                       </div>
                     </div>
+                  )}
 
-                    <div className="relative z-10 mt-auto flex items-end justify-between pt-2">
-                      <div>
-                        <p className="mb-0.5 text-xs font-bold text-browin-dark/50 line-through">
-                          {formatCurrency((getPrimaryVariant(weeklyHit).compareAtPrice ?? getPrimaryVariant(weeklyHit).price) + 12)}
-                        </p>
-                        <p className="text-2xl font-extrabold leading-none text-browin-dark xl:text-3xl">
-                          {formatCurrency(getPrimaryVariant(weeklyHit).price)}
-                        </p>
-                      </div>
-                      <button
-                        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-none bg-browin-dark/5 text-browin-dark transition-colors group-hover:bg-browin-red group-hover:text-browin-white xl:h-12 xl:w-12"
-                        onClick={() => addItem(weeklyHit.id, getPrimaryVariant(weeklyHit).id)}
-                        type="button"
-                      >
-                        <ShoppingCart size={20} />
-                      </button>
-                    </div>
-                    <CookingPot className="pointer-events-none absolute -right-2 top-8 text-browin-dark/5 transition-transform group-hover:-rotate-12" size={96} weight="fill" />
-                  </div>
+                  {offerDay ? (
+                    <div className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-none border border-browin-dark/10 bg-browin-white p-5 shadow-sm transition-colors hover:border-browin-red xl:p-6">
+                      <Link
+                        aria-label={`Przejdź do produktu ${offerDay.title}`}
+                        className="absolute inset-0 z-10"
+                        href={`/produkt/${offerDay.slug}`}
+                      />
 
-                  <div className="group relative flex h-full cursor-pointer flex-col justify-between overflow-hidden rounded-none border border-browin-dark/10 bg-browin-white p-5 shadow-sm transition-colors hover:border-browin-red xl:p-6">
-                    <div className="relative z-10">
-                      <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
-                        <ClockCountdown className="mr-1" size={16} weight="fill" />
-                        Oferta Dnia
-                      </span>
-                      <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
-                        {offerDay.title}
-                      </h3>
-                      <span className="mt-2 inline-block bg-browin-red px-2 py-0.5 text-[9px] font-bold text-browin-white">
-                        + Drożdże GRATIS
-                      </span>
-                    </div>
-
-                    <Wine className="pointer-events-none absolute -right-4 top-8 text-browin-dark/5 transition-transform duration-500 group-hover:-rotate-12" size={96} weight="fill" />
-
-                    <div className="relative z-10 mt-4">
-                      <div className="mb-3 flex items-end gap-2">
-                        <span className="text-2xl font-extrabold leading-none tracking-tight text-browin-red xl:text-3xl">
-                          {formatCurrency(getPrimaryVariant(offerDay).price)}
+                      <div className="relative z-10">
+                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                          <ClockCountdown className="mr-1" size={16} weight="fill" />
+                          Oferta Dnia
+                        </span>
+                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                          {offerDay.title}
+                        </h3>
+                        <span className="mt-2 inline-block bg-browin-red px-2 py-0.5 text-[9px] font-bold text-browin-white">
+                          Sprawdź teraz
                         </span>
                       </div>
-                      <div className="mb-1.5 h-1.5 w-full rounded-none bg-browin-dark/10">
-                        <div className="h-1.5 w-[85%] rounded-none bg-browin-red" />
-                      </div>
-                      <div className="flex items-center justify-between text-[9px] font-bold uppercase text-browin-dark/60">
-                        <span>Sprzedano 85%</span>
-                        <span className="text-browin-red">Zostało 15 szt.</span>
+
+                      <Wine className="pointer-events-none absolute -right-4 top-8 text-browin-dark/5 transition-transform duration-500 group-hover:-rotate-12" size={96} weight="fill" />
+
+                      <div className="relative z-10 mt-4">
+                        <div className="mb-3 flex items-end gap-2">
+                          <span className="text-2xl font-extrabold leading-none tracking-tight text-browin-red xl:text-3xl">
+                            {formatCurrency(getPrimaryVariant(offerDay).price)}
+                          </span>
+                        </div>
+                        <div className="mb-1.5 h-1.5 w-full rounded-none bg-browin-dark/10">
+                          <div className="h-1.5 w-[85%] rounded-none bg-browin-red" />
+                        </div>
+                        <div className="flex items-center justify-between text-[9px] font-bold uppercase text-browin-dark/60">
+                          <span>Oferta specjalna</span>
+                          <span className="text-browin-red">Zobacz produkt</span>
+                        </div>
                       </div>
                     </div>
-                  </div>
+                  ) : (
+                    <div className="flex h-full flex-col justify-between border border-browin-dark/10 bg-browin-white p-5 shadow-sm xl:p-6">
+                      <div>
+                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                          <ClockCountdown className="mr-1" size={16} weight="fill" />
+                          Dane live
+                        </span>
+                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                          Draft sklepu czeka na pierwsze produkty z feedu.
+                        </h3>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>

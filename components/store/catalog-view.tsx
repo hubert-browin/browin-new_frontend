@@ -47,6 +47,8 @@ type PriceRangeControlProps = {
   onMaxChange: (value: number) => void;
 };
 
+const PRODUCT_BATCH_SIZE = 16;
+
 const getPriceBounds = (source: Product[], categoryId?: CategoryId): PriceBounds => {
   const scopedProducts = categoryId
     ? source.filter((product) => product.categoryId === categoryId)
@@ -132,6 +134,71 @@ function PriceRangeControl({
   );
 }
 
+function InfiniteProductGrid({ products }: { products: Product[] }) {
+  const [visibleCount, setVisibleCount] = useState(PRODUCT_BATCH_SIZE);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+  const renderedProducts = products.slice(0, visibleCount);
+  const loadedProductsCount = Math.min(visibleCount, products.length);
+  const hasMoreProducts = loadedProductsCount < products.length;
+
+  useEffect(() => {
+    if (!hasMoreProducts || !loadMoreTriggerRef.current) {
+      return;
+    }
+
+    const trigger = loadMoreTriggerRef.current;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        observer.unobserve(trigger);
+        setVisibleCount((current) => Math.min(current + PRODUCT_BATCH_SIZE, products.length));
+      },
+      {
+        rootMargin: "320px 0px",
+      },
+    );
+
+    observer.observe(trigger);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [hasMoreProducts, loadedProductsCount, products.length]);
+
+  return (
+    <>
+      <div className="product-grid mt-5 grid grid-cols-2 gap-4 md:mt-8 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+        {renderedProducts.map((product, index) => (
+          <ProductCard
+            key={product.id}
+            priority={index < 4}
+            product={product}
+            titleLines={3}
+          />
+        ))}
+      </div>
+
+      {hasMoreProducts ? (
+        <div
+          className="mt-8 flex items-center justify-center border border-dashed border-browin-dark/12 bg-browin-white/80 px-5 py-4 text-center text-sm font-semibold text-browin-dark/62"
+          ref={loadMoreTriggerRef}
+        >
+          Ładowanie kolejnych produktów podczas scrolla...
+        </div>
+      ) : products.length > PRODUCT_BATCH_SIZE ? (
+        <div className="mt-8 flex items-center justify-center border border-dashed border-browin-dark/12 bg-browin-white/80 px-5 py-4 text-center text-sm font-semibold text-browin-dark/62">
+          Wyświetlono wszystkie {products.length} produkty.
+        </div>
+      ) : null}
+    </>
+  );
+}
+
 export function CatalogView({
   description,
   eyebrow,
@@ -209,6 +276,17 @@ export function CatalogView({
     maxPrice,
   });
   const visibleProducts = sortProducts(filtered, sort);
+  const infiniteListKey = [
+    lockedCategoryId ?? "listing",
+    categoryId ?? "all",
+    deferredSearch,
+    sort,
+    dealsOnly ? "deal" : "nodeal",
+    inStockOnly ? "stock" : "nostock",
+    minPrice,
+    maxPrice,
+    visibleProducts.length,
+  ].join(":");
 
   const resetFilters = () => {
     setSearch("");
@@ -321,7 +399,7 @@ export function CatalogView({
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 md:hidden">
           <div className="text-sm text-browin-dark/68">
             <p>
-              Pokazujemy <strong className="text-browin-dark">{visibleProducts.length}</strong>{" "}
+              Znaleziono <strong className="text-browin-dark">{visibleProducts.length}</strong>{" "}
               produktów.
             </p>
             {search ? (
@@ -637,16 +715,7 @@ export function CatalogView({
         </div>
 
         {visibleProducts.length ? (
-          <div className="product-grid mt-5 grid grid-cols-2 gap-4 md:mt-8 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
-            {visibleProducts.map((product, index) => (
-              <ProductCard
-                key={product.id}
-                priority={index < 4}
-                product={product}
-                titleLines={3}
-              />
-            ))}
-          </div>
+          <InfiniteProductGrid key={infiniteListKey} products={visibleProducts} />
         ) : (
           <div className="mt-8 border border-dashed border-browin-dark/15 bg-browin-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-bold text-browin-dark">Brak dopasowanych produktów</h2>

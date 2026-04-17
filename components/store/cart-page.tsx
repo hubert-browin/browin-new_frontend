@@ -6,11 +6,14 @@ import Link from "next/link";
 
 import { ProductCard } from "@/components/store/product-card";
 import { useCart } from "@/components/store/cart-provider";
-import { formatCurrency, getFeaturedProducts } from "@/lib/catalog";
+import type { Product } from "@/data/products";
+import { formatCurrency } from "@/lib/catalog";
 
-const recommendations = getFeaturedProducts(4);
+type CartPageProps = {
+  recommendations: Product[];
+};
 
-export function CartPage() {
+export function CartPage({ recommendations }: CartPageProps) {
   const {
     clearCart,
     items,

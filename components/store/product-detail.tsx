@@ -17,13 +17,15 @@ import {
   useRef,
   useState,
   type MouseEvent as ReactMouseEvent,
+  type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
+  type WheelEvent as ReactWheelEvent,
 } from "react";
 
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
 import { useCart } from "@/components/store/cart-provider";
-import type { Product, ProductFile } from "@/data/products";
+import type { Product, ProductBundleItem, ProductFile } from "@/data/products";
 import { categories } from "@/data/store";
 import {
   formatCurrency,
@@ -104,6 +106,32 @@ const resolveImageGestureLock = (deltaX: number, deltaY: number) => {
 
 const MOBILE_GALLERY_FALLBACK_WIDTH = 256;
 const MOBILE_SWIPE_SETTLE_MS = 220;
+const DESKTOP_THUMB_WINDOW_SIZE = 5;
+
+const getDesktopThumbMaxStart = (length: number) =>
+  Math.max(length - DESKTOP_THUMB_WINDOW_SIZE, 0);
+
+const clampDesktopThumbStart = (start: number, length: number) =>
+  Math.min(Math.max(start, 0), getDesktopThumbMaxStart(length));
+
+const getDesktopThumbStartForImage = (
+  currentStart: number,
+  imageIndex: number,
+  length: number,
+) => {
+  const safeCurrentStart = clampDesktopThumbStart(currentStart, length);
+  const maxStart = getDesktopThumbMaxStart(length);
+
+  if (imageIndex < safeCurrentStart) {
+    return imageIndex;
+  }
+
+  if (imageIndex >= safeCurrentStart + DESKTOP_THUMB_WINDOW_SIZE) {
+    return Math.min(imageIndex - DESKTOP_THUMB_WINDOW_SIZE + 1, maxStart);
+  }
+
+  return safeCurrentStart;
+};
 
 const getWrappedImageIndex = (length: number, index: number) => {
   if (length <= 0) {
@@ -173,15 +201,24 @@ const buildReviewBreakdown = (totalReviews: number, averageRating: number) => {
 const buildReviewCards = (product: Product) => {
   const reviewBodies = [
     product.shortDescription,
-    product.features[0] ?? product.description,
-    product.benefits[0] ?? product.longDescription,
+    product.description,
+    product.longDescription,
   ];
+  const toReviewSnippet = (body: string) => {
+    const normalizedBody = body.replace(/\s+/g, " ").trim();
+
+    if (normalizedBody.length <= 164) {
+      return normalizedBody;
+    }
+
+    return `${normalizedBody.slice(0, 161).trimEnd()}...`;
+  };
 
   return reviewBodies.map((body, index) => ({
     author: reviewAuthors[index] ?? `Klient ${index + 1}`,
-    body,
+    body: toReviewSnippet(body),
     meta: reviewMoments[index] ?? "Kupiono niedawno",
-    rating: index === 2 ? Math.max(4, Math.round(product.rating)) : 5,
+    rating: 5,
     title: reviewTitles[index] ?? "Zweryfikowany zakup",
     verified: true,
   })) satisfies ReviewCard[];
@@ -193,6 +230,10 @@ function VariantSelector({
   selectedVariantId,
   compact = false,
 }: VariantSelectorProps) {
+  if (product.variants.length <= 1) {
+    return null;
+  }
+
   return (
     <div className={`grid grid-cols-3 ${compact ? "gap-2" : "gap-3"}`}>
       {product.variants.map((variant) => {
@@ -374,40 +415,27 @@ function TrustSummary({
   );
 }
 
-function ProductTagChips({
-  className,
-  tags,
-}: {
-  className?: string;
-  tags: string[];
-}) {
-  return (
-    <div className={className}>
-      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-browin-dark/45">
-        Powiązane frazy
-      </p>
-      <ul className="mt-3 flex flex-wrap gap-2">
-        {tags.map((tag, index) => (
-          <li key={`${tag}-${index}`}>
-            <Link
-              className="inline-flex items-center border border-browin-dark/10 bg-browin-gray px-3 py-1.5 text-[11px] font-semibold text-browin-dark/78 transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
-              href={`/produkty?search=${encodeURIComponent(tag)}`}
-            >
-              {tag}
-            </Link>
-          </li>
-        ))}
-      </ul>
-    </div>
-  );
-}
-
 const fileTypeLabels: Record<string, string> = {
   instrukcja: "PDF · Instrukcja",
   bezpieczenstwo: "PDF · Bezpieczeństwo",
   "karta-produktu": "PDF · Karta produktu",
+  deklaracja: "PDF · Deklaracja",
+  "karta-charakterystyki": "PDF · Karta charakterystyki",
   inne: "PDF",
 };
+
+function ProductDescription({ product }: { product: Product }) {
+  if (product.descriptionHtml) {
+    return (
+      <div
+        className="text-sm leading-relaxed text-browin-dark/72 [&_p:last-child]:mb-0"
+        dangerouslySetInnerHTML={{ __html: product.descriptionHtml }}
+      />
+    );
+  }
+
+  return <p className="text-sm leading-relaxed text-browin-dark/72">{product.longDescription}</p>;
+}
 
 function ProductFileTile({ file }: { file: ProductFile }) {
   return (
@@ -445,10 +473,102 @@ function ProductFileTile({ file }: { file: ProductFile }) {
   );
 }
 
-function ComplementaryProductsCarousel({ products }: { products: Product[] }) {
+function BundleItemsList({ items }: { items: ProductBundleItem[] }) {
+  return (
+    <div className="grid gap-3">
+      {items.map((item) => {
+        const itemBody = (
+          <>
+            {item.image ? (
+              <div className="relative h-16 w-16 shrink-0 overflow-hidden border border-browin-dark/10 bg-browin-white">
+                <Image
+                  alt={item.name}
+                  className="object-contain"
+                  fill
+                  sizes="64px"
+                  src={item.image}
+                />
+              </div>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                {item.quantity} szt.
+              </p>
+              <p className="mt-1 text-sm font-bold text-browin-dark">{item.name}</p>
+            </div>
+            {item.slug ? (
+              <ArrowRight className="shrink-0 text-browin-dark/35 transition-colors group-hover:text-browin-red" size={16} />
+            ) : null}
+          </>
+        );
+
+        if (item.slug) {
+          return (
+            <Link
+              className="group flex items-center gap-4 border border-browin-dark/10 bg-browin-gray px-4 py-4 transition-colors hover:border-browin-red hover:bg-browin-white"
+              href={`/produkt/${item.slug}`}
+              key={`${item.id}-${item.slug ?? item.name}`}
+            >
+              {itemBody}
+            </Link>
+          );
+        }
+
+        return (
+          <div
+            className="flex items-center gap-4 border border-browin-dark/10 bg-browin-gray px-4 py-4"
+            key={`${item.id}-${item.name}`}
+          >
+            {itemBody}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+function ProductSpecsList({ product }: { product: Product }) {
+  return (
+    <dl className="divide-y divide-browin-dark/10 border-y border-browin-dark/10">
+      {product.specs.map((spec) => (
+        <div
+          className="grid gap-1.5 py-3 text-sm md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] md:gap-4"
+          key={spec.label}
+        >
+          <dt className="font-bold text-browin-dark">{spec.label}</dt>
+          <dd className="text-browin-dark/68">{spec.value}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
+function ProductQuestionsPrompt() {
+  return (
+    <button
+      className="group flex w-full items-center justify-between gap-4 bg-browin-red px-5 py-4 text-left text-browin-white transition-colors hover:bg-browin-dark md:px-6 md:py-5"
+      type="button"
+    >
+      <div className="min-w-0">
+        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-white/72">
+          Kontakt produktowy
+        </p>
+        <p className="mt-1 text-lg font-extrabold uppercase tracking-tight text-browin-white md:text-xl">
+          Masz pytania? Zapytaj o ten produkt
+        </p>
+      </div>
+      <ArrowRight
+        className="shrink-0 transition-transform duration-200 group-hover:translate-x-1"
+        size={18}
+      />
+    </button>
+  );
+}
+
+function ComplementaryProductsGrid({ products }: { products: Product[] }) {
   return (
     <section className="mt-12 border-t border-browin-dark/10 pt-10">
-      <div className="mb-5 flex items-end justify-between gap-4">
+      <div className="mb-5">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
             Kompletuj zestaw
@@ -457,27 +577,203 @@ function ComplementaryProductsCarousel({ products }: { products: Product[] }) {
             Produkty uzupełniające
           </h2>
         </div>
-        <span className="hidden text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45 md:inline">
-          Przewiń poziomo
-        </span>
       </div>
-      <div
-        className="-mx-4 overflow-x-auto px-4 pb-3 [scrollbar-width:thin]"
-        style={{ scrollSnapType: "x mandatory" }}
-      >
-        <ul className="flex gap-4 md:gap-5">
-          {products.map((item) => (
-            <li
-              className="w-[14rem] shrink-0 md:w-[16rem] xl:w-[18rem]"
-              key={`complementary-${item.id}`}
-              style={{ scrollSnapAlign: "start" }}
-            >
-              <ProductCard product={item} titleLines={3} />
-            </li>
-          ))}
-        </ul>
+      <div className="product-grid grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+        {products.map((item) => (
+          <ProductCard key={`complementary-${item.id}`} product={item} titleLines={3} />
+        ))}
       </div>
     </section>
+  );
+}
+
+function BuyboxRecommendationRail({
+  fallbackToRelated = false,
+  products,
+}: {
+  fallbackToRelated?: boolean;
+  products: Product[];
+}) {
+  const { addItem } = useCart();
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const pointerIdRef = useRef<number | null>(null);
+  const pointerStartXRef = useRef(0);
+  const scrollStartLeftRef = useRef(0);
+  const draggedRef = useRef(false);
+
+  if (products.length === 0) {
+    return null;
+  }
+
+  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || event.button !== 0) {
+      return;
+    }
+
+    if (event.target instanceof HTMLElement && event.target.closest("button")) {
+      return;
+    }
+
+    const rail = railRef.current;
+
+    if (!rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    pointerIdRef.current = event.pointerId;
+    pointerStartXRef.current = event.clientX;
+    scrollStartLeftRef.current = rail.scrollLeft;
+    draggedRef.current = false;
+    rail.setPointerCapture(event.pointerId);
+  };
+
+  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    const rail = railRef.current;
+
+    if (!rail) {
+      return;
+    }
+
+    const deltaX = event.clientX - pointerStartXRef.current;
+
+    if (Math.abs(deltaX) > 3) {
+      draggedRef.current = true;
+    }
+
+    rail.scrollLeft = scrollStartLeftRef.current - deltaX;
+    event.preventDefault();
+  };
+
+  const releasePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (pointerIdRef.current !== event.pointerId) {
+      return;
+    }
+
+    const rail = railRef.current;
+
+    if (rail?.hasPointerCapture(event.pointerId)) {
+      rail.releasePointerCapture(event.pointerId);
+    }
+
+    pointerIdRef.current = null;
+    pointerStartXRef.current = 0;
+    scrollStartLeftRef.current = 0;
+
+    window.setTimeout(() => {
+      draggedRef.current = false;
+    }, 0);
+  };
+
+  const handleRailClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
+    if (!draggedRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+  };
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    const rail = railRef.current;
+
+    if (!rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+      return;
+    }
+
+    rail.scrollLeft += event.deltaY;
+    event.preventDefault();
+  };
+
+  return (
+    <div className="hidden pt-3 2xl:block">
+      {!fallbackToRelated ? (
+        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
+          Kompletuj zestaw
+        </p>
+      ) : null}
+
+      <div
+        className={`no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 ${
+          fallbackToRelated ? "" : "mt-3"
+        } cursor-grab select-none active:cursor-grabbing`}
+        onClickCapture={handleRailClickCapture}
+        onPointerCancel={releasePointer}
+        onPointerDown={handlePointerDown}
+        onPointerMove={handlePointerMove}
+        onPointerUp={releasePointer}
+        onWheel={handleWheel}
+        ref={railRef}
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        {products.map((item) => {
+          const itemVariant = getPrimaryVariant(item);
+
+          return (
+            <article
+              className="group flex w-[8.75rem] shrink-0 snap-start flex-col border border-browin-dark/10 bg-browin-white transition-colors hover:border-browin-red"
+              key={`buybox-rail-${item.id}`}
+            >
+              <Link
+                className="block"
+                href={`/produkt/${item.slug}`}
+                onClickCapture={handleRailClickCapture}
+              >
+                <div className="relative h-[5rem] overflow-hidden bg-browin-white">
+                  <Image
+                    alt={item.title}
+                    className="object-contain p-2"
+                    fill
+                    sizes="140px"
+                    src={item.images[0]}
+                  />
+                </div>
+              </Link>
+              <div className="flex min-h-[5rem] flex-1 flex-col px-2 py-2">
+                <Link
+                  className="line-clamp-2 text-[11px] font-bold leading-[1.22] text-browin-dark transition-colors hover:text-browin-red"
+                  href={`/produkt/${item.slug}`}
+                  onClickCapture={handleRailClickCapture}
+                >
+                  {item.title}
+                </Link>
+                <div className="mt-auto flex items-end justify-between gap-1.5 pt-2">
+                  <div className="min-w-0">
+                    {itemVariant.compareAtPrice ? (
+                      <p className="text-[8px] font-semibold leading-none text-browin-dark/28 line-through">
+                        {formatCurrency(itemVariant.compareAtPrice)}
+                      </p>
+                    ) : null}
+                    <p className="mt-1 text-[0.9rem] font-extrabold tracking-tight text-browin-dark">
+                      {formatCurrency(itemVariant.price)}
+                    </p>
+                  </div>
+                  <button
+                    aria-label={`Dodaj ${item.title} do koszyka`}
+                    className="flex h-7 w-7 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray/70 text-browin-dark transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      addItem(item.id, itemVariant.id);
+                    }}
+                    type="button"
+                  >
+                    <Plus size={14} weight="bold" />
+                  </button>
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -575,34 +871,31 @@ function ReviewsSection({
   );
 
   return (
-    <section
-      className="border border-browin-dark/10 bg-browin-white p-5 md:p-6"
-      id={sectionId}
-    >
+    <section className="bg-browin-white" id={sectionId}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
             Opinie klientow
           </p>
           <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark">
-            Co pomaga podjac decyzje
+            Opinie o produkcie
           </h2>
         </div>
 
-        <div className="rounded-sm border border-browin-dark/10 bg-browin-gray px-4 py-3">
+        <div className="border-l-4 border-browin-red bg-browin-gray/80 px-4 py-2.5">
           <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
             Poleca produkt
           </p>
-          <p className="mt-1 text-xl font-extrabold text-browin-dark">
+          <p className="mt-1 text-lg font-extrabold text-browin-dark">
             {recommendationPercent}%
           </p>
         </div>
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-[320px_minmax(0,1fr)]">
-        <div className="rounded-sm border border-browin-dark/10 bg-browin-gray p-4">
+        <div className="bg-browin-gray/72 p-4 md:p-5">
           <div className="flex items-center gap-3">
-            <div className="flex h-14 w-14 items-center justify-center bg-browin-white text-browin-red shadow-sm">
+            <div className="flex h-14 w-14 items-center justify-center bg-browin-white text-browin-red">
               <Star size={26} weight="fill" />
             </div>
             <div>
@@ -634,7 +927,7 @@ function ReviewsSection({
             {["Zweryfikowany zakup", "Dostawa zgodna z obietnica", "Czytelna oferta"].map(
               (tag) => (
                 <span
-                  className="border border-browin-dark/10 bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/72"
+                  className="bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/72"
                   key={tag}
                 >
                   {tag}
@@ -644,9 +937,9 @@ function ReviewsSection({
           </div>
         </div>
 
-        <div className="grid gap-4">
+        <div className="divide-y divide-browin-dark/10">
           {reviewCards.map((review) => (
-            <article className="border border-browin-dark/10 bg-browin-gray p-4" key={review.author}>
+            <article className="py-4 first:pt-0 last:pb-0 md:px-1" key={review.author}>
               <div className="flex flex-wrap items-start justify-between gap-3">
                 <div>
                   <div className="flex items-center gap-1.5 text-browin-red">
@@ -664,7 +957,7 @@ function ReviewsSection({
                 </div>
 
                 {review.verified ? (
-                  <span className="border border-browin-red/16 bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-red">
+                  <span className="bg-browin-red/8 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-red">
                     Zweryfikowany zakup
                   </span>
                 ) : null}
@@ -710,32 +1003,6 @@ function MobileSection({
   );
 }
 
-function FaqItem({
-  answer,
-  question,
-}: {
-  answer: string;
-  question: string;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-
-  return (
-    <details
-      className="border border-browin-dark/10 bg-browin-gray px-4 py-4"
-      onToggle={(event) => setIsOpen(event.currentTarget.open)}
-      open={isOpen}
-    >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-sm font-bold text-browin-dark">
-        <span>{question}</span>
-        {isOpen ? <CaretUp size={16} /> : <CaretDown size={16} />}
-      </summary>
-      <p className="mt-3 text-sm leading-relaxed text-browin-dark/68">
-        {answer}
-      </p>
-    </details>
-  );
-}
-
 export function ProductDetail({
   product,
   relatedProducts,
@@ -745,17 +1012,29 @@ export function ProductDetail({
   const defaultVariant = getPrimaryVariant(product);
   const category = categories.find((entry) => entry.id === product.categoryId);
   const categoryHref = category ? `/kategoria/${category.slug}` : "/produkty";
-  const desktopZoomFrameRef = useRef<HTMLDivElement | null>(null);
+  const buyboxRecommendationProducts =
+    complementaryProducts.length > 0 ? complementaryProducts : relatedProducts;
+  const buyboxUsesRelatedFallback =
+    complementaryProducts.length === 0 && relatedProducts.length > 0;
   const mobileGalleryRef = useRef<HTMLDivElement | null>(null);
+  const desktopStageRef = useRef<HTMLDivElement | null>(null);
   const mobilePrimaryCtaRef = useRef<HTMLButtonElement | null>(null);
+  const desktopPointerStartX = useRef<number | null>(null);
+  const desktopPointerId = useRef<number | null>(null);
   const imageTouchStartX = useRef<number | null>(null);
   const imageTouchStartY = useRef<number | null>(null);
   const imageGestureLock = useRef<"horizontal" | "vertical" | null>(null);
   const mobileSwipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const desktopSwipeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [imageTransitionDirection, setImageTransitionDirection] = useState<
     "forward" | "backward"
   >("forward");
+  const [desktopStageWidth, setDesktopStageWidth] = useState(MOBILE_GALLERY_FALLBACK_WIDTH);
+  const [desktopSwipeOffset, setDesktopSwipeOffset] = useState(0);
+  const [desktopSwipeState, setDesktopSwipeState] = useState<
+    "idle" | "dragging" | "settling"
+  >("idle");
   const [mobileGalleryWidth, setMobileGalleryWidth] = useState(
     MOBILE_GALLERY_FALLBACK_WIDTH,
   );
@@ -763,8 +1042,8 @@ export function ProductDetail({
   const [mobileSwipeState, setMobileSwipeState] = useState<
     "idle" | "dragging" | "settling"
   >("idle");
+  const [desktopThumbStartIndex, setDesktopThumbStartIndex] = useState(0);
   const [isMobileStickyVisible, setIsMobileStickyVisible] = useState(false);
-  const [isDesktopImageZoomed, setIsDesktopImageZoomed] = useState(false);
   const [quantity, setQuantity] = useState(1);
   const [quantityInput, setQuantityInput] = useState("1");
   const [selectedVariantId, setSelectedVariantId] = useState(defaultVariant.id);
@@ -778,10 +1057,11 @@ export function ProductDetail({
   const isInStock = selectedVariant.stock > 0;
   const stockLabel =
     isInStock
-      ? `${selectedVariant.stock} szt.`
-      : "Chwilowo niedostepny";
+      ? selectedVariant.availabilityLabel ?? `${selectedVariant.stock} szt.`
+      : selectedVariant.availabilityLabel ?? "Chwilowo niedostepny";
   const deliveryDateLabel = getDeliveryEstimateLabel(selectedVariant.leadTime);
   const handleAddToCart = () => addItem(product.id, selectedVariant.id, quantity);
+  const safeDesktopStageWidth = Math.max(desktopStageWidth, 1);
   const safeMobileGalleryWidth = Math.max(mobileGalleryWidth, 1);
 
   const applyQuantity = (nextValue: number) => {
@@ -830,10 +1110,23 @@ export function ProductDetail({
     }
   };
 
+  const clearDesktopSwipeTimeout = () => {
+    if (desktopSwipeTimeoutRef.current) {
+      clearTimeout(desktopSwipeTimeoutRef.current);
+      desktopSwipeTimeoutRef.current = null;
+    }
+  };
+
   const resetMobileSwipePreview = () => {
     clearMobileSwipeTimeout();
     setMobileSwipeOffset(0);
     setMobileSwipeState("idle");
+  };
+
+  const resetDesktopSwipePreview = () => {
+    clearDesktopSwipeTimeout();
+    setDesktopSwipeOffset(0);
+    setDesktopSwipeState("idle");
   };
 
   const settleMobileSwipe = (
@@ -849,6 +1142,22 @@ export function ProductDetail({
       onComplete?.();
       setMobileSwipeOffset(0);
       setMobileSwipeState("idle");
+    }, MOBILE_SWIPE_SETTLE_MS);
+  };
+
+  const settleDesktopSwipe = (
+    targetOffset: number,
+    onComplete?: () => void,
+  ) => {
+    clearDesktopSwipeTimeout();
+    setDesktopSwipeState("settling");
+    setDesktopSwipeOffset(targetOffset);
+
+    desktopSwipeTimeoutRef.current = setTimeout(() => {
+      desktopSwipeTimeoutRef.current = null;
+      onComplete?.();
+      setDesktopSwipeOffset(0);
+      setDesktopSwipeState("idle");
     }, MOBILE_SWIPE_SETTLE_MS);
   };
 
@@ -872,29 +1181,71 @@ export function ProductDetail({
   };
 
   const selectImage = (nextIndex: number) => {
-    if (nextIndex === activeImageIndex) {
+    if (nextIndex === safeActiveImageIndex) {
       resetMobileSwipePreview();
+      resetDesktopSwipePreview();
       return;
     }
 
     resetMobileSwipePreview();
-    resetDesktopImageZoom();
-    setImageTransitionDirection(nextIndex > activeImageIndex ? "forward" : "backward");
+    resetDesktopSwipePreview();
+    setImageTransitionDirection(nextIndex > safeActiveImageIndex ? "forward" : "backward");
+    setDesktopThumbStartIndex((current) =>
+      getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+    );
     setActiveImageIndex(nextIndex);
   };
 
   const showPreviousImage = () => {
     resetMobileSwipePreview();
-    resetDesktopImageZoom();
+    resetDesktopSwipePreview();
     setImageTransitionDirection("backward");
-    setActiveImageIndex((current) => getWrappedImageIndex(product.images.length, current - 1));
+    const nextIndex = getWrappedImageIndex(product.images.length, safeActiveImageIndex - 1);
+    setDesktopThumbStartIndex((current) =>
+      getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+    );
+    setActiveImageIndex(nextIndex);
   };
 
   const showNextImage = () => {
     resetMobileSwipePreview();
-    resetDesktopImageZoom();
+    resetDesktopSwipePreview();
     setImageTransitionDirection("forward");
-    setActiveImageIndex((current) => getWrappedImageIndex(product.images.length, current + 1));
+    const nextIndex = getWrappedImageIndex(product.images.length, safeActiveImageIndex + 1);
+    setDesktopThumbStartIndex((current) =>
+      getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+    );
+    setActiveImageIndex(nextIndex);
+  };
+
+  const showPreviousThumbSet = () => {
+    const nextIndex = Math.max(safeActiveImageIndex - 1, 0);
+
+    if (nextIndex === safeActiveImageIndex) {
+      return;
+    }
+
+    resetDesktopSwipePreview();
+    setImageTransitionDirection("backward");
+    setDesktopThumbStartIndex((current) =>
+      getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+    );
+    setActiveImageIndex(nextIndex);
+  };
+
+  const showNextThumbSet = () => {
+    const nextIndex = Math.min(safeActiveImageIndex + 1, product.images.length - 1);
+
+    if (nextIndex === safeActiveImageIndex) {
+      return;
+    }
+
+    resetDesktopSwipePreview();
+    setImageTransitionDirection("forward");
+    setDesktopThumbStartIndex((current) =>
+      getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+    );
+    setActiveImageIndex(nextIndex);
   };
 
   const resetImageGesture = () => {
@@ -968,30 +1319,127 @@ export function ProductDetail({
     }
   };
 
-  const resetDesktopImageZoom = () => {
-    setIsDesktopImageZoomed(false);
-
-    if (!desktopZoomFrameRef.current) {
-      return;
-    }
-
-    desktopZoomFrameRef.current.style.setProperty("--product-image-zoom-origin-x", "50%");
-    desktopZoomFrameRef.current.style.setProperty("--product-image-zoom-origin-y", "50%");
+  const resetDesktopPointerGesture = () => {
+    desktopPointerStartX.current = null;
+    desktopPointerId.current = null;
   };
 
-  const handleDesktopImageMouseMove = (event: ReactMouseEvent<HTMLDivElement>) => {
-    const bounds = event.currentTarget.getBoundingClientRect();
-
-    if (!bounds.width || !bounds.height) {
+  const handleDesktopPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse" || event.button !== 0 || product.images.length <= 1) {
       return;
     }
 
-    const x = Math.max(0, Math.min(100, ((event.clientX - bounds.left) / bounds.width) * 100));
-    const y = Math.max(0, Math.min(100, ((event.clientY - bounds.top) / bounds.height) * 100));
+    clearDesktopSwipeTimeout();
+    setDesktopSwipeOffset(0);
+    setDesktopSwipeState("idle");
+    desktopPointerStartX.current = event.clientX;
+    desktopPointerId.current = event.pointerId;
+    event.currentTarget.setPointerCapture(event.pointerId);
+    event.preventDefault();
+  };
 
-    event.currentTarget.style.setProperty("--product-image-zoom-origin-x", `${x}%`);
-    event.currentTarget.style.setProperty("--product-image-zoom-origin-y", `${y}%`);
-    setIsDesktopImageZoomed(true);
+  const handleDesktopPointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (
+      event.pointerType !== "mouse" ||
+      desktopPointerStartX.current === null ||
+      desktopPointerId.current !== event.pointerId ||
+      product.images.length <= 1
+    ) {
+      return;
+    }
+
+    const deltaX = event.clientX - desktopPointerStartX.current;
+
+    setDesktopSwipeState("dragging");
+    setDesktopSwipeOffset(
+      Math.max(
+        -safeDesktopStageWidth * 0.92,
+        Math.min(safeDesktopStageWidth * 0.92, deltaX),
+      ),
+    );
+    event.preventDefault();
+  };
+
+  const finishDesktopPointerSwipe = (
+    currentX: number,
+    currentTarget: HTMLDivElement,
+    pointerId: number,
+  ) => {
+    if (
+      desktopPointerStartX.current === null ||
+      desktopPointerId.current !== pointerId ||
+      product.images.length <= 1
+    ) {
+      return;
+    }
+
+    const deltaX = currentX - desktopPointerStartX.current;
+    const swipeThreshold = Math.min(
+      120,
+      Math.max(56, safeDesktopStageWidth * 0.16),
+    );
+
+    if (currentTarget.hasPointerCapture(pointerId)) {
+      currentTarget.releasePointerCapture(pointerId);
+    }
+
+    resetDesktopPointerGesture();
+
+    if (deltaX >= swipeThreshold) {
+      settleDesktopSwipe(safeDesktopStageWidth, () => {
+        const nextIndex = getWrappedImageIndex(product.images.length, safeActiveImageIndex - 1);
+
+        setImageTransitionDirection("backward");
+        setDesktopThumbStartIndex((current) =>
+          getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+        );
+        setActiveImageIndex(nextIndex);
+      });
+      return;
+    }
+
+    if (deltaX <= -swipeThreshold) {
+      settleDesktopSwipe(-safeDesktopStageWidth, () => {
+        const nextIndex = getWrappedImageIndex(product.images.length, safeActiveImageIndex + 1);
+
+        setImageTransitionDirection("forward");
+        setDesktopThumbStartIndex((current) =>
+          getDesktopThumbStartForImage(current, nextIndex, product.images.length),
+        );
+        setActiveImageIndex(nextIndex);
+      });
+      return;
+    }
+
+    settleDesktopSwipe(0);
+  };
+
+  const handleDesktopPointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse") {
+      return;
+    }
+
+    finishDesktopPointerSwipe(event.clientX, event.currentTarget, event.pointerId);
+  };
+
+  const handleDesktopPointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType !== "mouse") {
+      return;
+    }
+
+    if (
+      desktopPointerId.current !== event.pointerId ||
+      desktopPointerStartX.current === null
+    ) {
+      return;
+    }
+
+    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
+      event.currentTarget.releasePointerCapture(event.pointerId);
+    }
+
+    resetDesktopPointerGesture();
+    settleDesktopSwipe(0);
   };
 
   useEffect(() => {
@@ -1058,8 +1506,28 @@ export function ProductDetail({
   }, [product.id]);
 
   useEffect(() => {
+    const stage = desktopStageRef.current;
+
+    if (!stage) {
+      return;
+    }
+
+    const syncWidth = () => {
+      setDesktopStageWidth(stage.clientWidth || MOBILE_GALLERY_FALLBACK_WIDTH);
+    };
+
+    syncWidth();
+    window.addEventListener("resize", syncWidth);
+
+    return () => {
+      window.removeEventListener("resize", syncWidth);
+    };
+  }, [product.id]);
+
+  useEffect(() => {
     return () => {
       clearMobileSwipeTimeout();
+      clearDesktopSwipeTimeout();
     };
   }, []);
 
@@ -1106,17 +1574,18 @@ export function ProductDetail({
     };
   }, [product.id, selectedVariant.id]);
 
-  useEffect(() => {
-    resetDesktopImageZoom();
-  }, [activeImageIndex, product.id]);
-
+  const safeActiveImageIndex = getWrappedImageIndex(product.images.length, activeImageIndex);
+  const safeDesktopThumbStartIndex = clampDesktopThumbStart(
+    desktopThumbStartIndex,
+    product.images.length,
+  );
   const mobilePreviousImageIndex = getWrappedImageIndex(
     product.images.length,
-    activeImageIndex - 1,
+    safeActiveImageIndex - 1,
   );
   const mobileNextImageIndex = getWrappedImageIndex(
     product.images.length,
-    activeImageIndex + 1,
+    safeActiveImageIndex + 1,
   );
   const mobileSwipePreviewActive =
     product.images.length > 1 &&
@@ -1135,7 +1604,31 @@ export function ProductDetail({
       ? mobileSwipeOffset > 0
         ? mobilePreviousImageIndex
         : mobileNextImageIndex
-      : activeImageIndex;
+      : safeActiveImageIndex;
+  const desktopThumbsOverflow = product.images.length > DESKTOP_THUMB_WINDOW_SIZE;
+  const desktopPreviousImageIndex = getWrappedImageIndex(
+    product.images.length,
+    safeActiveImageIndex - 1,
+  );
+  const desktopNextImageIndex = getWrappedImageIndex(
+    product.images.length,
+    safeActiveImageIndex + 1,
+  );
+  const desktopSwipePreviewActive =
+    product.images.length > 1 &&
+    (desktopSwipeState !== "idle" || Math.abs(desktopSwipeOffset) > 0);
+  const desktopSwipeTransition =
+    desktopSwipeState === "settling"
+      ? `transform ${MOBILE_SWIPE_SETTLE_MS}ms cubic-bezier(0.22, 1, 0.36, 1), opacity ${MOBILE_SWIPE_SETTLE_MS}ms ease-out`
+      : "none";
+  const desktopSwipeOpacityProgress = Math.min(
+    Math.abs(desktopSwipeOffset) / safeDesktopStageWidth,
+    1,
+  );
+  const visibleDesktopImages = product.images.slice(
+    safeDesktopThumbStartIndex,
+    safeDesktopThumbStartIndex + DESKTOP_THUMB_WINDOW_SIZE,
+  );
 
   return (
     <section className="product-detail-page bg-browin-gray pt-0 pb-3 md:pb-16 md:pt-0">
@@ -1171,7 +1664,7 @@ export function ProductDetail({
             <div className="relative flex w-full justify-center">
               <div
                 ref={mobileGalleryRef}
-                className="relative h-64 w-full overflow-hidden bg-browin-white"
+                className="product-detail-mobile-gallery relative w-full overflow-hidden bg-browin-white"
                 onTouchCancel={handleImageTouchCancel}
                 onTouchEnd={handleImageTouchEnd}
                 onTouchStart={handleImageTouchStart}
@@ -1215,7 +1708,7 @@ export function ProductDetail({
                         fill
                         priority
                         sizes="(max-width: 767px) 220px, 100vw"
-                        src={product.images[activeImageIndex]}
+                        src={product.images[safeActiveImageIndex]}
                       />
                     </div>
                     <div
@@ -1248,7 +1741,7 @@ export function ProductDetail({
                       fill
                       priority
                       sizes="(max-width: 767px) 220px, 100vw"
-                      src={product.images[activeImageIndex]}
+                      src={product.images[safeActiveImageIndex]}
                     />
                   </div>
                 )}
@@ -1403,37 +1896,18 @@ export function ProductDetail({
             </div>
 
             <MobileSection title="O produkcie">
-              <div className="space-y-4">
-                <p className="text-sm leading-relaxed text-browin-dark/68">
-                  {product.longDescription}
-                </p>
-                <div className="grid gap-3">
-                  {product.benefits.map((benefit) => (
-                    <div
-                      className="border border-browin-dark/10 bg-browin-gray p-4 text-sm font-semibold leading-relaxed text-browin-dark/75"
-                      key={benefit}
-                    >
-                      {benefit}
-                    </div>
-                  ))}
-                </div>
-                {product.tags.length > 0 ? <ProductTagChips tags={product.tags} /> : null}
-              </div>
+              <ProductDescription product={product} />
             </MobileSection>
 
             <MobileSection title="Specyfikacja">
-              <div className="grid gap-3">
-                {product.specs.map((spec) => (
-                  <div
-                    className="grid gap-1 border border-browin-dark/10 bg-browin-gray px-4 py-4"
-                    key={spec.label}
-                  >
-                    <span className="text-sm font-bold text-browin-dark">{spec.label}</span>
-                    <span className="text-sm text-browin-dark/68">{spec.value}</span>
-                  </div>
-                ))}
-              </div>
+              <ProductSpecsList product={product} />
             </MobileSection>
+
+            {product.bundleItems.length > 0 ? (
+              <MobileSection title="Skład zestawu">
+                <BundleItemsList items={product.bundleItems} />
+              </MobileSection>
+            ) : null}
 
             {product.files.length > 0 ? (
               <MobileSection title="Pliki do pobrania">
@@ -1445,48 +1919,109 @@ export function ProductDetail({
               </MobileSection>
             ) : null}
 
-            <MobileSection title="FAQ">
-              <div className="space-y-3">
-                {product.faq.map((item) => (
-                  <FaqItem answer={item.answer} key={item.question} question={item.question} />
-                ))}
-              </div>
-            </MobileSection>
+            <ProductQuestionsPrompt />
 
             <MobileSection title="Opinie">
               <ReviewsSection product={product} sectionId="product-reviews-mobile" />
             </MobileSection>
           </div>
 
-          <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
+          <div className="product-detail-grid product-detail-fold hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
             <div className="product-detail-media-stack group grid self-stretch gap-4">
               <div className="product-detail-media-layout">
                 <div className="product-detail-media-preview relative flex w-full justify-center">
                   <div className="product-detail-media-frame relative overflow-hidden bg-browin-white">
                     <div
-                      className="product-detail-media-stage relative aspect-square"
-                      data-zoom-active={isDesktopImageZoomed ? "true" : "false"}
-                      onMouseLeave={resetDesktopImageZoom}
-                      onMouseMove={handleDesktopImageMouseMove}
-                      ref={desktopZoomFrameRef}
+                      className="product-detail-media-stage relative"
+                      onDragStart={(event) => event.preventDefault()}
+                      onPointerCancel={handleDesktopPointerCancel}
+                      onPointerDown={handleDesktopPointerDown}
+                      onPointerMove={handleDesktopPointerMove}
+                      onPointerUp={handleDesktopPointerUp}
+                      ref={desktopStageRef}
                     >
-                      <div
-                        className={`product-image-transition absolute inset-0 ${
-                          imageTransitionDirection === "forward"
-                            ? "product-image-transition-forward"
-                            : "product-image-transition-backward"
-                        }`}
-                        key={`desktop-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
-                      >
-                        <Image
-                          alt={product.title}
-                          className="product-detail-main-image object-contain"
-                          fill
-                          priority
-                          sizes="(max-width: 1279px) 48vw, 42vw"
-                          src={product.images[activeImageIndex]}
-                        />
-                      </div>
+                      {desktopSwipePreviewActive ? (
+                        <>
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              opacity:
+                                desktopSwipeOffset > 0
+                                  ? 0.72 + desktopSwipeOpacityProgress * 0.28
+                                  : 0.42,
+                              transform: `translate3d(${desktopSwipeOffset - safeDesktopStageWidth}px, 0, 0)`,
+                              transition: desktopSwipeTransition,
+                              willChange: "transform, opacity",
+                            }}
+                          >
+                            <Image
+                              alt={`${product.title} ${desktopPreviousImageIndex + 1}`}
+                              className="product-detail-main-image object-contain"
+                              fill
+                              priority
+                              sizes="(max-width: 1279px) 48vw, 42vw"
+                              src={product.images[desktopPreviousImageIndex]}
+                            />
+                          </div>
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              opacity: Math.max(0.76, 1 - desktopSwipeOpacityProgress * 0.24),
+                              transform: `translate3d(${desktopSwipeOffset}px, 0, 0)`,
+                              transition: desktopSwipeTransition,
+                              willChange: "transform, opacity",
+                            }}
+                          >
+                            <Image
+                              alt={product.title}
+                              className="product-detail-main-image object-contain"
+                              fill
+                              priority
+                              sizes="(max-width: 1279px) 48vw, 42vw"
+                              src={product.images[safeActiveImageIndex]}
+                            />
+                          </div>
+                          <div
+                            className="absolute inset-0"
+                            style={{
+                              opacity:
+                                desktopSwipeOffset < 0
+                                  ? 0.72 + desktopSwipeOpacityProgress * 0.28
+                                  : 0.42,
+                              transform: `translate3d(${desktopSwipeOffset + safeDesktopStageWidth}px, 0, 0)`,
+                              transition: desktopSwipeTransition,
+                              willChange: "transform, opacity",
+                            }}
+                          >
+                            <Image
+                              alt={`${product.title} ${desktopNextImageIndex + 1}`}
+                              className="product-detail-main-image object-contain"
+                              fill
+                              priority
+                              sizes="(max-width: 1279px) 48vw, 42vw"
+                              src={product.images[desktopNextImageIndex]}
+                            />
+                          </div>
+                        </>
+                      ) : (
+                        <div
+                          className={`product-image-transition absolute inset-0 ${
+                            imageTransitionDirection === "forward"
+                              ? "product-image-transition-forward"
+                              : "product-image-transition-backward"
+                          }`}
+                          key={`desktop-${imageTransitionDirection}-${product.images[safeActiveImageIndex]}`}
+                        >
+                          <Image
+                            alt={product.title}
+                            className="product-detail-main-image object-contain"
+                            fill
+                            priority
+                            sizes="(max-width: 1279px) 48vw, 42vw"
+                            src={product.images[safeActiveImageIndex]}
+                          />
+                        </div>
+                      )}
                     </div>
                   </div>
                   {product.badge ? (
@@ -1499,27 +2034,26 @@ export function ProductDetail({
                       -{discount}%
                     </span>
                   ) : null}
-
                   {product.images.length > 1 ? (
-                    <div className="product-detail-media-nav absolute inset-x-0 bottom-0 flex items-center justify-center gap-3">
+                    <div className="product-detail-media-nav flex items-center justify-center gap-3">
                       <button
                         aria-label="Poprzednie zdjecie"
-                        className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 transition-colors hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red"
                         onClick={showPreviousImage}
                         type="button"
                       >
                         <ArrowLeft size={14} />
                       </button>
 
-                      <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
-                        <span>{activeImageIndex + 1}</span>
-                        <span>/</span>
+                      <div className="min-w-[4.5rem] text-center text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/55">
+                        <span>{safeActiveImageIndex + 1}</span>
+                        <span className="px-1.5 text-browin-dark/32">/</span>
                         <span>{product.images.length}</span>
                       </div>
 
                       <button
                         aria-label="Nastepne zdjecie"
-                        className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                        className="flex h-9 w-9 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 transition-colors hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red"
                         onClick={showNextImage}
                         type="button"
                       >
@@ -1530,34 +2064,64 @@ export function ProductDetail({
                 </div>
 
                 <div className="product-detail-media-thumbs flex flex-col items-stretch justify-start">
-                  {product.images.map((image, index) => (
+                  {desktopThumbsOverflow ? (
                     <button
-                      aria-label={`Pokaz zdjecie ${index + 1}`}
-                      aria-pressed={activeImageIndex === index}
-                      className={`product-detail-media-thumb relative aspect-square shrink-0 overflow-hidden border bg-browin-white transition-colors ${
-                        activeImageIndex === index
-                          ? "border-browin-red"
-                          : "border-browin-dark/10"
-                      }`}
-                      key={`${image}-${index}`}
-                      onFocus={() => selectImage(index)}
-                      onMouseEnter={() => selectImage(index)}
+                      aria-label="Pokaz wcześniejsze miniatury"
+                      className="product-detail-thumb-nav flex h-8 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/48 transition-colors hover:border-browin-red hover:text-browin-red disabled:cursor-default disabled:border-browin-dark/10 disabled:text-browin-dark/25"
+                      disabled={safeActiveImageIndex === 0}
+                      onClick={showPreviousThumbSet}
                       type="button"
                     >
-                      <Image
-                        alt={`${product.title} ${index + 1}`}
-                        className="object-contain"
-                        fill
-                        sizes="96px"
-                        src={image}
-                      />
+                      <CaretUp size={16} />
                     </button>
-                  ))}
+                  ) : null}
+
+                  <div className="grid gap-[inherit]">
+                    {visibleDesktopImages.map((image, visibleIndex) => {
+                      const index = safeDesktopThumbStartIndex + visibleIndex;
+
+                      return (
+                        <button
+                          aria-label={`Pokaz zdjecie ${index + 1}`}
+                          aria-pressed={safeActiveImageIndex === index}
+                          className={`product-detail-media-thumb relative aspect-square shrink-0 overflow-hidden border bg-browin-white transition-colors ${
+                            safeActiveImageIndex === index
+                              ? "border-browin-red"
+                              : "border-browin-dark/10"
+                          }`}
+                          key={`${image}-${index}`}
+                          onFocus={() => selectImage(index)}
+                          onMouseEnter={() => selectImage(index)}
+                          type="button"
+                        >
+                          <Image
+                            alt={`${product.title} ${index + 1}`}
+                            className="object-contain"
+                            fill
+                            sizes="96px"
+                            src={image}
+                          />
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  {desktopThumbsOverflow ? (
+                    <button
+                      aria-label="Pokaz kolejne miniatury"
+                      className="product-detail-thumb-nav flex h-8 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/48 transition-colors hover:border-browin-red hover:text-browin-red disabled:cursor-default disabled:border-browin-dark/10 disabled:text-browin-dark/25"
+                      disabled={safeActiveImageIndex >= product.images.length - 1}
+                      onClick={showNextThumbSet}
+                      type="button"
+                    >
+                      <CaretDown size={16} />
+                    </button>
+                  ) : null}
                 </div>
               </div>
             </div>
 
-            <div className="self-start">
+            <div className="self-stretch">
               <div className="product-detail-buybox overflow-hidden border border-browin-dark/10 bg-browin-white">
                 <div className="product-detail-buybox-meta border-b border-browin-dark/10 bg-browin-gray/40 px-5 py-3 xl:px-6">
                   <div className="flex flex-wrap items-center gap-2">
@@ -1693,68 +2257,47 @@ export function ProductDetail({
                     orderValue={orderValue}
                     selectedVariantLeadTime={selectedVariant.leadTime}
                   />
+
+                  <BuyboxRecommendationRail
+                    fallbackToRelated={buyboxUsesRelatedFallback}
+                    products={buyboxRecommendationProducts}
+                  />
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="mt-8 hidden gap-6 border-t border-browin-dark/10 pt-7 lg:grid">
-            <div className="grid gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(0,0.9fr)]">
-              <div className="rounded-sm border border-browin-dark/10 bg-browin-white p-6">
-                <p className="text-sm leading-relaxed text-browin-dark/68">
-                  {product.longDescription}
-                </p>
-                {product.tags.length > 0 ? (
-                  <ProductTagChips className="mt-6" tags={product.tags} />
-                ) : null}
-              </div>
-
-              <div className="grid gap-4 xl:grid-cols-3">
-                {product.benefits.map((benefit) => (
-                  <div
-                    className="border border-browin-dark/10 bg-browin-gray p-4 text-sm font-semibold leading-relaxed text-browin-dark/75"
-                    key={benefit}
-                  >
-                    {benefit}
-                  </div>
-                ))}
+          <div className="mt-8 hidden border-t border-browin-dark/10 pt-7 lg:block">
+            <div className="rounded-sm border border-browin-dark/10 bg-browin-white p-6">
+              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                Opis produktu
+              </h2>
+              <div className="mt-4">
+                <ProductDescription product={product} />
               </div>
             </div>
           </div>
 
           <div className="mt-12 hidden gap-8 lg:grid">
-            <div className="border border-browin-dark/10 bg-browin-gray p-6">
-              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
-                Dlaczego ten produkt pracuje sprzedazowo
-              </h2>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                {product.features.map((feature) => (
-                  <div
-                    className="border border-browin-dark/10 bg-browin-white px-4 py-4 text-sm leading-relaxed text-browin-dark/72"
-                    key={feature}
-                  >
-                    {feature}
-                  </div>
-                ))}
-              </div>
-            </div>
-
             <div className="border border-browin-dark/10 bg-browin-white p-6">
               <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
                 Specyfikacja
               </h2>
-              <div className="mt-5 grid gap-3">
-                {product.specs.map((spec) => (
-                  <div
-                    className="grid gap-1 border border-browin-dark/10 bg-browin-gray px-4 py-4 md:grid-cols-[180px_minmax(0,1fr)]"
-                    key={spec.label}
-                  >
-                    <span className="text-sm font-bold text-browin-dark">{spec.label}</span>
-                    <span className="text-sm text-browin-dark/68">{spec.value}</span>
-                  </div>
-                ))}
+              <div className="mt-4">
+                <ProductSpecsList product={product} />
               </div>
             </div>
+
+            {product.bundleItems.length > 0 ? (
+              <div className="border border-browin-dark/10 bg-browin-white p-6">
+                <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                  Skład zestawu
+                </h2>
+                <div className="mt-5">
+                  <BundleItemsList items={product.bundleItems} />
+                </div>
+              </div>
+            ) : null}
 
             {product.files.length > 0 ? (
               <div className="border border-browin-dark/10 bg-browin-white p-6">
@@ -1769,64 +2312,61 @@ export function ProductDetail({
               </div>
             ) : null}
 
+            <ProductQuestionsPrompt />
+
             <div className="border border-browin-dark/10 bg-browin-white p-6">
-              <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
-                FAQ
-              </h2>
-              <div className="mt-4 space-y-3">
-                {product.faq.map((item) => (
-                  <FaqItem answer={item.answer} key={item.question} question={item.question} />
+              <ReviewsSection product={product} sectionId="product-reviews-desktop" />
+            </div>
+          </div>
+
+          {relatedProducts.length > 0 ? (
+            <div className="mt-12 lg:hidden">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                    Dobierz razem
+                  </p>
+                  <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                    Powiazane produkty
+                  </h2>
+                </div>
+              </div>
+              <div className="product-grid grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
+                {relatedProducts.map((related) => (
+                  <ProductCard key={related.id} product={related} />
                 ))}
               </div>
             </div>
+          ) : null}
 
-            <ReviewsSection product={product} sectionId="product-reviews-desktop" />
-          </div>
-
-          <div className="mt-12 lg:hidden">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
-                  Dobierz razem
-                </p>
-                <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
-                  Powiazane produkty
-                </h2>
+          {relatedProducts.length > 0 ? (
+            <div className="mt-12 hidden lg:block">
+              <div className="mb-5 flex items-end justify-between gap-4">
+                <div>
+                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                    Dobierz razem
+                  </p>
+                  <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                    Powiazane produkty
+                  </h2>
+                </div>
+                <Link
+                  className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
+                  href={categoryHref}
+                >
+                  Zobacz cala kategorie
+                </Link>
+              </div>
+              <div className="product-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-6">
+                {relatedProducts.map((related) => (
+                  <ProductCard key={related.id} product={related} />
+                ))}
               </div>
             </div>
-            <div className="product-grid grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
-              {relatedProducts.map((related) => (
-                <ProductCard key={related.id} product={related} />
-              ))}
-            </div>
-          </div>
-
-          <div className="mt-12 hidden lg:block">
-            <div className="mb-5 flex items-end justify-between gap-4">
-              <div>
-                <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
-                  Dobierz razem
-                </p>
-                <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
-                  Powiazane produkty
-                </h2>
-              </div>
-              <Link
-                className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
-                href={categoryHref}
-              >
-                Zobacz cala kategorie
-              </Link>
-            </div>
-            <div className="product-grid grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-4 xl:gap-6">
-              {relatedProducts.map((related) => (
-                <ProductCard key={related.id} product={related} />
-              ))}
-            </div>
-          </div>
+          ) : null}
 
           {complementaryProducts.length > 0 ? (
-            <ComplementaryProductsCarousel products={complementaryProducts} />
+            <ComplementaryProductsGrid products={complementaryProducts} />
           ) : null}
         </div>
       </div>

@@ -2,16 +2,12 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 
 import { ProductDetail } from "@/components/store/product-detail";
-import { products } from "@/data/products";
 import {
   getComplementaryProducts,
   getRelatedProducts,
   resolveProductSlug,
 } from "@/lib/catalog";
-
-export async function generateStaticParams() {
-  return products.map((product) => ({ slug: product.slug }));
-}
+import { getProducts } from "@/lib/product-feed";
 
 export async function generateMetadata({
   params,
@@ -19,7 +15,8 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const resolvedProduct = resolveProductSlug(slug);
+  const products = await getProducts();
+  const resolvedProduct = resolveProductSlug(products, slug);
 
   if (!resolvedProduct) {
     return {
@@ -44,7 +41,8 @@ export default async function ProductPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const resolvedProduct = resolveProductSlug(slug);
+  const products = await getProducts();
+  const resolvedProduct = resolveProductSlug(products, slug);
 
   if (!resolvedProduct) {
     notFound();
@@ -59,9 +57,9 @@ export default async function ProductPage({
   return (
     <ProductDetail
       key={product.id}
-      complementaryProducts={getComplementaryProducts(product)}
+      complementaryProducts={getComplementaryProducts(products, product)}
       product={product}
-      relatedProducts={getRelatedProducts(product)}
+      relatedProducts={getRelatedProducts(products, product)}
     />
   );
 }

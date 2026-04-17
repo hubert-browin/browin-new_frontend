@@ -31,6 +31,7 @@ export function ProductCard({
   const favorite = isFavorite(product.id);
   const reviewsLabel = product.reviews.toLocaleString("pl-PL");
   const discount = getDiscountPercent(primaryVariant);
+  const hasReviews = product.reviews > 0 && product.rating > 0;
   const statusLabel =
     product.status === "nowosc"
       ? "Nowość"
@@ -85,11 +86,17 @@ export function ProductCard({
         </Link>
 
         <div className="mt-2 flex items-center justify-between gap-3 md:mt-auto">
-          <span className="inline-flex min-w-0 items-center gap-1 text-[10px] text-browin-dark/58 md:text-[11px]">
-            <Star className="text-browin-red" size={12} weight="fill" />
-            <span className="font-semibold text-browin-dark/76">{product.rating.toFixed(1)}</span>
-            <span>{reviewsLabel} opinii</span>
-          </span>
+          {hasReviews ? (
+            <span className="inline-flex min-w-0 items-center gap-1 text-[10px] text-browin-dark/58 md:text-[11px]">
+              <Star className="text-browin-red" size={12} weight="fill" />
+              <span className="font-semibold text-browin-dark/76">{product.rating.toFixed(1)}</span>
+              <span>{reviewsLabel} opinii</span>
+            </span>
+          ) : (
+            <span className="inline-flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/52 md:text-[11px]">
+              {product.line}
+            </span>
+          )}
           <button
             aria-label={
               favorite

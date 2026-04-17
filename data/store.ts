@@ -1,3 +1,5 @@
+import type { Product } from "./products";
+
 export type IconKey =
   | "beer"
   | "book"
@@ -142,14 +144,14 @@ export const categories: StoreCategory[] = [
       },
     ],
     promo: {
-      type: "product",
+      type: "editorial",
       eyebrow: "Kategoria premium",
       title: "Wędzarnia dragON 65 L",
       description:
         "Sprzęt, który daje efekt wow już przy pierwszym weekendowym dymieniu.",
       cta: "Zobacz produkt",
+      href: "/kategoria/wedliniarstwo?search=wędzarnia",
       image: "/assets/produkt4.webp",
-      productSlug: "wedzarnia-dragon-classic",
     },
   },
   {
@@ -459,6 +461,88 @@ export const categories: StoreCategory[] = [
     },
   },
 ];
+
+const topicCollator = new Intl.Collator("pl", { sensitivity: "base" });
+const dynamicTopicLimit = 8;
+
+const sortTopicEntries = (entries: Array<{ label: string; count: number }>) =>
+  [...entries].sort((left, right) => {
+    if (right.count !== left.count) {
+      return right.count - left.count;
+    }
+
+    return topicCollator.compare(left.label, right.label);
+  });
+
+const buildDynamicMenuSections = (
+  source: Pick<Product, "categoryId" | "taxonomy">[],
+  categoryId: CategoryId,
+  fallbackSections: CategoryMenuSection[],
+) => {
+  const categoryCounts = new Map<string, number>();
+  const subcategoryCounts = new Map<string, number>();
+
+  for (const product of source) {
+    if (product.categoryId !== categoryId) {
+      continue;
+    }
+
+    const taxonomyForCategory = product.taxonomy.filter(
+      (entry) => entry.categoryId === categoryId,
+    );
+
+    for (const entry of taxonomyForCategory) {
+      categoryCounts.set(
+        entry.categoryName,
+        (categoryCounts.get(entry.categoryName) ?? 0) + 1,
+      );
+
+      if (entry.subcategoryName) {
+        subcategoryCounts.set(
+          entry.subcategoryName,
+          (subcategoryCounts.get(entry.subcategoryName) ?? 0) + 1,
+        );
+      }
+    }
+  }
+
+  const categoryTopics = sortTopicEntries(
+    [...categoryCounts.entries()].map(([label, count]) => ({ label, count })),
+  )
+    .slice(0, dynamicTopicLimit)
+    .map(({ label }) => ({ label, query: label }));
+  const subcategoryTopics = sortTopicEntries(
+    [...subcategoryCounts.entries()].map(([label, count]) => ({ label, count })),
+  )
+    .slice(0, dynamicTopicLimit)
+    .map(({ label }) => ({ label, query: label }));
+
+  const dynamicSections: CategoryMenuSection[] = [];
+
+  if (categoryTopics.length > 0) {
+    dynamicSections.push({
+      title: "Kategorie",
+      topics: categoryTopics,
+    });
+  }
+
+  if (subcategoryTopics.length > 0) {
+    dynamicSections.push({
+      title: "Podkategorie",
+      topics: subcategoryTopics,
+    });
+  }
+
+  return dynamicSections.length > 0 ? dynamicSections : fallbackSections;
+};
+
+export const getStoreCategories = (
+  source: Pick<Product, "categoryId" | "taxonomy">[],
+): StoreCategory[] =>
+  categories.map((category) => ({
+    ...category,
+    menuSections: buildDynamicMenuSections(source, category.id, category.menuSections),
+  }));
 
 export const trustBadges: TrustBadge[] = [
   {

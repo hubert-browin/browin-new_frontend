@@ -39,10 +39,13 @@ Utworz plik `/etc/nowy-ecommerce.env`:
 ```bash
 sudo tee /etc/nowy-ecommerce.env >/dev/null <<'EOF'
 SITE_URL=http://31.182.54.216
+BROWIN_PRODUCT_DATA_URL=https://browin.pl/shop/data-generator
+BROWIN_PRODUCT_CACHE_TTL_SECONDS=900
 EOF
 ```
 
 Po podpieciu domeny zmien `SITE_URL` na docelowy adres, np. `https://sklep.browin.pl`.
+`BROWIN_PRODUCT_DATA_URL` powinien wskazywac publiczny endpoint JSON, a nie stary feed XML.
 
 ## 5. Instalacja uslugi systemd
 

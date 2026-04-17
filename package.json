@@ -10,6 +10,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "test": "node --import tsx --test",
     "prod:deploy": "bash ./scripts/manage.sh deploy",
     "prod:restart": "bash ./scripts/manage.sh restart",
     "prod:status": "bash ./scripts/manage.sh status",
@@ -29,6 +30,7 @@
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
     "tailwindcss": "^4",
+    "tsx": "^4.21.0",
     "typescript": "^5"
   }
 }

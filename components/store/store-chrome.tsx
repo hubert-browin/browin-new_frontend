@@ -31,16 +31,12 @@ import { StoreFooter } from "@/components/store/store-footer";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
-import {
-  categories,
-  trustBadges,
-  type CategoryId,
-  type StoreCategory,
-} from "@/data/store";
+import { trustBadges, type CategoryId, type StoreCategory } from "@/data/store";
 import { formatCurrency } from "@/lib/catalog";
 
 type StoreChromeProps = {
   children: React.ReactNode;
+  storeCategories: StoreCategory[];
 };
 
 const topBarLinks = [
@@ -70,7 +66,7 @@ const getUniqueTopics = (category: StoreCategory) => {
     });
 };
 
-export function StoreChrome({ children }: StoreChromeProps) {
+export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { count: cartCount, isOpen, openCart, subtotal } = useCart();
@@ -82,7 +78,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
   const searchSeed = "";
   const isProductPage = pathname.startsWith("/produkt/");
   const activeMobileCategory =
-    categories.find((category) => category.id === activeMobileCategoryId) ?? null;
+    storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
 
   useEffect(() => {
     document.body.style.overflow = mobileMenuOpen || isOpen ? "hidden" : "";
@@ -146,7 +142,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
         </div>
       </div>
 
-      <header className="glass-header sticky top-0 z-50 border-b border-browin-border shadow-[0_10px_24px_rgba(0,0,0,0.04)] transition-all duration-300">
+      <header className="glass-header sticky top-0 z-50 border-b border-browin-border shadow-none transition-all duration-300">
         <div className="desktop-header-shell container relative mx-auto hidden items-center justify-between gap-5 px-4 py-3 md:flex">
           <Link className="z-10 flex-shrink-0" href="/">
             <Image
@@ -279,7 +275,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
       {!isProductPage ? (
         <div className="no-scrollbar overflow-x-auto border-b border-browin-border bg-browin-white py-3 md:hidden">
           <div className="flex w-max space-x-4 px-4">
-            {categories.map((category) => (
+            {storeCategories.map((category) => (
               <Link className={`group flex flex-col items-center gap-1.5 ${category.id === "domiogrod" ? "w-20" : "w-16"}`} href={`/kategoria/${category.slug}`} key={category.id} onClick={closeMobileMenu}>
                 <div className="flex h-12 w-12 items-center justify-center rounded-none border border-browin-dark/10 bg-browin-dark/5 text-browin-red transition-colors group-hover:bg-browin-red group-hover:text-browin-white">
                   <StoreIcon icon={category.icon} size={22} weight="fill" />
@@ -310,7 +306,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
         }`}
         id="mobile-mega-menu"
       >
-        <div className="flex items-center justify-between border-b border-browin-dark/10 bg-browin-white px-4 py-3 shadow-sm shrink-0">
+        <div className="flex shrink-0 items-center justify-between border-b border-browin-dark/10 bg-browin-white px-4 py-3 shadow-none">
           <Image
             alt="BROWIN"
             className="brand-logo-menu object-contain"
@@ -452,7 +448,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
             </div>
           ) : (
             <div className="divide-y divide-browin-dark/5 px-4 shrink-0">
-              {categories.map((category) => (
+              {storeCategories.map((category) => (
                 <button
                   className="group flex w-full items-center justify-between py-4 transition-all focus:outline-none"
                   key={category.id}
@@ -545,7 +541,7 @@ export function StoreChrome({ children }: StoreChromeProps) {
         </div>
       </div>
 
-      <div className="pb-safe fixed bottom-0 left-0 z-50 flex w-full items-center justify-between border-t border-browin-dark/10 bg-browin-white px-8 py-2 text-browin-dark/60 md:hidden">
+      <div className="store-mobile-bottom-nav pb-safe fixed bottom-0 left-0 z-50 flex w-full items-center justify-between border-t border-browin-dark/10 bg-browin-white px-8 py-2 text-browin-dark/60 shadow-none md:hidden">
         <Link className={`flex w-16 flex-col items-center ${pathname === "/" ? "text-browin-red" : "text-browin-dark/60"}`} href="/">
           <StoreIcon icon="house" size={26} weight={pathname === "/" ? "fill" : "regular"} />
           <span className="text-[9px] font-bold uppercase">Główna</span>
