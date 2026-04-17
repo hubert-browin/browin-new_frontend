@@ -501,16 +501,18 @@ function ProductStatusBadge({ product }: { product: Product }) {
 
 function ProductCodes({
   className,
+  compact = false,
   ean,
   symbol,
 }: {
   className?: string;
+  compact?: boolean;
   ean: string;
   symbol: string;
 }) {
   return (
     <dl
-      className={`flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/55 ${className ?? ""}`}
+      className={`flex items-center ${compact ? "flex-nowrap gap-x-3 text-[11px] tracking-[0.14em]" : "flex-wrap gap-x-5 gap-y-1 text-[11px] tracking-[0.14em]"} font-bold uppercase text-browin-dark/55 ${className ?? ""}`}
     >
       <div className="flex items-center gap-1.5">
         <dt>Symbol</dt>
@@ -550,7 +552,9 @@ function ReviewSummaryRow({
           ))}
         </div>
         <span className="text-sm font-extrabold text-browin-dark">{product.rating.toFixed(1)}</span>
-        <span className="text-sm font-semibold text-browin-dark/68">{product.reviews} opinii</span>
+        <span className="product-detail-review-count text-sm font-semibold text-browin-dark/68">
+          {product.reviews} opinii
+        </span>
       </div>
     </button>
   );
@@ -1575,15 +1579,18 @@ export function ProductDetail({
                     {product.title}
                   </h1>
 
-                  <div className="product-detail-social-signals mt-4">
-                    <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
-                  </div>
+                  <div className="product-detail-overview-meta mt-4">
+                    <div className="product-detail-social-signals min-w-0 flex-1">
+                      <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
+                    </div>
 
-                  <ProductCodes
-                    className="mt-3"
-                    ean={product.ean}
-                    symbol={product.symbol}
-                  />
+                    <ProductCodes
+                      className="product-detail-overview-codes shrink-0 justify-end"
+                      compact
+                      ean={product.ean}
+                      symbol={product.symbol}
+                    />
+                  </div>
                 </div>
 
                 <div className="product-detail-buybox-offer grid gap-4 border-t border-browin-dark/10 px-5 py-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end xl:px-6">
