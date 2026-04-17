@@ -1469,13 +1469,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                   </h1>
 
                   <div className="product-detail-social-signals mt-4">
-                    <SocialSignals
-                      compact
-                      includeShipmentSignal={false}
-                      leadTime={selectedVariant.leadTime}
-                      onReviewClick={scrollToReviews}
-                      product={product}
-                    />
+                    <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
                   </div>
                 </div>
 
