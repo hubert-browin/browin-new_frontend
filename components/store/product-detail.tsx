@@ -23,7 +23,7 @@ import {
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
 import { useCart } from "@/components/store/cart-provider";
-import type { Product } from "@/data/products";
+import type { Product, ProductFile } from "@/data/products";
 import { categories } from "@/data/store";
 import {
   formatCurrency,
@@ -36,6 +36,7 @@ import {
 type ProductDetailProps = {
   product: Product;
   relatedProducts: Product[];
+  complementaryProducts: Product[];
 };
 
 type VariantSelectorProps = {
@@ -373,6 +374,156 @@ function TrustSummary({
   );
 }
 
+function ProductTagChips({
+  className,
+  tags,
+}: {
+  className?: string;
+  tags: string[];
+}) {
+  return (
+    <div className={className}>
+      <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-browin-dark/45">
+        Powiązane frazy
+      </p>
+      <ul className="mt-3 flex flex-wrap gap-2">
+        {tags.map((tag, index) => (
+          <li key={`${tag}-${index}`}>
+            <Link
+              className="inline-flex items-center border border-browin-dark/10 bg-browin-gray px-3 py-1.5 text-[11px] font-semibold text-browin-dark/78 transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+              href={`/produkty?search=${encodeURIComponent(tag)}`}
+            >
+              {tag}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+const fileTypeLabels: Record<string, string> = {
+  instrukcja: "PDF · Instrukcja",
+  bezpieczenstwo: "PDF · Bezpieczeństwo",
+  "karta-produktu": "PDF · Karta produktu",
+  inne: "PDF",
+};
+
+function ProductFileTile({ file }: { file: ProductFile }) {
+  return (
+    <a
+      className="group flex items-center gap-4 border border-browin-dark/10 bg-browin-gray px-4 py-4 transition-colors hover:border-browin-red hover:bg-browin-white"
+      download
+      href={file.href}
+      rel="noopener"
+      target="_blank"
+    >
+      <span
+        aria-hidden
+        className="grid h-11 w-11 shrink-0 place-items-center border border-browin-dark/10 bg-browin-white font-mono text-[11px] font-extrabold tracking-[0.06em] text-browin-red"
+      >
+        PDF
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+          {fileTypeLabels[file.type] ?? "PDF"}
+        </span>
+        <span className="mt-1 block truncate text-sm font-bold text-browin-dark transition-colors group-hover:text-browin-red">
+          {file.label}
+        </span>
+      </span>
+      {file.sizeLabel ? (
+        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+          {file.sizeLabel}
+        </span>
+      ) : null}
+      <ArrowRight
+        className="shrink-0 text-browin-dark/35 transition-colors group-hover:text-browin-red"
+        size={16}
+      />
+    </a>
+  );
+}
+
+function ComplementaryProductsCarousel({ products }: { products: Product[] }) {
+  return (
+    <section className="mt-12 border-t border-browin-dark/10 pt-10">
+      <div className="mb-5 flex items-end justify-between gap-4">
+        <div>
+          <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+            Kompletuj zestaw
+          </p>
+          <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+            Produkty uzupełniające
+          </h2>
+        </div>
+        <span className="hidden text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45 md:inline">
+          Przewiń poziomo
+        </span>
+      </div>
+      <div
+        className="-mx-4 overflow-x-auto px-4 pb-3 [scrollbar-width:thin]"
+        style={{ scrollSnapType: "x mandatory" }}
+      >
+        <ul className="flex gap-4 md:gap-5">
+          {products.map((item) => (
+            <li
+              className="w-[14rem] shrink-0 md:w-[16rem] xl:w-[18rem]"
+              key={`complementary-${item.id}`}
+              style={{ scrollSnapAlign: "start" }}
+            >
+              <ProductCard product={item} titleLines={3} />
+            </li>
+          ))}
+        </ul>
+      </div>
+    </section>
+  );
+}
+
+function ProductStatusBadge({ product }: { product: Product }) {
+  if (product.status === "nowosc") {
+    return (
+      <span className="inline-flex items-center bg-browin-red px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+        Nowość
+      </span>
+    );
+  }
+  if (product.status === "wyprzedaz") {
+    return (
+      <span className="inline-flex items-center bg-browin-dark px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+        Wyprzedaż
+      </span>
+    );
+  }
+  return null;
+}
+
+function ProductCodes({
+  className,
+  ean,
+  symbol,
+}: {
+  className?: string;
+  ean: string;
+  symbol: string;
+}) {
+  return (
+    <dl
+      className={`flex flex-wrap items-center gap-x-5 gap-y-1 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/55 ${className ?? ""}`}
+    >
+      <div className="flex items-center gap-1.5">
+        <dt>Symbol</dt>
+        <dd className="font-mono text-browin-dark/78">{symbol}</dd>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <dt>EAN</dt>
+        <dd className="font-mono text-browin-dark/78">{ean}</dd>
+      </div>
+    </dl>
+  );
+}
+
 function ReviewSummaryRow({
   onReviewClick,
   product,
@@ -664,7 +815,11 @@ function FaqItem({
   );
 }
 
-export function ProductDetail({ product, relatedProducts }: ProductDetailProps) {
+export function ProductDetail({
+  product,
+  relatedProducts,
+  complementaryProducts,
+}: ProductDetailProps) {
   const { addItem } = useCart();
   const defaultVariant = getPrimaryVariant(product);
   const category = categories.find((entry) => entry.id === product.categoryId);
@@ -1211,9 +1366,13 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
             ) : null}
 
             <div className="min-w-0">
-              <h1 className="text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
-                {product.title}
-              </h1>
+              <div className="flex flex-wrap items-start gap-2">
+                <h1 className="min-w-0 flex-1 text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
+                  {product.title}
+                </h1>
+                <ProductStatusBadge product={product} />
+              </div>
+              <ProductCodes className="mt-2" ean={product.ean} symbol={product.symbol} />
             </div>
 
             <div className="space-y-5">
@@ -1330,6 +1489,7 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                     </div>
                   ))}
                 </div>
+                {product.tags.length > 0 ? <ProductTagChips tags={product.tags} /> : null}
               </div>
             </MobileSection>
 
@@ -1346,6 +1506,16 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                 ))}
               </div>
             </MobileSection>
+
+            {product.files.length > 0 ? (
+              <MobileSection title="Pliki do pobrania">
+                <div className="grid gap-3">
+                  {product.files.map((file) => (
+                    <ProductFileTile file={file} key={`mobile-${file.type}-${file.href}`} />
+                  ))}
+                </div>
+              </MobileSection>
+            ) : null}
 
             <MobileSection title="FAQ">
               <div className="space-y-3">
@@ -1464,9 +1634,18 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                 </div>
 
                 <div className="product-detail-buybox-overview px-5 py-5 xl:px-6 xl:py-6">
-                  <h1 className="product-detail-title text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
-                    {product.title}
-                  </h1>
+                  <div className="flex flex-wrap items-start gap-2">
+                    <h1 className="product-detail-title min-w-0 flex-1 text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
+                      {product.title}
+                    </h1>
+                    <ProductStatusBadge product={product} />
+                  </div>
+
+                  <ProductCodes
+                    className="mt-3"
+                    ean={product.ean}
+                    symbol={product.symbol}
+                  />
 
                   <div className="product-detail-social-signals mt-4">
                     <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
@@ -1556,6 +1735,9 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                 <p className="text-sm leading-relaxed text-browin-dark/68">
                   {product.longDescription}
                 </p>
+                {product.tags.length > 0 ? (
+                  <ProductTagChips className="mt-6" tags={product.tags} />
+                ) : null}
               </div>
 
               <div className="grid gap-4 xl:grid-cols-3">
@@ -1604,6 +1786,19 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
                 ))}
               </div>
             </div>
+
+            {product.files.length > 0 ? (
+              <div className="border border-browin-dark/10 bg-browin-white p-6">
+                <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
+                  Pliki do pobrania
+                </h2>
+                <div className="mt-5 grid gap-3 md:grid-cols-2">
+                  {product.files.map((file) => (
+                    <ProductFileTile file={file} key={`${file.type}-${file.href}`} />
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="border border-browin-dark/10 bg-browin-white p-6">
               <h2 className="text-2xl font-bold uppercase tracking-tight text-browin-dark">
@@ -1660,6 +1855,10 @@ export function ProductDetail({ product, relatedProducts }: ProductDetailProps) 
               ))}
             </div>
           </div>
+
+          {complementaryProducts.length > 0 ? (
+            <ComplementaryProductsCarousel products={complementaryProducts} />
+          ) : null}
         </div>
       </div>
 

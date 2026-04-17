@@ -7,7 +7,7 @@ import Link from "next/link";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
 import type { Product } from "@/data/products";
-import { formatCurrency, getPrimaryVariant } from "@/lib/catalog";
+import { formatCurrency, getDiscountPercent, getPrimaryVariant } from "@/lib/catalog";
 
 type ProductCardProps = {
   product: Product;
@@ -30,6 +30,17 @@ export function ProductCard({
   const titleClampClass = titleLines === 3 ? "product-card-title-3" : "line-clamp-2";
   const favorite = isFavorite(product.id);
   const reviewsLabel = product.reviews.toLocaleString("pl-PL");
+  const discount = getDiscountPercent(primaryVariant);
+  const statusLabel =
+    product.status === "nowosc"
+      ? "Nowość"
+      : product.status === "wyprzedaz" && discount > 0
+        ? `-${discount}%`
+        : null;
+  const statusClass =
+    product.status === "nowosc"
+      ? "bg-browin-red text-browin-white"
+      : "bg-browin-dark text-browin-white";
 
   return (
     <article className="product-card group flex h-full flex-col rounded-none border border-browin-dark/8 bg-browin-white p-3 shadow-[0_10px_26px_rgba(51,51,51,0.05)] transition-colors duration-200 hover:border-browin-red focus-within:border-browin-red md:p-4">
@@ -56,6 +67,13 @@ export function ProductCard({
             />
           </div>
         </Link>
+        {statusLabel ? (
+          <span
+            className={`pointer-events-none absolute left-0 top-0 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] ${statusClass}`}
+          >
+            {statusLabel}
+          </span>
+        ) : null}
       </div>
 
       <div className="flex min-h-0 flex-col md:flex-1">

@@ -254,3 +254,18 @@ export const getRelatedProducts = (product: Product, limit = 4) =>
       );
     })
     .slice(0, limit);
+
+export const getComplementaryProducts = (product: Product, limit = 8): Product[] => {
+  if (product.complementaryProductIds.length === 0) return [];
+  const index = new Map(products.map((candidate) => [candidate.id, candidate]));
+  const seen = new Set<string>();
+  const result: Product[] = [];
+  for (const id of product.complementaryProductIds) {
+    const candidate = index.get(id);
+    if (!candidate || seen.has(candidate.baseProductId)) continue;
+    seen.add(candidate.baseProductId);
+    result.push(candidate);
+    if (result.length >= limit) break;
+  }
+  return result;
+};

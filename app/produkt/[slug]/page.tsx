@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { ProductDetail } from "@/components/store/product-detail";
 import { products } from "@/data/products";
 import {
+  getComplementaryProducts,
   getRelatedProducts,
   resolveProductSlug,
 } from "@/lib/catalog";
@@ -58,6 +59,7 @@ export default async function ProductPage({
   return (
     <ProductDetail
       key={product.id}
+      complementaryProducts={getComplementaryProducts(product)}
       product={product}
       relatedProducts={getRelatedProducts(product)}
     />

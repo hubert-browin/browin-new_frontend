@@ -21,11 +21,28 @@ export type ProductFaq = {
   answer: string;
 };
 
+export type ProductStatus = "nowosc" | "wyprzedaz" | "standard";
+
+export type ProductFileType =
+  | "instrukcja"
+  | "bezpieczenstwo"
+  | "karta-produktu"
+  | "inne";
+
+export type ProductFile = {
+  label: string;
+  href: string;
+  type: ProductFileType;
+  sizeLabel?: string;
+};
+
 export type Product = {
   id: string;
   baseProductId: string;
   baseSlug: string;
   slug: string;
+  symbol: string;
+  ean: string;
   title: string;
   subtitle: string;
   line: string;
@@ -35,6 +52,7 @@ export type Product = {
   longDescription: string;
   images: string[];
   badge?: string;
+  status: ProductStatus;
   tags: string[];
   rating: number;
   reviews: number;
@@ -46,6 +64,8 @@ export type Product = {
   features: string[];
   specs: ProductSpec[];
   faq: ProductFaq[];
+  files: ProductFile[];
+  complementaryProductIds: string[];
   variants: ProductVariant[];
 };
 
@@ -134,6 +154,43 @@ const lineProfiles: ProductLineProfile[] = [
 ];
 
 const roundPrice = (value: number) => Number(value.toFixed(2));
+
+// Deterministyczny hash FNV-1a (32-bit), żeby symbol i EAN nie zmieniały się między builderami.
+const fnv1a = (input: string): number => {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i += 1) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return hash >>> 0;
+};
+
+const generateSymbol = (source: string): string =>
+  String(fnv1a(`symbol::${source}`) % 1_000_000).padStart(6, "0");
+
+// EAN-13 z prefiksem 590 (Polska) + 9 deterministycznych cyfr + cyfra kontrolna.
+const generateEan = (source: string): string => {
+  const body = String(fnv1a(`ean::${source}`)).padStart(9, "0").slice(0, 9);
+  const digits = `590${body}`;
+  let sum = 0;
+  for (let i = 0; i < 12; i += 1) {
+    const digit = digits.charCodeAt(i) - 48;
+    sum += i % 2 === 0 ? digit : digit * 3;
+  }
+  const checksum = (10 - (sum % 10)) % 10;
+  return `${digits}${checksum}`;
+};
+
+const resolveStatus = (
+  seedBadge: string | undefined,
+  profileBadge: string | undefined,
+  hasCompareAtPrice: boolean,
+): ProductStatus => {
+  const combined = `${seedBadge ?? ""}|${profileBadge ?? ""}`.toLowerCase();
+  if (combined.includes("nowość") || combined.includes("nowosc")) return "nowosc";
+  if (hasCompareAtPrice) return "wyprzedaz";
+  return "standard";
+};
 
 const buildGallery = (primaryImage: string, seedIndex: number) => [
   primaryImage,
@@ -693,6 +750,7 @@ const seeds: ProductSeed[] = [
 export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
   lineProfiles.map((profile, profileIndex) => {
     const images = buildGallery(seed.image, seedIndex + profileIndex);
+    const productId = `${seed.id}-${profile.key}`;
 
     const variants = seed.variantLabels.map((label, variantIndex) => {
       const price = roundPrice(
@@ -705,7 +763,7 @@ export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
           : undefined;
 
       return {
-        id: `${seed.id}-${profile.key}-${variantIndex + 1}`,
+        id: `${productId}-${variantIndex + 1}`,
         label,
         sku: `${seed.id.toUpperCase().slice(0, 8)}-${profile.key.toUpperCase()}-${variantIndex + 1}`,
         price,
@@ -716,11 +774,47 @@ export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
       };
     });
 
+    const hasCompareAtPrice = variants.some((variant) => variant.compareAtPrice);
+    const status = resolveStatus(
+      profileIndex === 0 ? seed.badge : profile.badge,
+      profile.badge,
+      hasCompareAtPrice,
+    );
+
+    const symbol = generateSymbol(productId);
+    const ean = generateEan(productId);
+
+    // Demo: karta produktu zawsze; instrukcje dla Expert/Atelier (wyższe linie).
+    const files: ProductFile[] = [
+      {
+        label: `Karta produktu ${symbol}`,
+        href: `/files/${symbol}-karta-produktu.pdf`,
+        type: "karta-produktu",
+        sizeLabel: "480 KB",
+      },
+    ];
+    if (profileIndex >= 2) {
+      files.push({
+        label: "Instrukcja obsługi",
+        href: `/files/${symbol}-instrukcja.pdf`,
+        type: "instrukcja",
+        sizeLabel: "2.4 MB",
+      });
+      files.push({
+        label: "Instrukcja bezpieczeństwa produktów konsumenckich",
+        href: `/files/instrukcja-bezpieczenstwa.pdf`,
+        type: "bezpieczenstwo",
+        sizeLabel: "310 KB",
+      });
+    }
+
     return {
-      id: `${seed.id}-${profile.key}`,
+      id: productId,
       baseProductId: seed.id,
       baseSlug: seed.slug,
       slug: `${seed.slug}-${profile.key}`,
+      symbol,
+      ean,
       title: seed.title,
       subtitle: `${seed.subtitle} • ${profile.line}`,
       line: profile.line,
@@ -730,6 +824,7 @@ export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
       longDescription: seed.longDescription,
       images,
       badge: profileIndex === 0 ? seed.badge : profile.badge,
+      status,
       tags: [...seed.tags, profile.line.toLowerCase()],
       rating: Number(Math.min(seed.rating + profileIndex * 0.05, 5).toFixed(1)),
       reviews: seed.reviews + profile.reviewBoost + seedIndex * 3,
@@ -741,7 +836,28 @@ export const products: Product[] = seeds.flatMap((seed, seedIndex) =>
       features: seed.features,
       specs: seed.specs,
       faq: seed.faq,
+      files,
+      complementaryProductIds: [],
       variants,
     };
   }),
 );
+
+// Produkty uzupełniające: resolwowane deterministycznie po zbudowaniu pełnej listy,
+// żeby móc odwołać się do id innych produktów (akcesoria z innej kategorii, ten sam
+// profil linii). Bez tej separacji byłby problem kurczaka i jaja.
+const buildComplementaryIds = (product: Product): string[] => {
+  const sameLineDifferentCategory = products.filter(
+    (candidate) =>
+      candidate.id !== product.id &&
+      candidate.line === product.line &&
+      candidate.categoryId !== product.categoryId,
+  );
+  return sameLineDifferentCategory
+    .slice(0, 8)
+    .map((candidate) => candidate.id);
+};
+
+products.forEach((product) => {
+  product.complementaryProductIds = buildComplementaryIds(product);
+});
