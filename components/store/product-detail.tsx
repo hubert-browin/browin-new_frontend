@@ -340,7 +340,7 @@ function TrustSummary({
             }`}
             key={signal.label}
           >
-            <div className="mt-0.5 text-browin-red">
+            <div className="product-detail-buybox-trust-icon mt-0.5 text-browin-red">
               <StoreIcon icon={signal.icon} size={18} weight="fill" />
             </div>
             <div>
@@ -412,7 +412,7 @@ const fileTypeLabels: Record<string, string> = {
 function ProductFileTile({ file }: { file: ProductFile }) {
   return (
     <a
-      className="group flex items-center gap-4 border border-browin-dark/10 bg-browin-gray px-4 py-4 transition-colors hover:border-browin-red hover:bg-browin-white"
+      className="group grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border border-browin-dark/10 bg-browin-gray px-4 py-4 transition-colors hover:border-browin-red hover:bg-browin-white sm:flex sm:items-center sm:gap-4"
       download
       href={file.href}
       rel="noopener"
@@ -428,12 +428,12 @@ function ProductFileTile({ file }: { file: ProductFile }) {
         <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
           {fileTypeLabels[file.type] ?? "PDF"}
         </span>
-        <span className="mt-1 block truncate text-sm font-bold text-browin-dark transition-colors group-hover:text-browin-red">
+        <span className="mt-1 block break-words text-sm font-bold text-browin-dark transition-colors group-hover:text-browin-red sm:truncate">
           {file.label}
         </span>
       </span>
       {file.sizeLabel ? (
-        <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+        <span className="col-start-2 row-start-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45 sm:col-auto sm:row-auto sm:shrink-0">
           {file.sizeLabel}
         </span>
       ) : null}
@@ -535,7 +535,7 @@ function ReviewSummaryRow({
 
   return (
     <button
-      className="product-detail-review-row flex w-full items-center justify-between gap-4 border border-browin-dark/10 bg-browin-white px-4 py-3 text-left transition-colors hover:border-browin-red"
+      className="product-detail-review-row flex w-full items-center gap-3 text-left transition-opacity hover:opacity-70"
       onClick={onReviewClick}
       type="button"
     >
@@ -552,90 +552,7 @@ function ReviewSummaryRow({
         <span className="text-sm font-extrabold text-browin-dark">{product.rating.toFixed(1)}</span>
         <span className="text-sm font-semibold text-browin-dark/68">{product.reviews} opinii</span>
       </div>
-      <span className="text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
-        Zobacz recenzje
-      </span>
     </button>
-  );
-}
-
-function AvailabilitySummary({
-  amountToFreeShipping,
-  isInStock,
-  orderValue,
-  selectedVariantStock,
-}: {
-  amountToFreeShipping: number;
-  isInStock: boolean;
-  orderValue: number;
-  selectedVariantStock: number;
-}) {
-  const qualifiesForFreeShipping = amountToFreeShipping === 0;
-  const shippingProgress = Math.min((orderValue / freeShippingThreshold) * 100, 100);
-
-  return (
-    <div className="border border-browin-dark/10 bg-browin-white px-4 py-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="flex min-w-0 items-start gap-3">
-          <div
-            className={`mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center border ${
-              isInStock
-                ? "border-emerald-200 bg-emerald-50 text-emerald-700"
-                : "border-browin-dark/10 bg-browin-gray text-browin-dark/68"
-            }`}
-          >
-            <StoreIcon icon={isInStock ? "package" : "timer"} size={18} weight="fill" />
-          </div>
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-              Dostepnosc
-            </p>
-            <p className="mt-1 text-base font-extrabold text-browin-dark">
-              {isInStock ? "Produkt dostepny" : "Chwilowo niedostepny"}
-            </p>
-            <p className="mt-1 text-sm text-browin-dark/62">
-              {isInStock
-                ? `${selectedVariantStock} szt. w magazynie`
-                : "Ten wariant wroci po uzupelnieniu stanow magazynowych."}
-            </p>
-          </div>
-        </div>
-
-        <span
-          className={`px-3 py-1 text-[11px] font-bold uppercase tracking-[0.14em] ${
-            isInStock
-              ? "border border-emerald-200 bg-emerald-50 text-emerald-700"
-              : "border border-browin-dark/10 bg-browin-gray text-browin-dark/62"
-          }`}
-        >
-          {isInStock ? "Dostepny" : "Brak teraz"}
-        </span>
-      </div>
-
-      <div className="mt-4 border-t border-browin-dark/10 pt-3">
-        <p
-          className={`text-[13px] font-bold ${
-            qualifiesForFreeShipping ? "text-browin-red" : "text-browin-dark"
-          }`}
-        >
-          {qualifiesForFreeShipping ? (
-            "Masz juz darmowa dostawe."
-          ) : (
-            <>
-              Brakuje Ci <span className="text-browin-red">{formatCurrency(amountToFreeShipping)}</span>{" "}
-              do darmowej dostawy.
-            </>
-          )}
-        </p>
-
-        <div className="mt-3 h-2 w-full overflow-hidden rounded-none bg-browin-dark/10">
-          <div
-            className="h-full bg-browin-red transition-[width] duration-300"
-            style={{ width: `${shippingProgress}%` }}
-          />
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -852,6 +769,8 @@ export function ProductDetail({
   const discount = getDiscountPercent(selectedVariant);
   const orderValue = selectedVariant.price * quantity;
   const amountToFreeShipping = Math.max(freeShippingThreshold - orderValue, 0);
+  const qualifiesForFreeShipping = amountToFreeShipping === 0;
+  const shippingProgress = Math.min((orderValue / freeShippingThreshold) * 100, 100);
   const isInStock = selectedVariant.stock > 0;
   const stockLabel =
     isInStock
@@ -1217,7 +1136,7 @@ export function ProductDetail({
   return (
     <section className="product-detail-page bg-browin-gray pt-0 pb-3 md:pb-16 md:pt-0">
       <div className="w-full px-0 md:container md:mx-auto md:px-4">
-        <div className="border-y border-browin-dark/10 bg-browin-white px-4 py-4 shadow-sm md:border md:px-6 md:py-6 xl:px-8 xl:py-7">
+        <div className="product-detail-shell border-y border-browin-dark/10 bg-browin-white px-4 py-4 shadow-sm md:border md:px-6 md:py-6 xl:px-8 xl:py-7">
           <div className="mb-4 hidden md:block">
             <nav className="min-w-0 flex flex-wrap items-center gap-2 text-sm text-browin-dark/55">
               <Link className="transition-colors hover:text-browin-red" href="/">
@@ -1366,13 +1285,9 @@ export function ProductDetail({
             ) : null}
 
             <div className="min-w-0">
-              <div className="flex flex-wrap items-start gap-2">
-                <h1 className="min-w-0 flex-1 text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
-                  {product.title}
-                </h1>
-                <ProductStatusBadge product={product} />
-              </div>
-              <ProductCodes className="mt-2" ean={product.ean} symbol={product.symbol} />
+              <h1 className="text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
+                {product.title}
+              </h1>
             </div>
 
             <div className="space-y-5">
@@ -1443,7 +1358,7 @@ export function ProductDetail({
                   </div>
                 </div>
 
-                {!amountToFreeShipping ? (
+                {qualifiesForFreeShipping ? (
                   <p className="mt-2 text-xs font-semibold text-browin-red">
                     Darmowa dostawa aktywna w tym koszyku.
                   </p>
@@ -1452,6 +1367,13 @@ export function ProductDetail({
                     Brakuje {formatCurrency(amountToFreeShipping)} do darmowej dostawy.
                   </p>
                 )}
+
+                <div className="mt-3 h-1.5 w-full overflow-hidden bg-browin-dark/10">
+                  <div
+                    className="h-full bg-browin-red transition-[width] duration-300"
+                    style={{ width: `${shippingProgress}%` }}
+                  />
+                </div>
               </div>
 
               <button
@@ -1472,6 +1394,8 @@ export function ProductDetail({
                   </p>
                 </div>
               </button>
+
+              <ProductCodes ean={product.ean} symbol={product.symbol} />
             </div>
 
             <MobileSection title="O produkcie">
@@ -1532,53 +1456,48 @@ export function ProductDetail({
 
           <div className="product-detail-grid hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
             <div className="product-detail-media-stack group grid self-start gap-4">
-              <div className="relative flex w-full justify-center">
-                <div className="product-detail-media-frame relative overflow-hidden bg-browin-white">
-                  <div className="relative aspect-square">
+              <div className="product-detail-media-layout">
+                <div className="product-detail-media-preview relative flex w-full justify-center">
+                  <div className="product-detail-media-frame relative overflow-hidden bg-browin-white">
                     <div
-                      className={`product-image-transition absolute inset-0 ${
-                        imageTransitionDirection === "forward"
-                          ? "product-image-transition-forward"
-                          : "product-image-transition-backward"
-                      }`}
-                      key={`desktop-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
+                      className="product-detail-media-stage relative aspect-square"
+                      data-zoom-active={isDesktopImageZoomed ? "true" : "false"}
+                      onMouseLeave={resetDesktopImageZoom}
+                      onMouseMove={handleDesktopImageMouseMove}
+                      ref={desktopZoomFrameRef}
                     >
-                      <Image
-                        alt={product.title}
-                        className="object-contain"
-                        fill
-                        priority
-                        sizes="(max-width: 1279px) 48vw, 42vw"
-                        src={product.images[activeImageIndex]}
-                      />
+                      <div
+                        className={`product-image-transition absolute inset-0 ${
+                          imageTransitionDirection === "forward"
+                            ? "product-image-transition-forward"
+                            : "product-image-transition-backward"
+                        }`}
+                        key={`desktop-${imageTransitionDirection}-${product.images[activeImageIndex]}`}
+                      >
+                        <Image
+                          alt={product.title}
+                          className="product-detail-main-image object-contain"
+                          fill
+                          priority
+                          sizes="(max-width: 1279px) 48vw, 42vw"
+                          src={product.images[activeImageIndex]}
+                        />
+                      </div>
                     </div>
                   </div>
+                  {product.badge ? (
+                    <span className="absolute left-0 top-4 bg-browin-dark px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                      {product.badge}
+                    </span>
+                  ) : null}
+                  {discount > 0 ? (
+                    <span className="absolute right-0 top-4 bg-browin-red px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                      -{discount}%
+                    </span>
+                  ) : null}
                 </div>
-                {product.badge ? (
-                  <span className="absolute left-0 top-4 bg-browin-dark px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
-                    {product.badge}
-                  </span>
-                ) : null}
-                {discount > 0 ? (
-                  <span className="absolute right-0 top-4 bg-browin-red px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
-                    -{discount}%
-                  </span>
-                ) : null}
-              </div>
 
-              <div className="flex items-center justify-center gap-3">
-                {product.images.length > 1 ? (
-                  <button
-                    aria-label="Poprzednie zdjecie"
-                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
-                    onClick={showPreviousImage}
-                    type="button"
-                  >
-                    <ArrowLeft size={14} />
-                  </button>
-                ) : null}
-
-                <div className="product-detail-media-thumbs flex flex-wrap items-center justify-center gap-3">
+                <div className="product-detail-media-thumbs flex flex-col items-stretch justify-start">
                   {product.images.map((image, index) => (
                     <button
                       aria-label={`Pokaz zdjecie ${index + 1}`}
@@ -1603,8 +1522,25 @@ export function ProductDetail({
                     </button>
                   ))}
                 </div>
+              </div>
 
-                {product.images.length > 1 ? (
+              {product.images.length > 1 ? (
+                <div className="flex items-center justify-center gap-3">
+                  <button
+                    aria-label="Poprzednie zdjecie"
+                    className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
+                    onClick={showPreviousImage}
+                    type="button"
+                  >
+                    <ArrowLeft size={14} />
+                  </button>
+
+                  <div className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+                    <span>{activeImageIndex + 1}</span>
+                    <span>/</span>
+                    <span>{product.images.length}</span>
+                  </div>
+
                   <button
                     aria-label="Nastepne zdjecie"
                     className="pointer-events-none flex h-9 w-9 shrink-0 translate-y-1 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark/68 opacity-0 transition-[opacity,transform,color,border-color,background-color] duration-200 group-hover:pointer-events-auto group-hover:translate-y-0 group-hover:opacity-100 group-focus-within:pointer-events-auto group-focus-within:translate-y-0 group-focus-within:opacity-100 hover:border-browin-red hover:text-browin-red focus-visible:border-browin-red focus-visible:text-browin-red focus-visible:opacity-100"
@@ -1613,8 +1549,8 @@ export function ProductDetail({
                   >
                     <ArrowRight size={14} />
                   </button>
-                ) : null}
-              </div>
+                </div>
+              ) : null}
             </div>
 
             <div className="self-start">
@@ -1630,15 +1566,17 @@ export function ProductDetail({
                     <span className="bg-browin-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/72">
                       {product.line}
                     </span>
+                    <ProductStatusBadge product={product} />
                   </div>
                 </div>
 
                 <div className="product-detail-buybox-overview px-5 py-5 xl:px-6 xl:py-6">
-                  <div className="flex flex-wrap items-start gap-2">
-                    <h1 className="product-detail-title min-w-0 flex-1 text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
-                      {product.title}
-                    </h1>
-                    <ProductStatusBadge product={product} />
+                  <h1 className="product-detail-title text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
+                    {product.title}
+                  </h1>
+
+                  <div className="product-detail-social-signals mt-4">
+                    <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
                   </div>
 
                   <ProductCodes
@@ -1646,10 +1584,6 @@ export function ProductDetail({
                     ean={product.ean}
                     symbol={product.symbol}
                   />
-
-                  <div className="product-detail-social-signals mt-4">
-                    <ReviewSummaryRow onReviewClick={scrollToReviews} product={product} />
-                  </div>
                 </div>
 
                 <div className="product-detail-buybox-offer grid gap-4 border-t border-browin-dark/10 px-5 py-4 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-end xl:px-6">
@@ -1718,7 +1652,35 @@ export function ProductDetail({
                   </div>
                 </div>
 
-                <div className="product-detail-buybox-trust border-t border-browin-dark/10 bg-browin-gray px-5 py-4 xl:px-6">
+                <div className="product-detail-buybox-trust bg-browin-white px-5 py-4 xl:px-6">
+                  <div className="product-detail-buybox-shipping-progress border border-browin-dark/10 bg-browin-white px-4 py-3">
+                    <div className="flex items-center justify-between gap-4">
+                      <div className="min-w-0">
+                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                          Darmowa dostawa
+                        </p>
+                        <p className="mt-1 text-sm font-bold text-browin-dark">
+                          {qualifiesForFreeShipping ? (
+                            "Aktywna w tym koszyku"
+                          ) : (
+                            <>
+                              Brakuje <span className="text-browin-red">{formatCurrency(amountToFreeShipping)}</span>
+                            </>
+                          )}
+                        </p>
+                      </div>
+                      <p className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+                        Dostawa do {deliveryDateLabel}
+                      </p>
+                    </div>
+                    <div className="mt-3 h-2 w-full overflow-hidden bg-browin-dark/10">
+                      <div
+                        className="h-full bg-browin-red transition-[width] duration-300"
+                        style={{ width: `${shippingProgress}%` }}
+                      />
+                    </div>
+                  </div>
+
                   <TrustSummary
                     compact
                     orderValue={orderValue}
