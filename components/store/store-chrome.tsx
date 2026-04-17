@@ -27,6 +27,7 @@ import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { StoreFooter } from "@/components/store/store-footer";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
@@ -293,6 +294,8 @@ export function StoreChrome({ children }: StoreChromeProps) {
       ) : null}
 
       <main>{children}</main>
+
+      <StoreFooter />
 
       <div
         className={`fixed inset-0 z-[55] bg-browin-dark/20 transition-opacity duration-300 md:hidden ${
