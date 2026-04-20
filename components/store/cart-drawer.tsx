@@ -23,7 +23,7 @@ export function CartDrawer() {
   return (
     <>
       <div
-        className={`fixed inset-0 z-[70] bg-browin-dark/50 transition-opacity duration-300 ${
+        className={`fixed inset-x-0 bottom-[var(--mobile-bottom-nav-height)] top-0 z-[70] bg-browin-dark/50 transition-opacity duration-300 md:inset-0 ${
           isOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         id="cart-drawer-overlay"
@@ -31,7 +31,7 @@ export function CartDrawer() {
       />
 
       <aside
-        className={`fixed right-0 top-0 z-[80] flex h-full w-full max-w-[400px] flex-col bg-browin-white shadow-panel transition-transform duration-300 ${
+        className={`fixed bottom-[var(--mobile-bottom-nav-height)] right-0 top-0 z-[80] flex w-full max-w-[400px] flex-col bg-browin-white shadow-none transition-transform duration-300 md:bottom-0 md:h-full md:shadow-panel ${
           isOpen ? "translate-x-0" : "translate-x-full"
         }`}
         id="cart-drawer"
@@ -149,7 +149,7 @@ export function CartDrawer() {
                 Dodaj kilka produktów, żeby zobaczyć pełny przepływ zakupowy.
               </p>
               <Link
-                className="mt-5 inline-flex items-center justify-center border border-browin-red px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white"
+                className="mt-5 inline-flex items-center justify-center border border-browin-red px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] !text-browin-red transition-colors hover:bg-browin-red hover:!text-browin-white"
                 href="/produkty"
                 onClick={closeCart}
               >
@@ -159,7 +159,7 @@ export function CartDrawer() {
           )}
         </div>
 
-        <div className="border-t border-browin-dark/10 bg-browin-gray p-5 shrink-0">
+        <div className="border-t border-browin-dark/10 bg-browin-white p-5 shrink-0 md:bg-browin-gray">
           <div className="mb-4 flex items-center justify-between">
             <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-browin-dark/70">
               Suma

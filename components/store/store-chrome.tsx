@@ -39,6 +39,14 @@ type StoreChromeProps = {
   storeCategories: StoreCategory[];
 };
 
+type MobileSearchFormProps = {
+  className?: string;
+  onSubmit: (event: React.FormEvent<HTMLFormElement>) => void;
+  searchSeed: string;
+};
+
+type MobileBottomNavItem = "home" | "categories" | "recipes" | "cart" | null;
+
 const topBarLinks = [
   { label: "Dostawa i płatność", href: "/checkout" },
   { label: "Kontakt", href: "/checkout" },
@@ -47,6 +55,80 @@ const topBarLinks = [
 
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
+
+const mobileBottomNavItemClass =
+  "flex w-16 flex-col items-center text-browin-dark/60 transition-colors hover:text-browin-red";
+
+const getMobileBottomNavIconClass = (isActive: boolean) =>
+  isActive ? "text-browin-red" : "text-browin-dark/60";
+
+const getMobileBottomNavActiveItem = ({
+  isCartOpen,
+  isMenuOpen,
+  pathname,
+}: {
+  isCartOpen: boolean;
+  isMenuOpen: boolean;
+  pathname: string;
+}): MobileBottomNavItem => {
+  if (isCartOpen) {
+    return "cart";
+  }
+
+  if (isMenuOpen) {
+    return "categories";
+  }
+
+  if (pathname === "/koszyk") {
+    return "cart";
+  }
+
+  if (pathname.startsWith("/kategoria")) {
+    return "categories";
+  }
+
+  if (pathname === "/produkty") {
+    return "recipes";
+  }
+
+  if (pathname === "/") {
+    return "home";
+  }
+
+  return null;
+};
+
+function MobileSearchForm({
+  className = "",
+  onSubmit,
+  searchSeed,
+}: MobileSearchFormProps) {
+  return (
+    <form
+      className={`group relative flex min-h-12 items-stretch overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red ${className}`}
+      onSubmit={onSubmit}
+    >
+      <div className="relative min-w-0 flex-1">
+        <input
+          className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent pl-11 pr-4 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
+          defaultValue={searchSeed}
+          name="search"
+          placeholder="Szukaj produktów..."
+        />
+        <MagnifyingGlass
+          className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
+          size={18}
+        />
+      </div>
+      <button
+        className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-5 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
+        type="submit"
+      >
+        Szukaj
+      </button>
+    </form>
+  );
+}
 
 const getUniqueTopics = (category: StoreCategory) => {
   const seenTopics = new Set<string>();
@@ -69,7 +151,7 @@ const getUniqueTopics = (category: StoreCategory) => {
 export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { count: cartCount, isOpen, openCart, subtotal } = useCart();
+  const { closeCart, count: cartCount, isOpen, openCart, subtotal } = useCart();
   const { count: favoritesCount } = useFavorites();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
@@ -77,6 +159,15 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     useState<CategoryId | null>(null);
   const searchSeed = "";
   const isProductPage = pathname.startsWith("/produkt/");
+  const activeMobileBottomNavItem = getMobileBottomNavActiveItem({
+    isCartOpen: isOpen,
+    isMenuOpen: mobileMenuOpen,
+    pathname,
+  });
+  const isHomeBottomNavActive = activeMobileBottomNavItem === "home";
+  const isCategoriesBottomNavActive = activeMobileBottomNavItem === "categories";
+  const isRecipesBottomNavActive = activeMobileBottomNavItem === "recipes";
+  const isCartBottomNavActive = activeMobileBottomNavItem === "cart";
   const activeMobileCategory =
     storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
 
@@ -92,6 +183,56 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     setMobileMenuOpen(false);
     setMobileLangOpen(false);
     setActiveMobileCategoryId(null);
+  };
+
+  const closeMobileOverlays = () => {
+    closeMobileMenu();
+    closeCart();
+  };
+
+  const openMobileMenu = () => {
+    closeCart();
+    setMobileLangOpen(false);
+    setActiveMobileCategoryId(null);
+    setMobileMenuOpen(true);
+  };
+
+  const toggleMobileMenuFromBottomNav = () => {
+    if (mobileMenuOpen) {
+      closeMobileMenu();
+      return;
+    }
+
+    openMobileMenu();
+  };
+
+  const handleOpenCart = () => {
+    closeMobileMenu();
+    openCart();
+  };
+
+  const toggleCartFromBottomNav = () => {
+    if (isOpen) {
+      closeCart();
+      return;
+    }
+
+    handleOpenCart();
+  };
+
+  const handleHomeBottomNavClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    if (pathname !== "/") {
+      closeMobileOverlays();
+      return;
+    }
+
+    event.preventDefault();
+    closeMobileOverlays();
+    window.scrollTo({
+      behavior: "smooth",
+      left: 0,
+      top: 0,
+    });
   };
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -197,7 +338,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </button>
             <button
               className="desktop-cart-trigger ml-2 flex cursor-pointer items-center border border-transparent p-2 transition-colors hover:border-browin-dark/10 hover:bg-browin-dark/5"
-              onClick={openCart}
+              onClick={handleOpenCart}
               type="button"
             >
               <div className="relative mr-3">
@@ -220,7 +361,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
 
         <div className="flex items-center justify-between bg-browin-white px-4 py-2.5 md:hidden">
           <div className="flex items-center">
-            <button className="-ml-2 mr-2 p-2 text-browin-dark focus:outline-none" onClick={() => setMobileMenuOpen(true)} type="button">
+            <button className="-ml-2 mr-2 p-2 text-browin-dark focus:outline-none" onClick={openMobileMenu} type="button">
               <List size={26} />
             </button>
             <Link className="flex-shrink-0" href="/">
@@ -236,7 +377,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           </div>
 
           <div className="flex items-center">
-            <button className="relative cursor-pointer p-1 text-browin-dark" onClick={openCart} type="button">
+            <button className="relative cursor-pointer p-1 text-browin-dark" onClick={handleOpenCart} type="button">
               <ShoppingCart size={24} />
               <span className="absolute -right-1 -top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
                 {cartCount}
@@ -246,29 +387,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </div>
 
         <div className="block border-t border-browin-dark/8 bg-browin-white px-4 pb-3 pt-2 md:hidden">
-          <form
-            className="group relative flex min-h-12 items-stretch overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red"
-            onSubmit={handleSearchSubmit}
-          >
-            <div className="relative min-w-0 flex-1">
-              <input
-                className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent pl-11 pr-4 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
-                defaultValue={searchSeed}
-                name="search"
-                placeholder="szukaj produktów"
-              />
-              <MagnifyingGlass
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
-                size={18}
-              />
-            </div>
-            <button
-              className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-5 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
-              type="submit"
-            >
-              Szukaj
-            </button>
-          </form>
+          <MobileSearchForm onSubmit={handleSearchSubmit} searchSeed={searchSeed} />
         </div>
       </header>
 
@@ -294,17 +413,21 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       <StoreFooter />
 
       <div
-        className={`fixed inset-0 z-[55] bg-browin-dark/20 transition-opacity duration-300 md:hidden ${
+        className={`fixed inset-x-0 top-0 z-[55] bg-browin-dark/20 transition-opacity duration-300 md:hidden ${
           mobileMenuOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
         onClick={closeMobileMenu}
+        style={{ bottom: "var(--mobile-bottom-nav-height)" }}
       />
 
       <div
-        className={`fixed inset-0 z-[60] flex flex-col bg-browin-gray transition-transform duration-300 ease-in-out md:hidden ${
-          mobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+        className={`fixed inset-x-0 top-0 z-[60] flex flex-col bg-browin-gray transition-[opacity,transform] duration-200 ease-out md:hidden ${
+          mobileMenuOpen
+            ? "translate-y-0 scale-100 opacity-100"
+            : "pointer-events-none translate-y-1 scale-[0.985] opacity-0"
         }`}
         id="mobile-mega-menu"
+        style={{ bottom: "var(--mobile-bottom-nav-height)" }}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-browin-dark/10 bg-browin-white px-4 py-3 shadow-none">
           <Image
@@ -357,28 +480,11 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </div>
 
         <div className="relative flex-1 overflow-y-auto bg-browin-white pb-8 no-scrollbar">
-          <form
-            className="group relative m-4 mb-2 shrink-0 overflow-hidden border border-browin-dark/12 bg-browin-white transition-colors focus-within:border-browin-red"
+          <MobileSearchForm
+            className="m-4 mb-2 shrink-0"
             onSubmit={handleSearchSubmit}
-          >
-            <input
-              className="search-ui-copy block h-14 w-full rounded-none border-0 bg-transparent pl-11 pr-12 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent focus:ring-0"
-              defaultValue={searchSeed}
-              name="search"
-              placeholder="szukaj produktów"
-            />
-            <MagnifyingGlass
-              className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
-              size={20}
-            />
-            <button
-              className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-browin-dark/35 transition-colors hover:text-browin-red"
-              title="Wyszukaj obrazem"
-              type="button"
-            >
-              <Camera size={20} />
-            </button>
-          </form>
+            searchSeed={searchSeed}
+          />
 
           {!activeMobileCategory ? (
             <Link
@@ -542,21 +648,58 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       </div>
 
       <div className="store-mobile-bottom-nav pb-safe fixed bottom-0 left-0 z-50 flex w-full items-center justify-between border-t border-browin-dark/10 bg-browin-white px-8 py-2 text-browin-dark/60 shadow-none md:hidden">
-        <Link className={`flex w-16 flex-col items-center ${pathname === "/" ? "text-browin-red" : "text-browin-dark/60"}`} href="/">
-          <StoreIcon icon="house" size={26} weight={pathname === "/" ? "fill" : "regular"} />
+        <Link
+          aria-current={isHomeBottomNavActive ? "page" : undefined}
+          className={mobileBottomNavItemClass}
+          href="/"
+          onClick={handleHomeBottomNavClick}
+        >
+          <StoreIcon
+            className={getMobileBottomNavIconClass(isHomeBottomNavActive)}
+            icon="house"
+            size={26}
+            weight={isHomeBottomNavActive ? "fill" : "regular"}
+          />
           <span className="text-[9px] font-bold uppercase">Główna</span>
         </Link>
-        <button className="flex w-16 flex-col items-center transition-colors hover:text-browin-red" onClick={() => setMobileMenuOpen(true)} type="button">
-          <List size={26} />
+        <button
+          aria-pressed={isCategoriesBottomNavActive}
+          className={mobileBottomNavItemClass}
+          onClick={toggleMobileMenuFromBottomNav}
+          type="button"
+        >
+          <List
+            className={getMobileBottomNavIconClass(isCategoriesBottomNavActive)}
+            size={26}
+            weight={isCategoriesBottomNavActive ? "bold" : "regular"}
+          />
           <span className="text-[9px] font-bold uppercase">Kategorie</span>
         </button>
-        <Link className="flex w-16 flex-col items-center transition-colors hover:text-browin-red" href="/produkty?search=zestaw">
-          <BookOpen size={26} />
+        <Link
+          aria-current={isRecipesBottomNavActive ? "page" : undefined}
+          className={mobileBottomNavItemClass}
+          href="/produkty?search=zestaw"
+          onClick={closeMobileOverlays}
+        >
+          <BookOpen
+            className={getMobileBottomNavIconClass(isRecipesBottomNavActive)}
+            size={26}
+            weight={isRecipesBottomNavActive ? "fill" : "regular"}
+          />
           <span className="text-[9px] font-bold uppercase">Przepisy</span>
         </Link>
-        <button className="relative flex w-16 flex-col items-center transition-colors hover:text-browin-red focus:outline-none" onClick={openCart} type="button">
-          <ShoppingCart className="text-browin-dark" size={26} />
-          <span className="text-[9px] font-bold uppercase text-browin-dark">Koszyk</span>
+        <button
+          aria-pressed={isCartBottomNavActive}
+          className={`${mobileBottomNavItemClass} relative focus:outline-none`}
+          onClick={toggleCartFromBottomNav}
+          type="button"
+        >
+          <ShoppingCart
+            className={getMobileBottomNavIconClass(isCartBottomNavActive)}
+            size={26}
+            weight={isCartBottomNavActive ? "fill" : "regular"}
+          />
+          <span className="text-[9px] font-bold uppercase">Koszyk</span>
           <span className="absolute right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
             {cartCount}
           </span>

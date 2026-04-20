@@ -5,6 +5,7 @@ import {
   ArrowRight,
   CaretDown,
   CaretUp,
+  ChatCircleText,
   Minus,
   Plus,
   ShoppingCart,
@@ -549,18 +550,28 @@ function ProductQuestionsPrompt() {
       className="group flex w-full items-center justify-between gap-4 bg-browin-red px-5 py-4 text-left text-browin-white transition-colors hover:bg-browin-dark md:px-6 md:py-5"
       type="button"
     >
-      <div className="min-w-0">
-        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-white/72">
-          Kontakt produktowy
-        </p>
-        <p className="mt-1 text-lg font-extrabold uppercase tracking-tight text-browin-white md:text-xl">
-          Masz pytania? Zapytaj o ten produkt
-        </p>
+      <div className="flex min-w-0 items-center gap-4">
+        <span className="hidden h-11 w-11 shrink-0 items-center justify-center text-browin-white lg:flex">
+          <ChatCircleText size={24} weight="fill" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-white/72">
+            Masz pytania?
+          </p>
+          <p className="mt-1 text-lg font-extrabold uppercase tracking-tight text-browin-white md:text-xl">
+            Zapytaj o ten produkt
+          </p>
+        </div>
       </div>
-      <ArrowRight
-        className="shrink-0 transition-transform duration-200 group-hover:translate-x-1"
-        size={18}
-      />
+      <div className="flex shrink-0 items-center gap-2 text-browin-white/78 transition-colors group-hover:text-browin-white">
+        <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] sm:inline">
+          Czat
+        </span>
+        <ArrowRight
+          className="transition-transform duration-200 group-hover:translate-x-1"
+          size={18}
+        />
+      </div>
     </button>
   );
 }
@@ -1063,6 +1074,17 @@ export function ProductDetail({
   const handleAddToCart = () => addItem(product.id, selectedVariant.id, quantity);
   const safeDesktopStageWidth = Math.max(desktopStageWidth, 1);
   const safeMobileGalleryWidth = Math.max(mobileGalleryWidth, 1);
+
+  useEffect(() => {
+    if (window.innerWidth >= 768) {
+      return;
+    }
+
+    window.scrollTo({ left: 0, top: 0, behavior: "auto" });
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ left: 0, top: 0, behavior: "auto" });
+    });
+  }, [product.id]);
 
   const applyQuantity = (nextValue: number) => {
     const safeQuantity = Math.max(1, Math.floor(nextValue));
@@ -1873,6 +1895,8 @@ export function ProductDetail({
                 </div>
               </div>
 
+              <ProductCodes ean={product.ean} symbol={product.symbol} />
+
               <button
                 className="flex w-full items-center justify-between gap-3 border border-browin-dark/10 bg-browin-white px-3 py-2.5 text-left transition-colors hover:border-browin-red"
                 onClick={scrollToReviews}
@@ -1891,8 +1915,6 @@ export function ProductDetail({
                   </p>
                 </div>
               </button>
-
-              <ProductCodes ean={product.ean} symbol={product.symbol} />
             </div>
 
             <MobileSection title="O produkcie">
@@ -1919,11 +1941,11 @@ export function ProductDetail({
               </MobileSection>
             ) : null}
 
-            <ProductQuestionsPrompt />
-
             <MobileSection title="Opinie">
               <ReviewsSection product={product} sectionId="product-reviews-mobile" />
             </MobileSection>
+
+            <ProductQuestionsPrompt />
           </div>
 
           <div className="product-detail-grid product-detail-fold hidden items-start gap-8 lg:grid lg:grid-cols-[minmax(0,1.02fr)_minmax(380px,0.98fr)] xl:grid-cols-[minmax(0,1.05fr)_minmax(360px,0.95fr)] xl:gap-10">
@@ -2373,24 +2395,22 @@ export function ProductDetail({
 
       {isMobileStickyVisible ? (
         <div
-          className="fixed inset-x-0 z-[45] border-t border-browin-dark/10 bg-browin-white px-4 py-2 md:hidden"
+          className="fixed inset-x-0 z-[45] border-t border-browin-dark/10 bg-browin-white pl-4 md:hidden"
           style={{ bottom: "var(--mobile-bottom-nav-height)" }}
         >
-          <div className="mx-auto grid max-w-[32rem] grid-cols-[minmax(0,1fr)_minmax(0,1.55fr)] items-center gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-                {selectedVariant.label}
-              </p>
-              <p className="mt-1 text-lg font-extrabold tracking-tight text-browin-dark">
+          <div className="mx-auto grid max-w-[32rem] grid-cols-[minmax(0,0.86fr)_minmax(0,1.74fr)] items-stretch">
+            <div className="flex min-h-14 min-w-0 items-center pr-3">
+              <p className="text-xl font-extrabold tracking-tight text-browin-dark">
                 {formatCurrency(selectedVariant.price)}
               </p>
             </div>
 
             <button
-              className="checkout-cta inline-flex h-11 w-full items-center justify-center bg-browin-red px-3 text-[0.74rem] font-extrabold uppercase tracking-[0.08em] whitespace-nowrap text-browin-white transition-colors hover:bg-browin-dark"
+              className="checkout-cta -mt-px inline-flex min-h-14 w-full items-center justify-center gap-1.5 self-stretch bg-browin-red px-3 text-[0.62rem] font-extrabold uppercase leading-none tracking-[0.04em] whitespace-nowrap text-browin-white transition-colors hover:bg-browin-dark"
               onClick={handleAddToCart}
               type="button"
             >
+              <ShoppingCart className="shrink-0" size={16} />
               Dodaj do koszyka
             </button>
           </div>

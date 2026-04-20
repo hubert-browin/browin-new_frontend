@@ -28,7 +28,9 @@
     var(--desktop-shell-inner-width)
   );
   --desktop-mega-panel-width: calc(var(--desktop-shell-total-width) - var(--desktop-categories-width) + 1px);
-  --mobile-bottom-nav-height: 3.25rem;
+  --mobile-bottom-nav-height: calc(
+    3.25rem + max(0rem, env(safe-area-inset-bottom) - 0.5rem)
+  );
   --mobile-pdp-bar-height: 4.75rem;
 }
 
@@ -1136,7 +1138,7 @@ button.search-ui-copy {
   min-height: 0;
 }
 
-.product-detail-page > div > div {
+.product-detail-shell {
   padding-top: clamp(0.9rem, 0.78rem + 0.24vw, 1.1rem) !important;
 }
 
