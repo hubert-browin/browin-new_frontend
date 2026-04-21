@@ -695,7 +695,7 @@ const buildVariant = (rawProduct: BrowinJsonProduct, compareAtPrice?: number): P
 
   return {
     id: `${rawProduct.id}-default`,
-    label: "Oferta podstawowa",
+    label: "",
     sku: rawProduct.id,
     price: Number(rawProduct.price.toFixed(2)),
     ...(compareAtPrice ? { compareAtPrice: Number(compareAtPrice.toFixed(2)) } : {}),

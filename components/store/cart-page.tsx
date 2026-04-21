@@ -102,9 +102,11 @@ export function CartPage({ recommendations }: CartPageProps) {
                             <p className="mt-1 text-sm leading-relaxed text-browin-dark/62">
                               {product.subtitle}
                             </p>
-                            <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
-                              {variant.label}
-                            </p>
+                            {variant.label.trim() ? (
+                              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
+                                {variant.label}
+                              </p>
+                            ) : null}
                           </div>
 
                           <button

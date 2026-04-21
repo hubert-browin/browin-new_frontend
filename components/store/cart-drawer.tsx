@@ -98,9 +98,11 @@ export function CartDrawer() {
                       >
                         {product.title}
                       </Link>
-                      <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-                        {variant.label}
-                      </p>
+                      {variant.label.trim() ? (
+                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                          {variant.label}
+                        </p>
+                      ) : null}
                     </div>
 
                     <button
@@ -140,7 +142,7 @@ export function CartDrawer() {
               </article>
             ))
           ) : (
-            <div className="border border-dashed border-browin-dark/15 bg-browin-gray p-6 text-center">
+            <div className="border border-dashed border-browin-dark/15 p-6 text-center">
               <div className="mx-auto flex h-12 w-12 items-center justify-center bg-browin-dark/5 text-browin-red">
                 <ShoppingCart size={22} />
               </div>
@@ -177,7 +179,7 @@ export function CartDrawer() {
             <ArrowRight size={18} />
           </Link>
           <Link
-            className="mt-3 block text-center text-[12px] font-bold uppercase tracking-[0.16em] text-browin-dark/65 transition-colors hover:text-browin-red"
+            className="mt-3 hidden text-center text-[12px] font-bold uppercase tracking-[0.16em] text-browin-dark/65 transition-colors hover:text-browin-red md:block"
             href="/koszyk"
             onClick={closeCart}
           >

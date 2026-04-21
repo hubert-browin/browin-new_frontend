@@ -53,6 +53,29 @@ const topBarLinks = [
   { label: "Blog", href: "/produkty?search=poradnik" },
 ] as const;
 
+const mobileMenuQuickLinks = [
+  {
+    href: "/produkty?search=termometr",
+    icon: Calculator,
+    label: "Kalkulatory",
+  },
+  {
+    href: "/produkty?search=starter",
+    icon: Sliders,
+    label: "Konfigurator",
+  },
+  {
+    href: "/produkty?search=prezent",
+    icon: Gift,
+    label: "Prezenty",
+  },
+  {
+    href: "/checkout",
+    icon: Handshake,
+    label: "Usługi",
+  },
+] as const;
+
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
 
@@ -359,12 +382,12 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           </div>
         </div>
 
-        <div className="flex items-center justify-between bg-browin-white px-4 py-2.5 md:hidden">
-          <div className="flex items-center">
-            <button className="-ml-2 mr-2 p-2 text-browin-dark focus:outline-none" onClick={openMobileMenu} type="button">
+        <div className="flex items-center justify-between bg-browin-white px-3 py-2.5 md:hidden">
+          <div className="flex min-w-0 items-center">
+            <button className="-ml-1 mr-1 p-2 text-browin-dark focus:outline-none" onClick={openMobileMenu} type="button">
               <List size={26} />
             </button>
-            <Link className="flex-shrink-0" href="/">
+            <Link className="min-w-0 flex-shrink" href="/">
               <Image
                 alt="BROWIN"
                 className="brand-logo-mobile object-contain"
@@ -376,10 +399,32 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </Link>
           </div>
 
-          <div className="flex items-center">
-            <button className="relative cursor-pointer p-1 text-browin-dark" onClick={handleOpenCart} type="button">
+          <div className="flex shrink-0 items-center gap-4">
+            <button
+              aria-label="Logowanie"
+              className="flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
+              type="button"
+            >
+              <User size={23} />
+            </button>
+            <button
+              aria-label="Ulubione"
+              className="relative flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
+              type="button"
+            >
+              <Heart size={23} />
+              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-bold text-browin-white">
+                {favoritesCount}
+              </span>
+            </button>
+            <button
+              aria-label="Koszyk"
+              className="relative flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
+              onClick={handleOpenCart}
+              type="button"
+            >
               <ShoppingCart size={24} />
-              <span className="absolute -right-1 -top-1 flex h-[16px] w-[16px] items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-bold text-browin-white">
                 {cartCount}
               </span>
             </button>
@@ -480,26 +525,30 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </div>
 
         <div className="relative flex-1 overflow-y-auto bg-browin-white pb-8 no-scrollbar">
-          <MobileSearchForm
-            className="m-4 mb-2 shrink-0"
-            onSubmit={handleSearchSubmit}
-            searchSeed={searchSeed}
-          />
-
           {!activeMobileCategory ? (
-            <Link
-              className="mb-2 flex items-center justify-between border-y border-browin-dark/5 bg-browin-dark/5 px-4 py-3 transition-colors hover:bg-browin-dark/10 shrink-0"
-              href="/produkty?deal=true"
-              onClick={closeMobileMenu}
-            >
-              <div className="flex items-center space-x-3">
-                <Tag className="text-browin-red" size={20} />
-                <span className="text-[15px] font-bold tracking-wide text-browin-red">
-                  Promocje Outlet do -30%
-                </span>
+            <div className="border-b border-browin-border bg-browin-white py-2.5">
+              <div className="grid grid-cols-4 gap-2 px-4">
+                {mobileMenuQuickLinks.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      className="group flex min-w-0 flex-col items-center gap-1.5"
+                      href={item.href}
+                      key={item.label}
+                      onClick={closeMobileMenu}
+                    >
+                      <span className="flex h-10 w-10 items-center justify-center rounded-none border border-browin-dark/10 bg-browin-dark/5 text-browin-red transition-colors group-hover:bg-browin-red group-hover:text-browin-white">
+                        <Icon size={20} weight="fill" />
+                      </span>
+                      <span className="text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-browin-dark">
+                        {item.label}
+                      </span>
+                    </Link>
+                  );
+                })}
               </div>
-              <ArrowRight className="text-browin-dark/40" size={16} />
-            </Link>
+            </div>
           ) : null}
 
           {activeMobileCategory ? (
@@ -554,6 +603,22 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </div>
           ) : (
             <div className="divide-y divide-browin-dark/5 px-4 shrink-0">
+              <Link
+                className="group flex w-full items-center justify-between py-4 transition-all focus:outline-none"
+                href="/produkty?deal=true"
+                onClick={closeMobileMenu}
+              >
+                <div className="flex items-center space-x-4">
+                  <Tag className="text-browin-red" size={24} />
+                  <span className="text-[15px] font-bold tracking-wide text-browin-red">
+                    Promocje
+                  </span>
+                </div>
+                <CaretRight
+                  className="text-browin-red/50 transition-transform duration-300 group-hover:translate-x-0.5"
+                  size={16}
+                />
+              </Link>
               {storeCategories.map((category) => (
                 <button
                   className="group flex w-full items-center justify-between py-4 transition-all focus:outline-none"
@@ -580,70 +645,6 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </div>
           )}
 
-          {!activeMobileCategory ? (
-            <>
-              <div className="my-4 h-2 w-full border-y border-browin-dark/5 bg-browin-gray shrink-0" />
-
-              <div className="px-4 shrink-0">
-                <h3 className="mb-4 ml-1 text-[10px] font-bold uppercase tracking-wider text-browin-dark/50">
-                  Narzędzia i wsparcie
-                </h3>
-
-                <div className="mb-6 grid grid-cols-2 gap-3">
-                  <Link
-                    className="flex min-h-[6.75rem] flex-col items-center justify-center gap-3 rounded-none border border-browin-dark/10 bg-browin-dark/5 p-4 text-center transition-colors hover:border-browin-red"
-                    href="/produkty?search=termometr"
-                    onClick={closeMobileMenu}
-                  >
-                    <Calculator className="text-browin-dark" size={24} />
-                    <span className="text-[11px] font-bold leading-tight text-browin-dark">
-                      Kalkulatory
-                    </span>
-                  </Link>
-                  <Link
-                    className="flex min-h-[6.75rem] flex-col items-center justify-center gap-3 rounded-none border border-browin-red bg-browin-red p-4 text-center text-browin-white shadow-sharp transition-colors hover:bg-browin-red/90"
-                    href="/produkty?search=zestaw"
-                    onClick={closeMobileMenu}
-                  >
-                    <BookOpen className="text-browin-white" size={24} weight="fill" />
-                    <span className="text-[11px] font-extrabold leading-tight text-browin-white">
-                      Przepiśnik
-                    </span>
-                  </Link>
-                  <Link
-                    className="flex min-h-[6.75rem] flex-col items-center justify-center gap-3 rounded-none border border-browin-dark/10 bg-browin-dark/5 p-4 text-center transition-colors hover:border-browin-red"
-                    href="/produkty?search=starter"
-                    onClick={closeMobileMenu}
-                  >
-                    <Sliders className="text-browin-dark" size={24} />
-                    <span className="text-[11px] font-bold leading-tight text-browin-dark">
-                      Konfigurator
-                    </span>
-                  </Link>
-                  <Link
-                    className="flex min-h-[6.75rem] flex-col items-center justify-center gap-3 rounded-none border border-browin-dark/10 bg-browin-dark/5 p-4 text-center transition-colors hover:border-browin-red"
-                    href="/produkty?search=prezent"
-                    onClick={closeMobileMenu}
-                  >
-                    <Gift className="text-browin-dark" size={24} />
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-browin-dark">
-                      Karty podarunkowe
-                    </span>
-                  </Link>
-                  <Link
-                    className="col-span-2 flex min-h-[6.75rem] flex-col items-center justify-center gap-3 rounded-none border border-browin-dark/10 bg-browin-dark/5 p-4 text-center transition-colors hover:border-browin-red"
-                    href="/checkout"
-                    onClick={closeMobileMenu}
-                  >
-                    <Handshake className="text-browin-dark" size={24} />
-                    <span className="text-[11px] font-bold uppercase tracking-wide text-browin-dark">
-                      Nasze usługi
-                    </span>
-                  </Link>
-                </div>
-              </div>
-            </>
-          ) : null}
         </div>
       </div>
 

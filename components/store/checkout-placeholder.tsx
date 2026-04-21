@@ -84,7 +84,8 @@ export function CheckoutPlaceholder() {
                   <div className="border border-browin-dark/10 bg-browin-gray px-4 py-4" key={`${product.id}-${variant.id}`}>
                     <p className="text-sm font-bold text-browin-dark">{product.title}</p>
                     <p className="mt-1 text-xs uppercase tracking-[0.16em] text-browin-dark/45">
-                      {variant.label} • {quantity} szt.
+                      {variant.label.trim() ? `${variant.label} • ` : ""}
+                      {quantity} szt.
                     </p>
                     <p className="mt-2 text-sm font-extrabold text-browin-dark">
                       {formatCurrency(variant.price * quantity)}

@@ -131,9 +131,9 @@ textarea::placeholder {
 }
 
 .brand-logo-mobile {
-  height: 2.2rem !important;
+  height: 2rem !important;
   width: auto;
-  max-width: 10.125rem;
+  max-width: 8.25rem;
 }
 
 .brand-logo-menu {
