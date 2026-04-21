@@ -91,11 +91,6 @@ const dockUtilityLinks = [
     label: "Przepiśnik",
   },
   ...mobileMenuQuickLinks,
-  {
-    href: "/produkty?deal=true",
-    icon: Tag,
-    label: "Promocje",
-  },
 ] as const;
 
 const buildCategoryHref = (slug: string, query?: string) =>
@@ -549,14 +544,14 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           ref={dockRef}
         >
           <div className="flex h-full flex-col overflow-hidden">
-            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-2">
               <nav aria-label="Kategorie sklepu" className="divide-y divide-browin-dark/5">
                 {storeCategories.map((category) => {
                   const isActive = highlightedDockCategory?.id === category.id;
 
                   return (
                     <button
-                      className="group/category flex min-h-14 w-full items-center justify-between rounded-md px-1 py-2 text-left text-browin-dark transition-colors hover:text-browin-red"
+                      className="group/category flex min-h-14 w-full items-center justify-between rounded-md px-1 py-2 text-left text-browin-dark transition-colors hover:text-browin-red [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:min-h-[3.25rem] [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5"
                       key={category.id}
                       onClick={() => {
                         navigateAfterPaint(`/kategoria/${category.slug}`);
@@ -568,19 +563,20 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                     >
                       <span className="flex min-w-0 items-center gap-3">
                         <span
-                          className={`flex h-12 w-12 shrink-0 items-center justify-center border transition-colors ${
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center border transition-colors [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:h-11 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:w-11 ${
                             isActive
                               ? "border-browin-red/20 bg-browin-red/8 text-browin-red"
                               : "border-browin-dark/10 bg-browin-white text-browin-dark group-hover/category:bg-browin-dark/5 group-hover/category:text-browin-red"
                           }`}
                         >
                           <StoreIcon
+                            className="[@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:h-[22px] [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:w-[22px]"
                             icon={category.icon}
                             size={23}
                             weight={isActive ? "fill" : "regular"}
                           />
                         </span>
-                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-bold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100">
+                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-bold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[13px]">
                           {category.label}
                         </span>
                       </span>
@@ -596,33 +592,51 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               </nav>
             </div>
 
-            <div className="pointer-events-none shrink-0 border-t border-browin-dark/8 bg-browin-white px-3 py-3 opacity-0 transition-opacity duration-200 group-hover/dock:pointer-events-auto group-hover/dock:opacity-100">
-              <div className="grid grid-cols-1 gap-2">
-                {dockUtilityLinks.map((item) => {
-                  const Icon = item.icon;
-                  const isRecipeLink = item.label === "Przepiśnik";
+            <div className="pointer-events-none shrink-0 border-t border-browin-dark/8 bg-browin-white px-3 py-3 opacity-0 transition-opacity duration-200 group-hover/dock:pointer-events-auto group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-2">
+              <div className="space-y-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:space-y-1.5">
+                {dockUtilityLinks
+                  .filter((item) => item.label === "Przepiśnik")
+                  .map((item) => {
+                    const Icon = item.icon;
 
-                  return (
-                    <Link
-                      className={`group/link flex min-w-0 items-center gap-2 rounded-md border px-2.5 py-2 text-[11px] font-bold transition-colors ${
-                        isRecipeLink
-                          ? "border-browin-red bg-browin-red text-browin-white hover:bg-browin-red/90"
-                          : "border-browin-dark/8 bg-browin-white text-browin-dark hover:border-browin-red/25 hover:text-browin-red"
-                      }`}
-                      href={item.href}
-                      key={item.label}
-                    >
-                      <Icon
-                        className={`shrink-0 transition-transform group-hover/link:scale-110 ${
-                          isRecipeLink ? "text-browin-white" : "text-browin-red"
-                        }`}
-                        size={16}
-                        weight="fill"
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </Link>
-                  );
-                })}
+                    return (
+                      <Link
+                        className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-red bg-browin-red px-2.5 py-2 text-[11px] font-bold text-browin-white transition-colors hover:bg-browin-red/90 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5"
+                        href={item.href}
+                        key={item.label}
+                      >
+                        <Icon
+                          className="shrink-0 text-browin-white transition-transform group-hover/link:scale-110"
+                          size={16}
+                          weight="fill"
+                        />
+                        <span className="truncate">{item.label}</span>
+                      </Link>
+                    );
+                  })}
+
+                <div className="grid grid-cols-1 gap-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:grid-cols-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:gap-1.5">
+                  {dockUtilityLinks
+                    .filter((item) => item.label !== "Przepiśnik")
+                    .map((item) => {
+                      const Icon = item.icon;
+
+                      return (
+                        <Link
+                          className="group/link flex min-w-0 items-center justify-start gap-2 rounded-md border border-browin-dark/8 bg-browin-white px-2.5 py-2 text-[11px] font-bold text-browin-dark transition-colors hover:border-browin-red/25 hover:bg-browin-red/5 hover:text-browin-red [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:min-h-8 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:gap-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:px-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[10px] [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:leading-none"
+                          href={item.href}
+                          key={item.label}
+                        >
+                          <Icon
+                            className="shrink-0 text-browin-red transition-transform group-hover/link:scale-110 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:h-3.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:w-3.5"
+                            size={16}
+                            weight="fill"
+                          />
+                          <span className="truncate">{item.label}</span>
+                        </Link>
+                      );
+                    })}
+                </div>
               </div>
             </div>
           </div>
@@ -648,7 +662,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       <div className="divide-y divide-browin-dark/5 border-b border-browin-dark/5">
                         {section.topics.slice(0, 6).map((topic) => (
                           <Link
-                            className="block py-2.5 text-[13px] font-bold text-browin-dark/75 transition-colors hover:text-browin-red"
+                            className="-mx-2 block rounded-md px-2 py-2.5 text-[13px] font-bold text-browin-dark/75 transition-colors hover:bg-browin-red/8 hover:text-browin-red"
                             href={buildCategoryHref(activeDockCategory.slug, topic.query)}
                             key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
                             onClick={() => setActiveDockCategoryId(null)}
@@ -667,7 +681,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       ) : null}
 
       <div className={contentShellClass}>
-      <div className="desktop-topbar hidden bg-browin-dark py-2 text-[11px] text-browin-white md:block">
+      <div className="desktop-topbar hidden bg-browin-red py-2 text-[11px] text-browin-white md:block">
         <div className="container mx-auto flex items-center justify-between px-4">
           <div className="flex flex-wrap items-center gap-6 font-medium">
             {trustBadges.map((badge) => (
@@ -829,7 +843,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       </header>
 
       {showDesktopNav ? (
-        <div className="sticky top-20 z-40 hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block">
+        <div className="sticky top-20 z-40 hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]">
           <div className="container relative mx-auto flex h-12 items-center px-4" ref={breadcrumbRef}>
             <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
               <button
@@ -844,15 +858,36 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                   weight="fill"
                 />
                 <span>Katalog produktów</span>
+                {!activeBreadcrumbCategory ? (
+                  <Plus
+                    className="pointer-events-none shrink-0 text-browin-dark/35"
+                    size={12}
+                    weight="bold"
+                  />
+                ) : null}
               </button>
 
               {activeBreadcrumbCategory ? (
                 <>
                   <CaretRight className="shrink-0 text-browin-dark/28" size={14} />
                   <button
-                    aria-expanded={breadcrumbMenuOpen}
+                    aria-expanded={
+                      !activeBreadcrumbTopic &&
+                      breadcrumbMenuOpen &&
+                      breadcrumbMenuMode === "topics"
+                    }
                     className="inline-flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
-                    onClick={toggleBreadcrumbTopicsMenu}
+                    onClick={() => {
+                      if (activeBreadcrumbTopic) {
+                        setBreadcrumbCategoryId(activeBreadcrumbCategory.id);
+                        setBreadcrumbTopic(null);
+                        setBreadcrumbMenuOpen(false);
+                        navigateAfterPaint(`/kategoria/${activeBreadcrumbCategory.slug}`);
+                        return;
+                      }
+
+                      toggleBreadcrumbTopicsMenu();
+                    }}
                     type="button"
                   >
                     <StoreIcon
@@ -862,11 +897,13 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       weight="fill"
                     />
                     <span className="truncate">{activeBreadcrumbCategory.label}</span>
-                    <Plus
-                      className="pointer-events-none shrink-0 text-browin-dark/35"
-                      size={12}
-                      weight="bold"
-                    />
+                    {!activeBreadcrumbTopic ? (
+                      <Plus
+                        className="pointer-events-none shrink-0 text-browin-dark/35"
+                        size={12}
+                        weight="bold"
+                      />
+                    ) : null}
                   </button>
                 </>
               ) : null}
@@ -884,7 +921,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       {activeBreadcrumbTopic.label}
                     </span>
                     <ArrowsLeftRight
-                      className="pointer-events-none shrink-0 text-browin-dark/35"
+                      className="pointer-events-none shrink-0 text-browin-red"
                       size={13}
                       weight="bold"
                     />

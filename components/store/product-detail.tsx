@@ -13,10 +13,13 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
+  type KeyboardEvent as ReactKeyboardEvent,
   type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
@@ -608,6 +611,7 @@ function BuyboxRecommendationRail({
   products: Product[];
 }) {
   const { addItem } = useCart();
+  const router = useRouter();
   const railRef = useRef<HTMLDivElement | null>(null);
   const pointerIdRef = useRef<number | null>(null);
   const pointerStartXRef = useRef(0);
@@ -690,6 +694,43 @@ function BuyboxRecommendationRail({
     event.stopPropagation();
   };
 
+  const openRecommendationProduct = (slug: string) => {
+    router.push(`/produkt/${slug}`);
+  };
+
+  const handleRecommendationClick = (
+    event: ReactMouseEvent<HTMLElement>,
+    slug: string,
+  ) => {
+    if (draggedRef.current) {
+      event.preventDefault();
+      event.stopPropagation();
+      return;
+    }
+
+    if (event.target instanceof HTMLElement && event.target.closest("button")) {
+      return;
+    }
+
+    openRecommendationProduct(slug);
+  };
+
+  const handleRecommendationKeyDown = (
+    event: ReactKeyboardEvent<HTMLElement>,
+    slug: string,
+  ) => {
+    if (event.target instanceof HTMLElement && event.target.closest("button")) {
+      return;
+    }
+
+    if (event.key !== "Enter" && event.key !== " ") {
+      return;
+    }
+
+    event.preventDefault();
+    openRecommendationProduct(slug);
+  };
+
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     const rail = railRef.current;
 
@@ -731,14 +772,15 @@ function BuyboxRecommendationRail({
 
           return (
             <article
-              className="group flex w-[8.75rem] shrink-0 snap-start flex-col border border-browin-dark/10 bg-browin-white transition-colors hover:border-browin-red"
+              aria-label={`Zobacz produkt ${item.title}`}
+              className="group relative flex w-[8.75rem] shrink-0 snap-start cursor-pointer flex-col border border-browin-dark/10 bg-browin-white transition-colors hover:border-browin-red focus-visible:border-browin-red focus-visible:outline-none"
               key={`buybox-rail-${item.id}`}
+              onClick={(event) => handleRecommendationClick(event, item.slug)}
+              onKeyDown={(event) => handleRecommendationKeyDown(event, item.slug)}
+              role="link"
+              tabIndex={0}
             >
-              <Link
-                className="block"
-                href={`/produkt/${item.slug}`}
-                onClickCapture={handleRailClickCapture}
-              >
+              <div className="flex min-h-full flex-1 flex-col">
                 <div className="relative h-[5rem] overflow-hidden bg-browin-white">
                   <Image
                     alt={item.title}
@@ -748,17 +790,11 @@ function BuyboxRecommendationRail({
                     src={item.images[0]}
                   />
                 </div>
-              </Link>
-              <div className="flex min-h-[5rem] flex-1 flex-col px-2 py-2">
-                <Link
-                  className="line-clamp-2 text-[11px] font-bold leading-[1.22] text-browin-dark transition-colors hover:text-browin-red"
-                  href={`/produkt/${item.slug}`}
-                  onClickCapture={handleRailClickCapture}
-                >
-                  {item.title}
-                </Link>
-                <div className="mt-auto flex items-end justify-between gap-1.5 pt-2">
-                  <div className="min-w-0">
+                <div className="flex min-h-[5rem] flex-1 flex-col px-2 py-2">
+                  <span className="line-clamp-2 text-[11px] font-bold leading-[1.22] text-browin-dark transition-colors group-hover:text-browin-red">
+                    {item.title}
+                  </span>
+                  <div className="mt-auto min-w-0 pr-8 pt-2">
                     {itemVariant.compareAtPrice ? (
                       <p className="text-[8px] font-semibold leading-none text-browin-dark/28 line-through">
                         {formatCurrency(itemVariant.compareAtPrice)}
@@ -768,20 +804,22 @@ function BuyboxRecommendationRail({
                       {formatCurrency(itemVariant.price)}
                     </p>
                   </div>
-                  <button
-                    aria-label={`Dodaj ${item.title} do koszyka`}
-                    className="flex h-7 w-7 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray/70 text-browin-dark transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
-                    onClick={(event) => {
-                      event.preventDefault();
-                      event.stopPropagation();
-                      addItem(item.id, itemVariant.id);
-                    }}
-                    type="button"
-                  >
-                    <Plus size={14} weight="bold" />
-                  </button>
                 </div>
               </div>
+
+              <button
+                aria-label={`Dodaj ${item.title} do koszyka`}
+                className="absolute bottom-2 right-2 z-10 flex h-7 w-7 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray/70 text-browin-dark transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  addItem(item.id, itemVariant.id);
+                }}
+                onPointerDown={(event) => event.stopPropagation()}
+                type="button"
+              >
+                <Plus className="pointer-events-none" size={14} weight="bold" />
+              </button>
             </article>
           );
         })}
@@ -1077,15 +1115,18 @@ export function ProductDetail({
   const safeDesktopStageWidth = Math.max(desktopStageWidth, 1);
   const safeMobileGalleryWidth = Math.max(mobileGalleryWidth, 1);
 
-  useEffect(() => {
-    if (window.innerWidth >= 768) {
-      return;
-    }
-
+  useLayoutEffect(() => {
     window.scrollTo({ left: 0, top: 0, behavior: "auto" });
-    window.requestAnimationFrame(() => {
+    document.documentElement.scrollTop = 0;
+    document.body.scrollTop = 0;
+
+    const scrollFrame = window.requestAnimationFrame(() => {
       window.scrollTo({ left: 0, top: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
     });
+
+    return () => window.cancelAnimationFrame(scrollFrame);
   }, [product.id]);
 
   const applyQuantity = (nextValue: number) => {
@@ -1658,24 +1699,6 @@ export function ProductDetail({
     <section className="product-detail-page bg-browin-gray pt-0 pb-3 md:pb-16 md:pt-0">
       <div className="w-full px-0 md:container md:mx-auto md:px-4">
         <div className="product-detail-shell border-y border-browin-dark/10 bg-browin-white px-4 py-4 shadow-sm md:border md:px-6 md:py-6 xl:px-8 xl:py-7">
-          <div className="mb-4 hidden md:block">
-            <nav className="min-w-0 flex flex-wrap items-center gap-2 text-sm text-browin-dark/55">
-              <Link className="transition-colors hover:text-browin-red" href="/">
-                Strona główna
-              </Link>
-              <span>/</span>
-              <Link className="transition-colors hover:text-browin-red" href="/produkty">
-                Produkty
-              </Link>
-              <span>/</span>
-              <Link className="transition-colors hover:text-browin-red" href={categoryHref}>
-                {category?.label ?? "Kategoria"}
-              </Link>
-              <span>/</span>
-              <span className="text-browin-dark">{product.title}</span>
-            </nav>
-          </div>
-
           <Link
             className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/55 transition-colors hover:text-browin-red md:hidden"
             href={categoryHref}
