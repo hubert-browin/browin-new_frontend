@@ -349,7 +349,7 @@ export function CatalogView({
   }, [desktopFiltersOpen, desktopSortOpen]);
 
   return (
-    <section className="bg-browin-gray py-6 md:py-16">
+    <section className="bg-browin-gray pb-6 pt-0 md:pb-16 md:pt-0">
       <div className="container mx-auto px-4">
         <div className="border-b border-browin-dark/10 pb-4">
           <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">

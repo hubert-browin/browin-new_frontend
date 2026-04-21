@@ -31,7 +31,12 @@ import { StoreFooter } from "@/components/store/store-footer";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
-import { trustBadges, type CategoryId, type StoreCategory } from "@/data/store";
+import {
+  trustBadges,
+  type CategoryId,
+  type CategoryTopic,
+  type StoreCategory,
+} from "@/data/store";
 import { formatCurrency } from "@/lib/catalog";
 
 type StoreChromeProps = {
@@ -46,6 +51,14 @@ type MobileSearchFormProps = {
 };
 
 type MobileBottomNavItem = "home" | "categories" | "recipes" | "cart" | null;
+
+type NavVariant = "island" | "breadcrumbs" | "dock";
+
+const navVariantOptions: Array<{ label: string; value: NavVariant }> = [
+  { label: "Island", value: "island" },
+  { label: "Breadcrumbs", value: "breadcrumbs" },
+  { label: "Dock", value: "dock" },
+];
 
 const topBarLinks = [
   { label: "Dostawa i płatność", href: "/checkout" },
@@ -73,6 +86,20 @@ const mobileMenuQuickLinks = [
     href: "/checkout",
     icon: Handshake,
     label: "Usługi",
+  },
+] as const;
+
+const dockUtilityLinks = [
+  ...mobileMenuQuickLinks,
+  {
+    href: "/produkty?deal=true",
+    icon: Tag,
+    label: "Promocje",
+  },
+  {
+    href: "/produkty?search=zestaw",
+    icon: BookOpen,
+    label: "Przepiśnik",
   },
 ] as const;
 
@@ -180,8 +207,50 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [activeMobileCategoryId, setActiveMobileCategoryId] =
     useState<CategoryId | null>(null);
+  const [navVariant, setNavVariant] = useState<NavVariant>("island");
+  const [breadcrumbCategoryId, setBreadcrumbCategoryId] = useState<CategoryId | null>(
+    null,
+  );
+  const [breadcrumbTopic, setBreadcrumbTopic] = useState<CategoryTopic | null>(null);
+  const [breadcrumbMenuOpen, setBreadcrumbMenuOpen] = useState(false);
+  const [breadcrumbMenuMode, setBreadcrumbMenuMode] = useState<"categories" | "topics">(
+    "categories",
+  );
+  const [activeIslandCategoryId, setActiveIslandCategoryId] = useState<CategoryId | null>(
+    storeCategories[0]?.id ?? null,
+  );
+  const [activeDockCategoryId, setActiveDockCategoryId] = useState<CategoryId | null>(
+    null,
+  );
   const searchSeed = "";
   const isProductPage = pathname.startsWith("/produkt/");
+  const showDesktopNav = pathname !== "/";
+  const routeBreadcrumbCategory =
+    storeCategories.find((category) => pathname === `/kategoria/${category.slug}`) ??
+    null;
+  const stateBreadcrumbCategory =
+    storeCategories.find((category) => category.id === breadcrumbCategoryId) ?? null;
+  const activeBreadcrumbCategory = routeBreadcrumbCategory ?? stateBreadcrumbCategory;
+  const activeIslandCategory =
+    storeCategories.find((category) => category.id === activeIslandCategoryId) ??
+    storeCategories[0] ??
+    null;
+  const activeDockCategory =
+    storeCategories.find((category) => category.id === activeDockCategoryId) ?? null;
+  const activeIslandSections = activeIslandCategory
+    ? activeIslandCategory.menuSections.slice(0, 2)
+    : [];
+  const activeBreadcrumbTopics = activeBreadcrumbCategory
+    ? getUniqueTopics(activeBreadcrumbCategory)
+    : [];
+  const activeBreadcrumbTopic =
+    activeBreadcrumbCategory?.id === breadcrumbCategoryId ? breadcrumbTopic : null;
+  const activeDockSections = activeDockCategory
+    ? activeDockCategory.menuSections.slice(0, 2)
+    : [];
+  const contentShellClass = `min-h-screen transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+    showDesktopNav && navVariant === "dock" ? "md:ml-72" : ""
+  }`;
   const activeMobileBottomNavItem = getMobileBottomNavActiveItem({
     isCartOpen: isOpen,
     isMenuOpen: mobileMenuOpen,
@@ -270,11 +339,274 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     }
 
     router.push(params.size ? `/produkty?${params.toString()}` : "/produkty");
+    setBreadcrumbMenuOpen(false);
     closeMobileMenu();
+  };
+
+  const openBreadcrumbCategoryMenu = () => {
+    setBreadcrumbCategoryId(null);
+    setBreadcrumbTopic(null);
+    setBreadcrumbMenuMode("categories");
+    setBreadcrumbMenuOpen((current) => !current || Boolean(activeBreadcrumbCategory));
+  };
+
+  const selectBreadcrumbCategory = (categoryId: CategoryId) => {
+    const category = storeCategories.find((entry) => entry.id === categoryId);
+
+    setBreadcrumbCategoryId(categoryId);
+    setBreadcrumbTopic(null);
+    setBreadcrumbMenuMode("topics");
+    setBreadcrumbMenuOpen(true);
+
+    if (category) {
+      router.push(`/kategoria/${category.slug}`);
+    }
+  };
+
+  const selectBreadcrumbTopic = (topic: CategoryTopic) => {
+    if (activeBreadcrumbCategory) {
+      setBreadcrumbCategoryId(activeBreadcrumbCategory.id);
+    }
+
+    setBreadcrumbTopic(topic);
+    setBreadcrumbMenuOpen(false);
+  };
+
+  const navigateAfterPaint = (href: string) => {
+    window.requestAnimationFrame(() => {
+      router.push(href);
+    });
   };
 
   return (
     <div className="min-h-screen bg-browin-gray text-browin-dark">
+      {showDesktopNav ? (
+        <div className="fixed right-4 top-3 z-[120] hidden overflow-hidden rounded-full border border-browin-dark/10 bg-browin-white/90 p-1 shadow-2xl backdrop-blur-md md:flex">
+          {navVariantOptions.map((option) => {
+            const isActive = navVariant === option.value;
+
+            return (
+              <button
+                className={`rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase transition-colors ${
+                  isActive
+                    ? "bg-browin-dark text-browin-white"
+                    : "text-browin-dark/60 hover:bg-browin-dark/5 hover:text-browin-red"
+                }`}
+                key={option.value}
+                onClick={() => {
+                  setNavVariant(option.value);
+                  setBreadcrumbMenuOpen(false);
+
+                  if (option.value === "dock") {
+                    setActiveDockCategoryId(null);
+                  }
+                }}
+                type="button"
+              >
+                {option.label}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
+
+      {showDesktopNav && navVariant === "island" && activeIslandCategory ? (
+        <nav
+          aria-label="Kategorie sklepu"
+          className="group/island fixed bottom-8 left-1/2 z-[100] hidden -translate-x-1/2 md:block"
+        >
+          <div className="pointer-events-none absolute bottom-9 left-0 right-0 translate-y-3 rounded-t-[2rem] border border-browin-dark/10 bg-white/85 px-6 pb-16 pt-4 opacity-0 shadow-2xl backdrop-blur-md transition-all duration-200 group-hover/island:pointer-events-auto group-hover/island:translate-y-0 group-hover/island:opacity-100">
+            <div className="mb-4 flex items-center justify-between gap-4 border-b border-browin-dark/8 pb-3">
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-browin-red/10 text-browin-red">
+                  <StoreIcon icon={activeIslandCategory.icon} size={22} weight="fill" />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-[10px] font-bold uppercase text-browin-dark/45">
+                    Kategoria
+                  </p>
+                  <h3 className="truncate text-sm font-extrabold text-browin-dark">
+                    {activeIslandCategory.label}
+                  </h3>
+                </div>
+              </div>
+
+              <Link
+                className="shrink-0 rounded-full border border-browin-red/25 px-3 py-1.5 text-[11px] font-extrabold uppercase text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+                href={`/kategoria/${activeIslandCategory.slug}`}
+              >
+                Wszystkie
+              </Link>
+            </div>
+
+            <div className="grid max-h-[18rem] grid-cols-2 gap-5 overflow-y-auto pr-1">
+              {activeIslandSections.map((section) => (
+                <div key={section.title}>
+                  <div className="space-y-1">
+                    {section.topics.map((topic) => (
+                      <Link
+                        className="block rounded-md px-2 py-1.5 text-[12px] font-semibold leading-snug text-browin-dark/75 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                        href={buildCategoryHref(activeIslandCategory.slug, topic.query)}
+                        key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
+                      >
+                        {topic.label}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="relative z-10 flex items-center gap-2 rounded-full border border-browin-dark/10 bg-white/80 px-6 py-3 shadow-2xl backdrop-blur-md">
+            {storeCategories.map((category) => {
+              const isActive = category.id === activeIslandCategory.id;
+
+              return (
+                <Link
+                  aria-label={category.label}
+                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 ${
+                    isActive
+                      ? "-translate-y-0.5 border-browin-red/20 bg-browin-red text-browin-white"
+                      : "border-transparent text-browin-dark hover:-translate-y-0.5 hover:border-browin-red/20 hover:bg-browin-red hover:text-browin-white"
+                  }`}
+                  href={`/kategoria/${category.slug}`}
+                  key={category.id}
+                  onFocus={() => setActiveIslandCategoryId(category.id)}
+                  onMouseEnter={() => setActiveIslandCategoryId(category.id)}
+                >
+                  <StoreIcon icon={category.icon} size={23} weight="fill" />
+                </Link>
+              );
+            })}
+          </div>
+        </nav>
+      ) : null}
+
+      {showDesktopNav && navVariant === "dock" ? (
+        <aside className="fixed left-0 top-0 z-[100] hidden h-screen w-72 overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark shadow-2xl md:block">
+          <div className="flex h-full flex-col">
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
+              <p className="px-3 pb-2 pt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                Kategorie
+              </p>
+              <nav aria-label="Kategorie sklepu" className="divide-y divide-browin-dark/5">
+                {storeCategories.map((category) => {
+                  const isActive = activeDockCategory?.id === category.id;
+
+                  return (
+                    <button
+                      className={`flex min-h-12 w-full items-center justify-between rounded-md px-3 py-3 text-left transition-colors ${
+                        isActive
+                          ? "bg-browin-red/8 text-browin-red"
+                          : "text-browin-dark hover:bg-browin-dark/5 hover:text-browin-red"
+                      }`}
+                      key={category.id}
+                      onClick={() => setActiveDockCategoryId(category.id)}
+                      type="button"
+                    >
+                      <span className="flex min-w-0 items-center gap-3">
+                        <StoreIcon
+                          className="shrink-0"
+                          icon={category.icon}
+                          size={23}
+                          weight={isActive ? "fill" : "regular"}
+                        />
+                        <span className="truncate text-[14px] font-bold">
+                          {category.label}
+                        </span>
+                      </span>
+                      <CaretRight
+                        className={isActive ? "text-browin-red" : "text-browin-dark/30"}
+                        size={14}
+                      />
+                    </button>
+                  );
+                })}
+              </nav>
+            </div>
+
+            <div className="shrink-0 border-t border-browin-dark/8 bg-browin-gray px-3 py-3">
+              <p className="mb-2 px-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                Szybki dostęp
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {dockUtilityLinks.map((item) => {
+                  const Icon = item.icon;
+
+                  return (
+                    <Link
+                      className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-dark/8 bg-browin-white px-2.5 py-2 text-[11px] font-bold text-browin-dark transition-colors hover:border-browin-red/25 hover:text-browin-red"
+                      href={item.href}
+                      key={item.label}
+                    >
+                      <Icon
+                        className="shrink-0 text-browin-red transition-transform group-hover/link:scale-110"
+                        size={16}
+                        weight="fill"
+                      />
+                      <span className="truncate">{item.label}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+
+          {activeDockCategory ? (
+            <div className="absolute left-full top-0 flex h-screen w-80 translate-x-0 flex-col border-r border-browin-dark/10 bg-browin-white opacity-100 shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <div className="mb-4 border-b border-browin-dark/8 pb-4">
+                  <div className="flex items-center gap-3">
+                    <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray text-browin-red">
+                      <StoreIcon icon={activeDockCategory.icon} size={24} weight="fill" />
+                    </span>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                        Kategoria
+                      </p>
+                      <h3 className="mt-1 truncate text-base font-extrabold tracking-tight text-browin-dark">
+                        {activeDockCategory.label}
+                      </h3>
+                    </div>
+                  </div>
+
+                  <Link
+                    className="mt-3 inline-flex items-center gap-2 rounded-md border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
+                    href={`/kategoria/${activeDockCategory.slug}`}
+                  >
+                    Zobacz wszystkie
+                    <ArrowRight size={14} />
+                  </Link>
+                </div>
+
+                <div className="space-y-4">
+                  {activeDockSections.map((section) => (
+                    <div key={section.title}>
+                      <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-browin-dark/45">
+                        {section.title}
+                      </p>
+                      <div className="divide-y divide-browin-dark/5 border-b border-browin-dark/5">
+                        {section.topics.slice(0, 6).map((topic) => (
+                          <Link
+                            className="block py-2.5 text-[13px] font-bold text-browin-dark/75 transition-colors hover:text-browin-red"
+                            href={buildCategoryHref(activeDockCategory.slug, topic.query)}
+                            key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
+                          >
+                            {topic.label}
+                          </Link>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : null}
+        </aside>
+      ) : null}
+
+      <div className={contentShellClass}>
       <div className="desktop-topbar hidden bg-browin-dark py-2 text-[11px] text-browin-white md:block">
         <div className="container mx-auto flex items-center justify-between px-4">
           <div className="flex flex-wrap items-center gap-6 font-medium">
@@ -436,6 +768,156 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </div>
       </header>
 
+      {showDesktopNav && navVariant === "breadcrumbs" ? (
+        <div className="sticky top-20 z-40 hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block">
+          <div className="container relative mx-auto flex h-12 items-center px-4">
+            <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
+              <button
+                aria-expanded={breadcrumbMenuOpen && breadcrumbMenuMode === "categories"}
+                className="rounded-md px-2.5 py-1.5 text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                onClick={openBreadcrumbCategoryMenu}
+                type="button"
+              >
+                Katalog produktów
+              </button>
+
+              {activeBreadcrumbCategory ? (
+                <>
+                  <CaretRight className="shrink-0 text-browin-dark/28" size={14} />
+                  <button
+                    aria-expanded={breadcrumbMenuOpen}
+                    className="inline-flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                    onClick={() => {
+                      setBreadcrumbMenuMode("topics");
+                      setBreadcrumbMenuOpen((current) => !current);
+                    }}
+                    type="button"
+                  >
+                    <StoreIcon
+                      className="shrink-0 text-browin-red"
+                      icon={activeBreadcrumbCategory.icon}
+                      size={16}
+                      weight="fill"
+                    />
+                    <span className="truncate">{activeBreadcrumbCategory.label}</span>
+                    <CaretDown className="shrink-0 text-browin-dark/35" size={12} />
+                  </button>
+                </>
+              ) : null}
+
+              {activeBreadcrumbCategory && activeBreadcrumbTopic ? (
+                <>
+                  <CaretRight className="shrink-0 text-browin-dark/28" size={14} />
+                  <span className="inline-flex min-w-0 items-center rounded-md text-browin-dark/72 transition-colors hover:bg-browin-dark/5">
+                    <Link
+                      className="truncate py-1.5 pl-2.5 pr-1 transition-colors hover:text-browin-red"
+                      href={buildCategoryHref(
+                        activeBreadcrumbCategory.slug,
+                        activeBreadcrumbTopic.query,
+                      )}
+                    >
+                      {activeBreadcrumbTopic.label}
+                    </Link>
+                    <button
+                      aria-label="Wyczyść podkategorię"
+                      className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-browin-dark/35 transition-colors hover:bg-browin-dark/8 hover:text-browin-red"
+                      onClick={() => {
+                        setBreadcrumbCategoryId(activeBreadcrumbCategory.id);
+                        setBreadcrumbTopic(null);
+                        navigateAfterPaint(`/kategoria/${activeBreadcrumbCategory.slug}`);
+                      }}
+                      type="button"
+                    >
+                      <X size={13} />
+                    </button>
+                  </span>
+                </>
+              ) : null}
+            </div>
+
+            {breadcrumbMenuOpen ? (
+              <div className="absolute left-4 top-[calc(100%+0.5rem)] w-[28rem] overflow-hidden rounded-md border border-browin-dark/10 bg-browin-white shadow-2xl">
+                {breadcrumbMenuMode === "categories" || !activeBreadcrumbCategory ? (
+                  <div className="p-2">
+                    <p className="px-3 pb-2 pt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                      Kategorie
+                    </p>
+                    <div className="grid grid-cols-2 gap-1">
+                      {storeCategories.map((category) => (
+                        <button
+                          className="flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-bold text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                          key={category.id}
+                          onClick={() => selectBreadcrumbCategory(category.id)}
+                          type="button"
+                        >
+                          <StoreIcon
+                            className="shrink-0 text-browin-red"
+                            icon={category.icon}
+                            size={18}
+                            weight="fill"
+                          />
+                          <span className="truncate">{category.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-2">
+                    <div className="flex items-center justify-between gap-3 px-3 pb-2 pt-1">
+                      <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                        {activeBreadcrumbCategory.label}
+                      </p>
+                      <button
+                        className="text-[11px] font-bold text-browin-dark/45 transition-colors hover:text-browin-red"
+                        onClick={() => {
+                          setBreadcrumbCategoryId(null);
+                          setBreadcrumbTopic(null);
+                          setBreadcrumbMenuMode("categories");
+                        }}
+                        type="button"
+                      >
+                        Zmień kategorię
+                      </button>
+                    </div>
+
+                    <Link
+                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-bold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
+                      href={`/kategoria/${activeBreadcrumbCategory.slug}`}
+                      onClick={() => {
+                        setBreadcrumbTopic(null);
+                        setBreadcrumbMenuOpen(false);
+                      }}
+                    >
+                      <span>Wszystkie produkty</span>
+                      <CaretRight size={14} />
+                    </Link>
+
+                    <div className="max-h-[20rem] overflow-y-auto border-t border-browin-dark/8 pt-2">
+                      {activeBreadcrumbTopics.map((topic) => (
+                        <Link
+                          className="block rounded-md px-3 py-2 text-sm font-semibold text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                          href={buildCategoryHref(activeBreadcrumbCategory.slug, topic.query)}
+                          key={`${activeBreadcrumbCategory.id}-${topic.label}-${topic.query ?? ""}`}
+                          onClick={(event) => {
+                            event.preventDefault();
+                            selectBreadcrumbTopic(topic);
+                            navigateAfterPaint(
+                              buildCategoryHref(activeBreadcrumbCategory.slug, topic.query),
+                            );
+                          }}
+                        >
+                          {topic.label}
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
       {!isProductPage ? (
         <div className="no-scrollbar overflow-x-auto border-b border-browin-border bg-browin-white py-3 md:hidden">
           <div className="flex w-max space-x-4 px-4">
@@ -456,6 +938,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       <main>{children}</main>
 
       <StoreFooter />
+      </div>
 
       <div
         className={`fixed inset-x-0 top-0 z-[55] bg-browin-dark/20 transition-opacity duration-300 md:hidden ${
