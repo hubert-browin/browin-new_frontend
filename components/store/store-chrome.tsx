@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  ArrowsLeftRight,
   BookOpen,
   Calculator,
   Camera,
@@ -15,8 +16,10 @@ import {
   Heart,
   List,
   MagnifyingGlass,
+  Plus,
   ShoppingCart,
   Sliders,
+  SquaresFour,
   Tag,
   User,
   X,
@@ -24,7 +27,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
 import { StoreFooter } from "@/components/store/store-footer";
@@ -51,14 +54,6 @@ type MobileSearchFormProps = {
 };
 
 type MobileBottomNavItem = "home" | "categories" | "recipes" | "cart" | null;
-
-type NavVariant = "island" | "breadcrumbs" | "dock";
-
-const navVariantOptions: Array<{ label: string; value: NavVariant }> = [
-  { label: "Island", value: "island" },
-  { label: "Breadcrumbs", value: "breadcrumbs" },
-  { label: "Dock", value: "dock" },
-];
 
 const topBarLinks = [
   { label: "Dostawa i płatność", href: "/checkout" },
@@ -90,16 +85,16 @@ const mobileMenuQuickLinks = [
 ] as const;
 
 const dockUtilityLinks = [
+  {
+    href: "/produkty?search=zestaw",
+    icon: BookOpen,
+    label: "Przepiśnik",
+  },
   ...mobileMenuQuickLinks,
   {
     href: "/produkty?deal=true",
     icon: Tag,
     label: "Promocje",
-  },
-  {
-    href: "/produkty?search=zestaw",
-    icon: BookOpen,
-    label: "Przepiśnik",
   },
 ] as const;
 
@@ -207,7 +202,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [activeMobileCategoryId, setActiveMobileCategoryId] =
     useState<CategoryId | null>(null);
-  const [navVariant, setNavVariant] = useState<NavVariant>("island");
+  const [isIslandEnabled, setIsIslandEnabled] = useState(false);
   const [breadcrumbCategoryId, setBreadcrumbCategoryId] = useState<CategoryId | null>(
     null,
   );
@@ -222,6 +217,9 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const [activeDockCategoryId, setActiveDockCategoryId] = useState<CategoryId | null>(
     null,
   );
+  const breadcrumbRef = useRef<HTMLDivElement | null>(null);
+  const dockRef = useRef<HTMLElement | null>(null);
+  const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const searchSeed = "";
   const isProductPage = pathname.startsWith("/produkt/");
   const showDesktopNav = pathname !== "/";
@@ -237,6 +235,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     null;
   const activeDockCategory =
     storeCategories.find((category) => category.id === activeDockCategoryId) ?? null;
+  const highlightedDockCategory = activeDockCategory ?? routeBreadcrumbCategory;
   const activeIslandSections = activeIslandCategory
     ? activeIslandCategory.menuSections.slice(0, 2)
     : [];
@@ -249,7 +248,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     ? activeDockCategory.menuSections.slice(0, 2)
     : [];
   const contentShellClass = `min-h-screen transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-    showDesktopNav && navVariant === "dock" ? "md:ml-72" : ""
+    showDesktopNav ? "md:ml-20" : ""
   }`;
   const activeMobileBottomNavItem = getMobileBottomNavActiveItem({
     isCartOpen: isOpen,
@@ -270,6 +269,50 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       document.body.style.overflow = "";
     };
   }, [isOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!showDesktopNav || !activeDockCategoryId) {
+      return;
+    }
+
+    const closeDockOnOutsideClick = (event: PointerEvent) => {
+      if (!dockRef.current?.contains(event.target as Node)) {
+        setActiveDockCategoryId(null);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeDockOnOutsideClick);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeDockOnOutsideClick);
+    };
+  }, [activeDockCategoryId, showDesktopNav]);
+
+  useEffect(() => {
+    if (!showDesktopNav || !breadcrumbMenuOpen) {
+      return;
+    }
+
+    const closeBreadcrumbOnOutsideClick = (event: PointerEvent) => {
+      if (!breadcrumbRef.current?.contains(event.target as Node)) {
+        setBreadcrumbMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("pointerdown", closeBreadcrumbOnOutsideClick);
+
+    return () => {
+      document.removeEventListener("pointerdown", closeBreadcrumbOnOutsideClick);
+    };
+  }, [breadcrumbMenuOpen, showDesktopNav]);
+
+  useEffect(() => {
+    return () => {
+      if (dockHoverIntentTimeout.current) {
+        clearTimeout(dockHoverIntentTimeout.current);
+      }
+    };
+  }, []);
 
   const closeMobileMenu = () => {
     setMobileMenuOpen(false);
@@ -350,6 +393,13 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     setBreadcrumbMenuOpen((current) => !current || Boolean(activeBreadcrumbCategory));
   };
 
+  const toggleBreadcrumbTopicsMenu = () => {
+    setBreadcrumbMenuMode("topics");
+    setBreadcrumbMenuOpen((current) =>
+      breadcrumbMenuMode === "topics" ? !current : true,
+    );
+  };
+
   const selectBreadcrumbCategory = (categoryId: CategoryId) => {
     const category = storeCategories.find((entry) => entry.id === categoryId);
 
@@ -378,39 +428,49 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
     });
   };
 
+  const scheduleDockCategoryPreview = (categoryId: CategoryId) => {
+    if (dockHoverIntentTimeout.current) {
+      clearTimeout(dockHoverIntentTimeout.current);
+    }
+
+    dockHoverIntentTimeout.current = setTimeout(() => {
+      setActiveDockCategoryId(categoryId);
+      dockHoverIntentTimeout.current = null;
+    }, 120);
+  };
+
+  const cancelDockCategoryPreview = () => {
+    if (dockHoverIntentTimeout.current) {
+      clearTimeout(dockHoverIntentTimeout.current);
+      dockHoverIntentTimeout.current = null;
+    }
+  };
+
   return (
     <div className="min-h-screen bg-browin-gray text-browin-dark">
       {showDesktopNav ? (
-        <div className="fixed right-4 top-3 z-[120] hidden overflow-hidden rounded-full border border-browin-dark/10 bg-browin-white/90 p-1 shadow-2xl backdrop-blur-md md:flex">
-          {navVariantOptions.map((option) => {
-            const isActive = navVariant === option.value;
-
-            return (
-              <button
-                className={`rounded-full px-3 py-1.5 text-[11px] font-extrabold uppercase transition-colors ${
-                  isActive
-                    ? "bg-browin-dark text-browin-white"
-                    : "text-browin-dark/60 hover:bg-browin-dark/5 hover:text-browin-red"
-                }`}
-                key={option.value}
-                onClick={() => {
-                  setNavVariant(option.value);
-                  setBreadcrumbMenuOpen(false);
-
-                  if (option.value === "dock") {
-                    setActiveDockCategoryId(null);
-                  }
-                }}
-                type="button"
-              >
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
+        <button
+          aria-pressed={isIslandEnabled}
+          className="fixed bottom-4 right-4 z-[120] hidden items-center gap-2 rounded-full border border-browin-dark/10 bg-browin-white/90 p-1.5 pr-3 text-[11px] font-extrabold uppercase text-browin-dark shadow-2xl backdrop-blur-md transition-colors hover:text-browin-red md:flex"
+          onClick={() => setIsIslandEnabled((current) => !current)}
+          type="button"
+        >
+          <span
+            className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
+              isIslandEnabled ? "bg-browin-red" : "bg-browin-dark/15"
+            }`}
+          >
+            <span
+              className={`absolute h-4 w-4 rounded-full bg-browin-white transition-transform ${
+                isIslandEnabled ? "translate-x-4" : "translate-x-0.5"
+              }`}
+            />
+          </span>
+          Island
+        </button>
       ) : null}
 
-      {showDesktopNav && navVariant === "island" && activeIslandCategory ? (
+      {showDesktopNav && isIslandEnabled && activeIslandCategory ? (
         <nav
           aria-label="Kategorie sklepu"
           className="group/island fixed bottom-8 left-1/2 z-[100] hidden -translate-x-1/2 md:block"
@@ -483,41 +543,51 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </nav>
       ) : null}
 
-      {showDesktopNav && navVariant === "dock" ? (
-        <aside className="fixed left-0 top-0 z-[100] hidden h-screen w-72 overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark shadow-2xl md:block">
-          <div className="flex h-full flex-col">
+      {showDesktopNav ? (
+        <aside
+          className="group/dock fixed left-0 top-0 z-[100] hidden h-screen w-20 overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:w-72 md:block"
+          ref={dockRef}
+        >
+          <div className="flex h-full flex-col overflow-hidden">
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
-              <p className="px-3 pb-2 pt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
-                Kategorie
-              </p>
               <nav aria-label="Kategorie sklepu" className="divide-y divide-browin-dark/5">
                 {storeCategories.map((category) => {
-                  const isActive = activeDockCategory?.id === category.id;
+                  const isActive = highlightedDockCategory?.id === category.id;
 
                   return (
                     <button
-                      className={`flex min-h-12 w-full items-center justify-between rounded-md px-3 py-3 text-left transition-colors ${
-                        isActive
-                          ? "bg-browin-red/8 text-browin-red"
-                          : "text-browin-dark hover:bg-browin-dark/5 hover:text-browin-red"
-                      }`}
+                      className="group/category flex min-h-14 w-full items-center justify-between rounded-md px-1 py-2 text-left text-browin-dark transition-colors hover:text-browin-red"
                       key={category.id}
-                      onClick={() => setActiveDockCategoryId(category.id)}
+                      onClick={() => {
+                        navigateAfterPaint(`/kategoria/${category.slug}`);
+                      }}
+                      onFocus={() => setActiveDockCategoryId(category.id)}
+                      onMouseEnter={() => scheduleDockCategoryPreview(category.id)}
+                      onMouseLeave={cancelDockCategoryPreview}
                       type="button"
                     >
                       <span className="flex min-w-0 items-center gap-3">
-                        <StoreIcon
-                          className="shrink-0"
-                          icon={category.icon}
-                          size={23}
-                          weight={isActive ? "fill" : "regular"}
-                        />
-                        <span className="truncate text-[14px] font-bold">
+                        <span
+                          className={`flex h-12 w-12 shrink-0 items-center justify-center border transition-colors ${
+                            isActive
+                              ? "border-browin-red/20 bg-browin-red/8 text-browin-red"
+                              : "border-browin-dark/10 bg-browin-white text-browin-dark group-hover/category:bg-browin-dark/5 group-hover/category:text-browin-red"
+                          }`}
+                        >
+                          <StoreIcon
+                            icon={category.icon}
+                            size={23}
+                            weight={isActive ? "fill" : "regular"}
+                          />
+                        </span>
+                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-bold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100">
                           {category.label}
                         </span>
                       </span>
                       <CaretRight
-                        className={isActive ? "text-browin-red" : "text-browin-dark/30"}
+                        className={`shrink-0 opacity-0 transition-opacity duration-200 group-hover/dock:opacity-100 ${
+                          isActive ? "text-browin-red" : "text-browin-dark/30"
+                        }`}
                         size={14}
                       />
                     </button>
@@ -526,22 +596,26 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               </nav>
             </div>
 
-            <div className="shrink-0 border-t border-browin-dark/8 bg-browin-gray px-3 py-3">
-              <p className="mb-2 px-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
-                Szybki dostęp
-              </p>
-              <div className="grid grid-cols-2 gap-2">
+            <div className="pointer-events-none shrink-0 border-t border-browin-dark/8 bg-browin-white px-3 py-3 opacity-0 transition-opacity duration-200 group-hover/dock:pointer-events-auto group-hover/dock:opacity-100">
+              <div className="grid grid-cols-1 gap-2">
                 {dockUtilityLinks.map((item) => {
                   const Icon = item.icon;
+                  const isRecipeLink = item.label === "Przepiśnik";
 
                   return (
                     <Link
-                      className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-dark/8 bg-browin-white px-2.5 py-2 text-[11px] font-bold text-browin-dark transition-colors hover:border-browin-red/25 hover:text-browin-red"
+                      className={`group/link flex min-w-0 items-center gap-2 rounded-md border px-2.5 py-2 text-[11px] font-bold transition-colors ${
+                        isRecipeLink
+                          ? "border-browin-red bg-browin-red text-browin-white hover:bg-browin-red/90"
+                          : "border-browin-dark/8 bg-browin-white text-browin-dark hover:border-browin-red/25 hover:text-browin-red"
+                      }`}
                       href={item.href}
                       key={item.label}
                     >
                       <Icon
-                        className="shrink-0 text-browin-red transition-transform group-hover/link:scale-110"
+                        className={`shrink-0 transition-transform group-hover/link:scale-110 ${
+                          isRecipeLink ? "text-browin-white" : "text-browin-red"
+                        }`}
                         size={16}
                         weight="fill"
                       />
@@ -554,31 +628,16 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           </div>
 
           {activeDockCategory ? (
-            <div className="absolute left-full top-0 flex h-screen w-80 translate-x-0 flex-col border-r border-browin-dark/10 bg-browin-white opacity-100 shadow-2xl transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)]">
+            <div className="pointer-events-none absolute left-full top-0 flex h-screen w-80 translate-x-3 flex-col border-r border-browin-dark/10 bg-browin-white opacity-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/dock:pointer-events-auto group-hover/dock:translate-x-0 group-hover/dock:opacity-100">
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-                <div className="mb-4 border-b border-browin-dark/8 pb-4">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray text-browin-red">
-                      <StoreIcon icon={activeDockCategory.icon} size={24} weight="fill" />
-                    </span>
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
-                        Kategoria
-                      </p>
-                      <h3 className="mt-1 truncate text-base font-extrabold tracking-tight text-browin-dark">
-                        {activeDockCategory.label}
-                      </h3>
-                    </div>
-                  </div>
-
-                  <Link
-                    className="mt-3 inline-flex items-center gap-2 rounded-md border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
-                    href={`/kategoria/${activeDockCategory.slug}`}
-                  >
-                    Zobacz wszystkie
-                    <ArrowRight size={14} />
-                  </Link>
-                </div>
+                <Link
+                  className="mb-4 inline-flex items-center gap-2 rounded-md border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
+                  href={`/kategoria/${activeDockCategory.slug}`}
+                  onClick={() => setActiveDockCategoryId(null)}
+                >
+                  Zobacz wszystkie
+                  <ArrowRight size={14} />
+                </Link>
 
                 <div className="space-y-4">
                   {activeDockSections.map((section) => (
@@ -592,6 +651,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                             className="block py-2.5 text-[13px] font-bold text-browin-dark/75 transition-colors hover:text-browin-red"
                             href={buildCategoryHref(activeDockCategory.slug, topic.query)}
                             key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
+                            onClick={() => setActiveDockCategoryId(null)}
                           >
                             {topic.label}
                           </Link>
@@ -768,17 +828,22 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </div>
       </header>
 
-      {showDesktopNav && navVariant === "breadcrumbs" ? (
+      {showDesktopNav ? (
         <div className="sticky top-20 z-40 hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block">
-          <div className="container relative mx-auto flex h-12 items-center px-4">
+          <div className="container relative mx-auto flex h-12 items-center px-4" ref={breadcrumbRef}>
             <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
               <button
                 aria-expanded={breadcrumbMenuOpen && breadcrumbMenuMode === "categories"}
-                className="rounded-md px-2.5 py-1.5 text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                className="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
                 onClick={openBreadcrumbCategoryMenu}
                 type="button"
               >
-                Katalog produktów
+                <SquaresFour
+                  className="shrink-0 text-browin-red"
+                  size={16}
+                  weight="fill"
+                />
+                <span>Katalog produktów</span>
               </button>
 
               {activeBreadcrumbCategory ? (
@@ -787,10 +852,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                   <button
                     aria-expanded={breadcrumbMenuOpen}
                     className="inline-flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
-                    onClick={() => {
-                      setBreadcrumbMenuMode("topics");
-                      setBreadcrumbMenuOpen((current) => !current);
-                    }}
+                    onClick={toggleBreadcrumbTopicsMenu}
                     type="button"
                   >
                     <StoreIcon
@@ -800,7 +862,11 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       weight="fill"
                     />
                     <span className="truncate">{activeBreadcrumbCategory.label}</span>
-                    <CaretDown className="shrink-0 text-browin-dark/35" size={12} />
+                    <Plus
+                      className="pointer-events-none shrink-0 text-browin-dark/35"
+                      size={12}
+                      weight="bold"
+                    />
                   </button>
                 </>
               ) : null}
@@ -808,29 +874,21 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               {activeBreadcrumbCategory && activeBreadcrumbTopic ? (
                 <>
                   <CaretRight className="shrink-0 text-browin-dark/28" size={14} />
-                  <span className="inline-flex min-w-0 items-center rounded-md text-browin-dark/72 transition-colors hover:bg-browin-dark/5">
-                    <Link
-                      className="truncate py-1.5 pl-2.5 pr-1 transition-colors hover:text-browin-red"
-                      href={buildCategoryHref(
-                        activeBreadcrumbCategory.slug,
-                        activeBreadcrumbTopic.query,
-                      )}
-                    >
+                  <button
+                    aria-expanded={breadcrumbMenuOpen && breadcrumbMenuMode === "topics"}
+                    className="inline-flex min-w-0 items-center gap-2 rounded-md px-2.5 py-1.5 text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                    onClick={toggleBreadcrumbTopicsMenu}
+                    type="button"
+                  >
+                    <span className="truncate">
                       {activeBreadcrumbTopic.label}
-                    </Link>
-                    <button
-                      aria-label="Wyczyść podkategorię"
-                      className="mr-1 flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-browin-dark/35 transition-colors hover:bg-browin-dark/8 hover:text-browin-red"
-                      onClick={() => {
-                        setBreadcrumbCategoryId(activeBreadcrumbCategory.id);
-                        setBreadcrumbTopic(null);
-                        navigateAfterPaint(`/kategoria/${activeBreadcrumbCategory.slug}`);
-                      }}
-                      type="button"
-                    >
-                      <X size={13} />
-                    </button>
-                  </span>
+                    </span>
+                    <ArrowsLeftRight
+                      className="pointer-events-none shrink-0 text-browin-dark/35"
+                      size={13}
+                      weight="bold"
+                    />
+                  </button>
                 </>
               ) : null}
             </div>
@@ -842,6 +900,18 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                     <p className="px-3 pb-2 pt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
                       Kategorie
                     </p>
+                    <Link
+                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-bold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
+                      href="/produkty"
+                      onClick={() => {
+                        setBreadcrumbCategoryId(null);
+                        setBreadcrumbTopic(null);
+                        setBreadcrumbMenuOpen(false);
+                      }}
+                    >
+                      <span>Wyświetl wszystkie produkty</span>
+                      <ArrowRight size={14} />
+                    </Link>
                     <div className="grid grid-cols-2 gap-1">
                       {storeCategories.map((category) => (
                         <button
@@ -868,15 +938,17 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                         {activeBreadcrumbCategory.label}
                       </p>
                       <button
-                        className="text-[11px] font-bold text-browin-dark/45 transition-colors hover:text-browin-red"
+                        aria-label="Zmień kategorię"
+                        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-browin-red transition-colors hover:bg-browin-red/8"
                         onClick={() => {
                           setBreadcrumbCategoryId(null);
                           setBreadcrumbTopic(null);
                           setBreadcrumbMenuMode("categories");
                         }}
+                        title="Zmień kategorię"
                         type="button"
                       >
-                        Zmień kategorię
+                        <ArrowsLeftRight size={17} weight="bold" />
                       </button>
                     </div>
 
@@ -888,7 +960,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                         setBreadcrumbMenuOpen(false);
                       }}
                     >
-                      <span>Wszystkie produkty</span>
+                      <span>Wszystkie produkty kategorii</span>
                       <CaretRight size={14} />
                     </Link>
 
