@@ -271,7 +271,7 @@ export function Storefront() {
     <div className="min-h-screen bg-browin-gray text-browin-dark">
       <div className="hidden bg-browin-dark text-[11px] text-browin-white md:block">
         <div className={`${siteContainer} flex items-center justify-between gap-6 py-2`}>
-          <div className="flex flex-wrap items-center gap-6 font-medium">
+          <div className="flex flex-wrap items-center gap-6 font-semibold">
             {trustBadges.map((badge) => {
               const Icon = badge.icon;
 
@@ -284,7 +284,7 @@ export function Storefront() {
             })}
           </div>
 
-          <div className="flex items-center gap-6 font-medium">
+          <div className="flex items-center gap-6 font-semibold">
             <button
               className="transition-colors hover:text-browin-red"
               onClick={() => scrollToSection("wartosci")}
@@ -337,7 +337,7 @@ export function Storefront() {
               size={22}
             />
             <input
-              className="w-full border-2 border-browin-dark/10 bg-browin-white py-3 pl-12 pr-44 text-sm font-medium outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red"
+              className="w-full border-2 border-browin-dark/10 bg-browin-white py-3 pl-12 pr-44 text-sm font-semibold outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red"
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Szukaj sprzętu, drożdży, przepisów..."
               value={searchQuery}
@@ -442,7 +442,7 @@ export function Storefront() {
               size={20}
             />
             <input
-              className="w-full border border-browin-dark/10 bg-browin-dark/5 py-2.5 pl-10 pr-10 text-sm font-medium outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red focus:bg-white"
+              className="w-full border border-browin-dark/10 bg-browin-dark/5 py-2.5 pl-10 pr-10 text-sm font-semibold outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red focus:bg-white"
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Szukaj sprzętu..."
               value={searchQuery}
@@ -559,7 +559,7 @@ export function Storefront() {
                           <h3 className="mb-5 border-b border-browin-dark/10 pb-3 text-[13px] font-extrabold uppercase tracking-[0.16em]">
                             {section.title}
                           </h3>
-                          <ul className="space-y-4 text-sm font-medium text-browin-dark/80">
+                          <ul className="space-y-4 text-sm font-semibold text-browin-dark/80">
                             {section.links.map((link) => (
                               <li key={link}>
                                 <button
@@ -853,7 +853,7 @@ export function Storefront() {
                 </h2>
               </div>
 
-              <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-browin-dark/70">
+              <div className="flex flex-wrap items-center gap-3 text-sm font-semibold text-browin-dark/70">
                 <span>
                   Widok: <strong className="text-browin-dark">{selectedCategoryLabel}</strong>
                 </span>
@@ -1243,7 +1243,7 @@ export function Storefront() {
               size={20}
             />
             <input
-              className="w-full border border-browin-dark/10 bg-browin-dark/5 py-3.5 pl-11 pr-10 text-sm font-medium outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red focus:bg-white"
+              className="w-full border border-browin-dark/10 bg-browin-dark/5 py-3.5 pl-11 pr-10 text-sm font-semibold outline-none transition-colors placeholder:text-browin-dark/45 focus:border-browin-red focus:bg-white"
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Czego szukasz?"
               value={searchQuery}

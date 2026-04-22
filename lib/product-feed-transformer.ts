@@ -278,8 +278,8 @@ const sanitizeDescriptionHtml = (value?: string | null) => {
 
     const tagClasses: Record<string, string> = {
       em: "italic",
-      h2: "mb-3 mt-6 text-lg font-extrabold uppercase tracking-tight text-browin-dark",
-      h3: "mb-3 mt-5 text-base font-extrabold text-browin-dark",
+      h2: "mb-3 mt-6 text-lg font-bold uppercase tracking-tight text-browin-dark",
+      h3: "mb-3 mt-5 text-base font-bold text-browin-dark",
       li: "leading-relaxed",
       ol: "mb-4 list-decimal space-y-2 pl-5",
       p: "mb-4",

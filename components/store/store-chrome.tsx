@@ -161,7 +161,7 @@ function MobileSearchForm({
         />
       </div>
       <button
-        className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-5 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
+        className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-5 text-sm font-semibold text-browin-white transition-colors hover:bg-browin-red/90"
         type="submit"
       >
         Szukaj
@@ -300,6 +300,29 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       document.removeEventListener("pointerdown", closeBreadcrumbOnOutsideClick);
     };
   }, [breadcrumbMenuOpen, showDesktopNav]);
+
+  useEffect(() => {
+    if (
+      !showDesktopNav ||
+      !breadcrumbMenuOpen ||
+      breadcrumbMenuMode !== "topics" ||
+      !activeBreadcrumbCategory
+    ) {
+      return;
+    }
+
+    router.prefetch(`/kategoria/${activeBreadcrumbCategory.slug}`);
+
+    getUniqueTopics(activeBreadcrumbCategory).forEach((topic) => {
+      router.prefetch(buildCategoryHref(activeBreadcrumbCategory.slug, topic.query));
+    });
+  }, [
+    activeBreadcrumbCategory,
+    breadcrumbMenuMode,
+    breadcrumbMenuOpen,
+    router,
+    showDesktopNav,
+  ]);
 
   useEffect(() => {
     return () => {
@@ -446,7 +469,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       {showDesktopNav ? (
         <button
           aria-pressed={isIslandEnabled}
-          className="fixed bottom-4 right-4 z-[120] hidden items-center gap-2 rounded-full border border-browin-dark/10 bg-browin-white/90 p-1.5 pr-3 text-[11px] font-extrabold uppercase text-browin-dark shadow-2xl backdrop-blur-md transition-colors hover:text-browin-red md:flex"
+          className="fixed bottom-4 right-4 z-[120] hidden items-center gap-2 rounded-full border border-browin-dark/10 bg-browin-white/90 p-1.5 pr-3 text-[11px] font-semibold uppercase text-browin-dark shadow-2xl backdrop-blur-md transition-colors hover:text-browin-red md:flex"
           onClick={() => setIsIslandEnabled((current) => !current)}
           type="button"
         >
@@ -477,17 +500,17 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                   <StoreIcon icon={activeIslandCategory.icon} size={22} weight="fill" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[10px] font-bold uppercase text-browin-dark/45">
+                  <p className="text-[10px] font-semibold uppercase text-browin-dark/45">
                     Kategoria
                   </p>
-                  <h3 className="truncate text-sm font-extrabold text-browin-dark">
+                  <h3 className="truncate text-sm font-semibold text-browin-dark">
                     {activeIslandCategory.label}
                   </h3>
                 </div>
               </div>
 
               <Link
-                className="shrink-0 rounded-full border border-browin-red/25 px-3 py-1.5 text-[11px] font-extrabold uppercase text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+                className="shrink-0 rounded-full border border-browin-red/25 px-3 py-1.5 text-[11px] font-semibold uppercase text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
                 href={`/kategoria/${activeIslandCategory.slug}`}
               >
                 Wszystkie
@@ -576,7 +599,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                             weight={isActive ? "fill" : "regular"}
                           />
                         </span>
-                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-bold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[13px]">
+                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-semibold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[13px]">
                           {category.label}
                         </span>
                       </span>
@@ -601,7 +624,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
 
                     return (
                       <Link
-                        className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-red bg-browin-red px-2.5 py-2 text-[11px] font-bold text-browin-white transition-colors hover:bg-browin-red/90 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5"
+                        className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-red bg-browin-red px-2.5 py-2 text-[11px] font-semibold text-browin-white transition-colors hover:bg-browin-red/90 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5"
                         href={item.href}
                         key={item.label}
                       >
@@ -623,7 +646,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
 
                       return (
                         <Link
-                          className="group/link flex min-w-0 items-center justify-start gap-2 rounded-md border border-browin-dark/8 bg-browin-white px-2.5 py-2 text-[11px] font-bold text-browin-dark transition-colors hover:border-browin-red/25 hover:bg-browin-red/5 hover:text-browin-red [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:min-h-8 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:gap-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:px-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[10px] [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:leading-none"
+                          className="group/link flex min-w-0 items-center justify-start gap-2 rounded-md border border-browin-dark/8 bg-browin-white px-2.5 py-2 text-[11px] font-semibold text-browin-dark transition-colors hover:border-browin-red/25 hover:bg-browin-red/5 hover:text-browin-red [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:min-h-8 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:gap-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:px-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[10px] [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:leading-none"
                           href={item.href}
                           key={item.label}
                         >
@@ -645,7 +668,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             <div className="pointer-events-none absolute left-full top-0 flex h-screen w-80 translate-x-3 flex-col border-r border-browin-dark/10 bg-browin-white opacity-0 transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover/dock:pointer-events-auto group-hover/dock:translate-x-0 group-hover/dock:opacity-100">
               <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
                 <Link
-                  className="mb-4 inline-flex items-center gap-2 rounded-md border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
+                  className="mb-4 inline-flex items-center gap-2 rounded-md border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
                   href={`/kategoria/${activeDockCategory.slug}`}
                   onClick={() => setActiveDockCategoryId(null)}
                 >
@@ -656,13 +679,13 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                 <div className="space-y-4">
                   {activeDockSections.map((section) => (
                     <div key={section.title}>
-                      <p className="mb-2 text-[10px] font-extrabold uppercase tracking-[0.14em] text-browin-dark/45">
+                      <p className="mb-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/45">
                         {section.title}
                       </p>
                       <div className="divide-y divide-browin-dark/5 border-b border-browin-dark/5">
                         {section.topics.slice(0, 6).map((topic) => (
                           <Link
-                            className="-mx-2 block rounded-md px-2 py-2.5 text-[13px] font-bold text-browin-dark/75 transition-colors hover:bg-browin-red/8 hover:text-browin-red"
+                            className="-mx-2 block rounded-md px-2 py-2.5 text-[13px] font-semibold text-browin-dark/75 transition-colors hover:bg-browin-red/8 hover:text-browin-red"
                             href={buildCategoryHref(activeDockCategory.slug, topic.query)}
                             key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
                             onClick={() => setActiveDockCategoryId(null)}
@@ -683,7 +706,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       <div className={contentShellClass}>
       <div className="desktop-topbar hidden bg-browin-red py-2 text-[11px] text-browin-white md:block">
         <div className="container mx-auto flex items-center justify-between px-4">
-          <div className="flex flex-wrap items-center gap-6 font-medium">
+          <div className="flex flex-wrap items-center gap-6 font-semibold">
             {trustBadges.map((badge) => (
               <span className="flex items-center gap-2" key={badge.label}>
                 <StoreIcon className="text-browin-white" icon={badge.icon} size={18} />
@@ -695,7 +718,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           <div className="flex items-center gap-6">
             {topBarLinks.map((link) => (
               <Link
-                className="font-medium transition-colors hover:text-browin-red"
+                className="font-semibold transition-colors hover:text-browin-red"
                 href={link.href}
                 key={link.label}
               >
@@ -705,7 +728,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
 
             <div className="relative flex cursor-pointer items-center gap-1 border-l border-browin-white/20 pl-4">
               <Globe size={16} />
-              <span className="font-bold tracking-wide">PL</span>
+              <span className="font-semibold tracking-wide">PL</span>
               <CaretDown className="text-browin-white/70" size={10} />
             </div>
           </div>
@@ -748,7 +771,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               </button>
             </div>
             <button
-              className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-7 text-sm font-bold text-browin-white transition-colors hover:bg-browin-red/90"
+              className="search-ui-copy flex shrink-0 items-center justify-center border-l border-browin-dark/10 bg-browin-red px-7 text-sm font-semibold text-browin-white transition-colors hover:bg-browin-red/90"
               type="submit"
             >
               Szukaj
@@ -761,7 +784,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </button>
             <button className="relative border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red" type="button">
               <Heart size={26} />
-              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
+              <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-semibold text-browin-white">
                 {favoritesCount}
               </span>
             </button>
@@ -772,15 +795,15 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             >
               <div className="relative mr-3">
                 <ShoppingCart className="text-browin-dark" size={28} />
-                <span className="absolute -right-2 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-browin-white bg-browin-red text-[10px] font-bold text-browin-white">
+                <span className="absolute -right-2 -top-1 flex h-5 w-5 items-center justify-center rounded-full border-2 border-browin-white bg-browin-red text-[10px] font-semibold text-browin-white">
                   {cartCount}
                 </span>
               </div>
               <div className="desktop-cart-copy flex flex-col items-start">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-browin-dark/60">
+                <span className="text-[10px] font-semibold uppercase tracking-wider text-browin-dark/60">
                   Koszyk
                 </span>
-                <span className="text-[14px] font-extrabold text-browin-dark">
+                <span className="text-[14px] font-bold text-browin-dark">
                   {formatCurrency(subtotal)}
                 </span>
               </div>
@@ -819,7 +842,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               type="button"
             >
               <Heart size={23} />
-              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-bold text-browin-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-semibold text-browin-white">
                 {favoritesCount}
               </span>
             </button>
@@ -830,7 +853,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               type="button"
             >
               <ShoppingCart size={24} />
-              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-bold text-browin-white">
+              <span className="absolute -right-0.5 -top-0.5 flex h-[15px] w-[15px] items-center justify-center rounded-full bg-browin-red text-[8px] font-semibold text-browin-white">
                 {cartCount}
               </span>
             </button>
@@ -931,14 +954,14 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             </div>
 
             {breadcrumbMenuOpen ? (
-              <div className="absolute left-4 top-[calc(100%+0.5rem)] w-[28rem] overflow-hidden rounded-md border border-browin-dark/10 bg-browin-white shadow-2xl">
+              <div className="absolute left-4 top-full w-[28rem] overflow-hidden rounded-b-md border-x border-b border-browin-dark/10 bg-browin-white shadow-[0_18px_28px_-22px_rgba(51,51,51,0.38)]">
                 {breadcrumbMenuMode === "categories" || !activeBreadcrumbCategory ? (
                   <div className="p-2">
-                    <p className="px-3 pb-2 pt-1 text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                    <p className="px-3 pb-2 pt-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/40">
                       Kategorie
                     </p>
                     <Link
-                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-bold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
+                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-semibold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
                       href="/produkty"
                       onClick={() => {
                         setBreadcrumbCategoryId(null);
@@ -952,7 +975,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                     <div className="grid grid-cols-2 gap-1">
                       {storeCategories.map((category) => (
                         <button
-                          className="flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-bold text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+                          className="flex min-w-0 items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm font-semibold text-browin-dark transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
                           key={category.id}
                           onClick={() => selectBreadcrumbCategory(category.id)}
                           type="button"
@@ -971,7 +994,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                 ) : (
                   <div className="p-2">
                     <div className="flex items-center justify-between gap-3 px-3 pb-2 pt-1">
-                      <p className="text-[10px] font-extrabold uppercase tracking-[0.16em] text-browin-dark/40">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/40">
                         {activeBreadcrumbCategory.label}
                       </p>
                       <button
@@ -990,7 +1013,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                     </div>
 
                     <Link
-                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-bold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
+                      className="mb-2 flex items-center justify-between rounded-md bg-browin-dark/5 px-3 py-2.5 text-sm font-semibold text-browin-dark transition-colors hover:bg-browin-red hover:text-browin-white"
                       href={`/kategoria/${activeBreadcrumbCategory.slug}`}
                       onClick={() => {
                         setBreadcrumbTopic(null);
@@ -1008,11 +1031,14 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                           href={buildCategoryHref(activeBreadcrumbCategory.slug, topic.query)}
                           key={`${activeBreadcrumbCategory.id}-${topic.label}-${topic.query ?? ""}`}
                           onClick={(event) => {
+                            const href = buildCategoryHref(
+                              activeBreadcrumbCategory.slug,
+                              topic.query,
+                            );
+
                             event.preventDefault();
                             selectBreadcrumbTopic(topic);
-                            navigateAfterPaint(
-                              buildCategoryHref(activeBreadcrumbCategory.slug, topic.query),
-                            );
+                            router.push(href);
                           }}
                         >
                           {topic.label}
@@ -1035,7 +1061,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                 <div className="flex h-12 w-12 items-center justify-center rounded-none border border-browin-dark/10 bg-browin-dark/5 text-browin-red transition-colors group-hover:bg-browin-red group-hover:text-browin-white">
                   <StoreIcon icon={category.icon} size={22} weight="fill" />
                 </div>
-                <span className="text-center text-[9px] font-bold uppercase tracking-wide text-browin-dark">
+                <span className="text-center text-[9px] font-semibold uppercase tracking-wide text-browin-dark">
                   {category.shortLabel}
                 </span>
               </Link>
@@ -1078,7 +1104,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           <div className="flex items-center space-x-2">
             <div className="relative group cursor-pointer">
               <button
-                className="flex shrink-0 items-center justify-center space-x-1 rounded-none border border-transparent bg-browin-dark/5 px-3 py-1.5 text-[11px] font-bold text-browin-dark transition-colors hover:border-browin-dark/10 hover:bg-browin-dark/10 focus:outline-none"
+                className="flex shrink-0 items-center justify-center space-x-1 rounded-none border border-transparent bg-browin-dark/5 px-3 py-1.5 text-[11px] font-semibold text-browin-dark transition-colors hover:border-browin-dark/10 hover:bg-browin-dark/10 focus:outline-none"
                 onClick={() => setMobileLangOpen((current) => !current)}
                 type="button"
               >
@@ -1093,14 +1119,14 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                 }`}
                 id="mobile-lang-menu"
               >
-                <button className="flex items-center justify-between bg-browin-red/5 px-4 py-2.5 text-sm font-bold text-browin-red" type="button">
+                <button className="flex items-center justify-between bg-browin-red/5 px-4 py-2.5 text-sm font-semibold text-browin-red" type="button">
                   <span>Polski</span>
                   <Check size={16} />
                 </button>
-                <button className="px-4 py-2.5 text-left text-sm font-medium text-browin-dark/70 transition-colors hover:bg-browin-dark/5" type="button">
+                <button className="px-4 py-2.5 text-left text-sm font-semibold text-browin-dark/70 transition-colors hover:bg-browin-dark/5" type="button">
                   English
                 </button>
-                <button className="px-4 py-2.5 text-left text-sm font-medium text-browin-dark/70 transition-colors hover:bg-browin-dark/5" type="button">
+                <button className="px-4 py-2.5 text-left text-sm font-semibold text-browin-dark/70 transition-colors hover:bg-browin-dark/5" type="button">
                   Deutsch
                 </button>
               </div>
@@ -1133,7 +1159,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       <span className="flex h-10 w-10 items-center justify-center rounded-none border border-browin-dark/10 bg-browin-dark/5 text-browin-red transition-colors group-hover:bg-browin-red group-hover:text-browin-white">
                         <Icon size={20} weight="fill" />
                       </span>
-                      <span className="text-center text-[9px] font-bold uppercase leading-tight tracking-wide text-browin-dark">
+                      <span className="text-center text-[9px] font-semibold uppercase leading-tight tracking-wide text-browin-dark">
                         {item.label}
                       </span>
                     </Link>
@@ -1146,7 +1172,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
           {activeMobileCategory ? (
             <div className="px-4 pb-2">
               <button
-                className="mb-3 inline-flex items-center gap-2 pt-2 text-[13px] font-bold uppercase tracking-[0.16em] text-browin-dark/60 transition-colors hover:text-browin-red"
+                className="mb-3 inline-flex items-center gap-2 pt-2 text-[13px] font-semibold uppercase tracking-[0.16em] text-browin-dark/60 transition-colors hover:text-browin-red"
                 onClick={() => setActiveMobileCategoryId(null)}
                 type="button"
               >
@@ -1160,17 +1186,17 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                     <StoreIcon icon={activeMobileCategory.icon} size={22} weight="fill" />
                   </div>
                   <div className="min-w-0">
-                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                       Kategoria
                     </p>
-                    <h3 className="mt-1 text-base font-extrabold tracking-tight text-browin-dark">
+                    <h3 className="mt-1 text-base font-semibold tracking-tight text-browin-dark">
                       {activeMobileCategory.label}
                     </h3>
                   </div>
                 </div>
 
                 <Link
-                  className="mt-3 inline-flex items-center gap-2 border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
+                  className="mt-3 inline-flex items-center gap-2 border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red/5"
                   href={`/kategoria/${activeMobileCategory.slug}`}
                   onClick={closeMobileMenu}
                 >
@@ -1182,7 +1208,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               <div className="divide-y divide-browin-dark/5 border-b border-browin-dark/5">
                 {getUniqueTopics(activeMobileCategory).map((topic) => (
                   <Link
-                    className="flex items-center justify-between gap-3 py-4 text-[14px] font-bold text-browin-dark transition-colors hover:text-browin-red"
+                    className="flex items-center justify-between gap-3 py-4 text-[14px] font-semibold text-browin-dark transition-colors hover:text-browin-red"
                     href={buildCategoryHref(activeMobileCategory.slug, topic.query)}
                     key={`${activeMobileCategory.id}-${topic.label}-${topic.query ?? ""}`}
                     onClick={closeMobileMenu}
@@ -1202,7 +1228,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               >
                 <div className="flex items-center space-x-4">
                   <Tag className="text-browin-red" size={24} />
-                  <span className="text-[15px] font-bold tracking-wide text-browin-red">
+                  <span className="text-[15px] font-semibold tracking-wide text-browin-red">
                     Promocje
                   </span>
                 </div>
@@ -1224,7 +1250,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
                       icon={category.icon}
                       size={24}
                     />
-                    <span className="text-[15px] font-bold tracking-wide text-browin-dark">
+                    <span className="text-[15px] font-semibold tracking-wide text-browin-dark">
                       {category.label}
                     </span>
                   </div>
@@ -1253,7 +1279,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             size={26}
             weight={isHomeBottomNavActive ? "fill" : "regular"}
           />
-          <span className="text-[9px] font-bold uppercase">Główna</span>
+          <span className="text-[9px] font-semibold uppercase">Główna</span>
         </Link>
         <button
           aria-pressed={isCategoriesBottomNavActive}
@@ -1266,7 +1292,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             size={26}
             weight={isCategoriesBottomNavActive ? "bold" : "regular"}
           />
-          <span className="text-[9px] font-bold uppercase">Kategorie</span>
+          <span className="text-[9px] font-semibold uppercase">Kategorie</span>
         </button>
         <Link
           aria-current={isRecipesBottomNavActive ? "page" : undefined}
@@ -1279,7 +1305,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             size={26}
             weight={isRecipesBottomNavActive ? "fill" : "regular"}
           />
-          <span className="text-[9px] font-bold uppercase">Przepisy</span>
+          <span className="text-[9px] font-semibold uppercase">Przepisy</span>
         </Link>
         <button
           aria-pressed={isCartBottomNavActive}
@@ -1292,8 +1318,8 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
             size={26}
             weight={isCartBottomNavActive ? "fill" : "regular"}
           />
-          <span className="text-[9px] font-bold uppercase">Koszyk</span>
-          <span className="absolute right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-bold text-browin-white">
+          <span className="text-[9px] font-semibold uppercase">Koszyk</span>
+          <span className="absolute right-2 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-semibold text-browin-white">
             {cartCount}
           </span>
         </button>

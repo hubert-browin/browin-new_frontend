@@ -70,7 +70,7 @@ export function ProductCard({
         </Link>
         {statusLabel ? (
           <span
-            className={`pointer-events-none absolute left-0 top-0 px-2 py-1 text-[10px] font-extrabold uppercase tracking-[0.14em] ${statusClass}`}
+            className={`pointer-events-none absolute left-0 top-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}
           >
             {statusLabel}
           </span>
@@ -79,7 +79,7 @@ export function ProductCard({
 
       <div className="flex min-h-0 flex-col md:flex-1">
         <Link
-          className={`${titleClampClass} text-[13px] font-bold leading-[1.28] text-browin-dark transition-colors hover:text-browin-red focus-visible:text-browin-red md:text-[15px]`}
+          className={`${titleClampClass} text-[13px] font-semibold leading-[1.28] text-browin-dark transition-colors hover:text-browin-red focus-visible:text-browin-red md:text-[15px]`}
           href={`/produkt/${product.slug}`}
         >
           {product.title}
@@ -126,7 +126,7 @@ export function ProductCard({
               </p>
             ) : null}
           </div>
-          <div className="font-extrabold text-[1.28rem] tracking-tight text-browin-dark md:text-[1.45rem]">
+          <div className="font-bold text-[1.28rem] tracking-tight text-browin-dark md:text-[1.45rem]">
             {formatCurrency(primaryVariant.price)}
           </div>
         </div>
@@ -137,7 +137,7 @@ export function ProductCard({
           type="button"
         >
           <ShoppingCart className="shrink-0" size={18} />
-          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 md:block md:group-hover:max-w-[3.5rem] md:group-hover:translate-x-0 md:group-hover:opacity-100 md:hover:max-w-[3.5rem] md:hover:translate-x-0 md:hover:opacity-100 md:focus-visible:max-w-[3.5rem] md:focus-visible:translate-x-0 md:focus-visible:opacity-100">
+          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 md:block md:group-hover:max-w-[3.5rem] md:group-hover:translate-x-0 md:group-hover:opacity-100 md:hover:max-w-[3.5rem] md:hover:translate-x-0 md:hover:opacity-100 md:focus-visible:max-w-[3.5rem] md:focus-visible:translate-x-0 md:focus-visible:opacity-100">
             Dodaj
           </span>
         </button>

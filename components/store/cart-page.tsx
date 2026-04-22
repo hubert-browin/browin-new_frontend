@@ -31,10 +31,10 @@ export function CartPage({ recommendations }: CartPageProps) {
           <div className="border border-browin-dark/10 bg-browin-white p-5 shadow-sm md:p-8">
             <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
               <div>
-                <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
                   Koszyk
                 </p>
-                <h1 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                <h1 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark md:text-3xl">
                   Podgląd zamówienia
                 </h1>
               </div>
@@ -51,13 +51,13 @@ export function CartPage({ recommendations }: CartPageProps) {
 
             <div className="mt-6 border border-browin-dark/10 bg-browin-gray p-5">
               {shippingRemaining > 0 ? (
-                <p className="text-sm font-bold text-browin-dark">
+                <p className="text-sm font-semibold text-browin-dark">
                   Brakuje Ci{" "}
                   <span className="text-browin-red">{formatCurrency(shippingRemaining)}</span>{" "}
                   do darmowej dostawy.
                 </p>
               ) : (
-                <p className="text-sm font-bold text-browin-red">
+                <p className="text-sm font-semibold text-browin-red">
                   Masz już odblokowaną darmową dostawę.
                 </p>
               )}
@@ -94,7 +94,7 @@ export function CartPage({ recommendations }: CartPageProps) {
                         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                           <div className="min-w-0">
                             <Link
-                              className="block text-lg font-bold leading-tight text-browin-dark transition-colors hover:text-browin-red"
+                              className="block text-lg font-semibold leading-tight text-browin-dark transition-colors hover:text-browin-red"
                               href={`/produkt/${product.slug}`}
                             >
                               {product.title}
@@ -103,7 +103,7 @@ export function CartPage({ recommendations }: CartPageProps) {
                               {product.subtitle}
                             </p>
                             {variant.label.trim() ? (
-                              <p className="mt-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
+                              <p className="mt-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
                                 {variant.label}
                               </p>
                             ) : null}
@@ -139,7 +139,7 @@ export function CartPage({ recommendations }: CartPageProps) {
                               +
                             </button>
                           </div>
-                          <p className="text-2xl font-extrabold tracking-tight text-browin-dark">
+                          <p className="text-2xl font-bold tracking-tight text-browin-dark">
                             {formatCurrency(variant.price * quantity)}
                           </p>
                         </div>
@@ -153,7 +153,7 @@ export function CartPage({ recommendations }: CartPageProps) {
                 <div className="mx-auto flex h-14 w-14 items-center justify-center bg-browin-dark/5 text-browin-red">
                   <ShoppingCart size={26} />
                 </div>
-                <h2 className="mt-4 text-2xl font-bold text-browin-dark">
+                <h2 className="mt-4 text-2xl font-semibold text-browin-dark">
                   Koszyk czeka na pierwsze produkty
                 </h2>
                 <p className="mt-3 text-sm leading-relaxed text-browin-dark/65">
@@ -172,10 +172,10 @@ export function CartPage({ recommendations }: CartPageProps) {
           </div>
 
           <aside className="cart-page-sidebar h-max border border-browin-dark/10 bg-browin-white p-5 shadow-sm md:p-6 lg:sticky lg:top-28">
-            <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
               Podsumowanie
             </p>
-            <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark">
+            <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark">
               Finalizacja zamówienia
             </h2>
             <div className="mt-6 space-y-3 text-sm">
@@ -187,14 +187,14 @@ export function CartPage({ recommendations }: CartPageProps) {
                 <span>Dostawa</span>
                 <span>{subtotal >= 149 ? "0,00 zł" : "od 14,90 zł"}</span>
               </div>
-              <div className="flex items-center justify-between border-t border-browin-dark/10 pt-3 text-lg font-extrabold tracking-tight text-browin-dark">
+              <div className="flex items-center justify-between border-t border-browin-dark/10 pt-3 text-lg font-bold tracking-tight text-browin-dark">
                 <span>Suma</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
             </div>
 
             <Link
-              className="checkout-cta mt-6 inline-flex w-full items-center justify-center gap-2 bg-browin-red py-4 text-sm font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+              className="checkout-cta mt-6 inline-flex w-full items-center justify-center gap-2 bg-browin-red py-4 text-sm font-bold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
               href="/checkout"
             >
               Przejdź do checkoutu
@@ -203,7 +203,7 @@ export function CartPage({ recommendations }: CartPageProps) {
 
             <div className="mt-10">
               <div className="mb-4 flex items-end justify-between gap-4">
-                <h3 className="text-xl font-bold tracking-tight text-browin-dark">
+                <h3 className="text-xl font-semibold tracking-tight text-browin-dark">
                   Dobierz jeszcze
                 </h3>
                 <Link

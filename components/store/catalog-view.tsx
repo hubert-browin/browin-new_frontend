@@ -82,18 +82,18 @@ function PriceRangeControl({
     <div>
       <div className="flex items-center justify-between gap-3">
         <div className="min-w-0 flex-1 border border-browin-dark/10 bg-browin-white px-4 py-3">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
             Od
           </p>
-          <p className="mt-1 text-base font-extrabold tracking-tight text-browin-dark">
+          <p className="mt-1 text-base font-semibold tracking-tight text-browin-dark">
             {formatCurrency(minPrice)}
           </p>
         </div>
         <div className="min-w-0 flex-1 border border-browin-dark/10 bg-browin-white px-4 py-3 text-right">
-          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
             Do
           </p>
-          <p className="mt-1 text-base font-extrabold tracking-tight text-browin-dark">
+          <p className="mt-1 text-base font-semibold tracking-tight text-browin-dark">
             {formatCurrency(maxPrice)}
           </p>
         </div>
@@ -352,12 +352,12 @@ export function CatalogView({
     <section className="bg-browin-gray pb-6 pt-6 md:pb-16">
       <div className="container mx-auto px-4">
         <div className="border-b border-browin-dark/10 pb-4">
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
             {eyebrow}
           </p>
           <div className="mt-2 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div className="max-w-3xl">
-              <h1 className="text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+              <h1 className="text-2xl font-bold uppercase tracking-tight text-browin-dark md:text-3xl">
                 {title}
               </h1>
               <p
@@ -373,7 +373,7 @@ export function CatalogView({
 
         <div className="mt-4 grid grid-cols-2 gap-3 md:hidden">
           <button
-            className="inline-flex items-center justify-center gap-2 border border-browin-dark/10 bg-browin-white px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
+            className="inline-flex items-center justify-center gap-2 border border-browin-dark/10 bg-browin-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
             onClick={() => {
               setMobileSortOpen(false);
               setMobileFiltersOpen(true);
@@ -384,7 +384,7 @@ export function CatalogView({
             Filtry
           </button>
           <button
-            className="inline-flex items-center justify-center gap-2 border border-browin-dark/10 bg-browin-white px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
+            className="inline-flex items-center justify-center gap-2 border border-browin-dark/10 bg-browin-white px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
             onClick={() => {
               setMobileFiltersOpen(false);
               setMobileSortOpen(true);
@@ -425,7 +425,7 @@ export function CatalogView({
             <div className="flex flex-wrap items-start gap-3">
               <div className="relative">
                 <button
-                  className={`inline-flex min-h-12 items-center justify-center gap-2 border px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 border px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                     desktopFiltersOpen
                       ? "border-browin-red bg-browin-red/5 text-browin-red"
                       : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -455,11 +455,11 @@ export function CatalogView({
                       <div>
                         {search ? (
                           <div className="border border-browin-dark/10 bg-browin-gray px-4 py-4">
-                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                               Aktywne wyszukiwanie
                             </p>
                             <div className="mt-2 flex items-center justify-between gap-3">
-                              <p className="text-sm font-bold text-browin-dark">{search}</p>
+                              <p className="text-sm font-semibold text-browin-dark">{search}</p>
                               <button
                                 className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
                                 onClick={() => setSearch("")}
@@ -473,12 +473,12 @@ export function CatalogView({
 
                         {!lockedCategoryId ? (
                           <div className={`${search ? "mt-5" : ""}`}>
-                            <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                               Kategoria
                             </p>
                             <div className="mt-3 flex flex-wrap gap-3">
                               <button
-                                className={`border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                                className={`border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                                   selectedCategory === "all"
                                     ? "border-browin-red bg-browin-red text-browin-white"
                                     : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -490,7 +490,7 @@ export function CatalogView({
                               </button>
                               {categories.map((category) => (
                                 <button
-                                  className={`border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                                  className={`border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                                     selectedCategory === category.id
                                       ? "border-browin-red bg-browin-red text-browin-white"
                                       : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -507,7 +507,7 @@ export function CatalogView({
                         ) : null}
 
                         <div className={`${search || !lockedCategoryId ? "mt-5" : ""}`}>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                             Zakres cen
                           </p>
                           <div className="mt-3 border border-browin-dark/10 bg-browin-gray px-4 py-4">
@@ -524,7 +524,7 @@ export function CatalogView({
                       </div>
 
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                           Dostępność i promocje
                         </p>
                         <div className="mt-3 space-y-3">
@@ -537,7 +537,7 @@ export function CatalogView({
                             onClick={() => setDealsOnly((current) => !current)}
                             type="button"
                           >
-                            <span className="text-sm font-bold uppercase tracking-[0.16em]">
+                            <span className="text-sm font-semibold uppercase tracking-[0.16em]">
                               Tylko promocje
                             </span>
                             {dealsOnly ? <Check size={18} weight="bold" /> : null}
@@ -552,7 +552,7 @@ export function CatalogView({
                             onClick={() => setInStockOnly((current) => !current)}
                             type="button"
                           >
-                            <span className="text-sm font-bold uppercase tracking-[0.16em]">
+                            <span className="text-sm font-semibold uppercase tracking-[0.16em]">
                               Tylko dostępne
                             </span>
                             {inStockOnly ? <Check size={18} weight="bold" /> : null}
@@ -563,7 +563,7 @@ export function CatalogView({
 
                     <div className="mt-6 flex items-center justify-between gap-3 border-t border-browin-dark/10 pt-5">
                       <button
-                        className="border border-browin-dark/10 bg-browin-white px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
+                        className="border border-browin-dark/10 bg-browin-white px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
                         onClick={resetFilters}
                         type="button"
                       >
@@ -583,7 +583,7 @@ export function CatalogView({
 
               <div className="relative">
                 <button
-                  className={`inline-flex min-h-12 items-center justify-center gap-2 border px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 border px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                     desktopSortOpen
                       ? "border-browin-red bg-browin-red/5 text-browin-red"
                       : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -606,10 +606,10 @@ export function CatalogView({
                   <div className="absolute left-0 top-full z-20 mt-3 w-80 max-w-[calc(100vw-4rem)] border border-browin-dark/10 bg-browin-white p-5 shadow-panel">
                     <div className="mb-5 flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
                           Sortowanie
                         </p>
-                        <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-browin-dark">
+                        <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark">
                           {activeSortLabel}
                         </h2>
                       </div>
@@ -637,7 +637,7 @@ export function CatalogView({
                           }}
                           type="button"
                         >
-                          <span className="text-sm font-bold uppercase tracking-[0.16em]">
+                          <span className="text-sm font-semibold uppercase tracking-[0.16em]">
                             {option.label}
                           </span>
                           {sort === option.value ? <Check size={18} weight="bold" /> : null}
@@ -681,32 +681,32 @@ export function CatalogView({
             sort !== "featured") ? (
             <div className="mt-3 flex flex-wrap gap-2">
               {search ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Wyszukiwanie: {search}
                 </span>
               ) : null}
               {selectedCategoryLabel ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Kategoria: {selectedCategoryLabel}
                 </span>
               ) : null}
               {dealsOnly ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Tylko promocje
                 </span>
               ) : null}
               {inStockOnly ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Tylko dostępne
                 </span>
               ) : null}
               {priceFilterLabel ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Cena: {priceFilterLabel}
                 </span>
               ) : null}
               {sort !== "featured" ? (
-                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                <span className="border border-browin-dark/10 bg-browin-white px-3 py-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark">
                   Sortowanie: {activeSortLabel}
                 </span>
               ) : null}
@@ -718,7 +718,7 @@ export function CatalogView({
           <InfiniteProductGrid key={infiniteListKey} products={visibleProducts} />
         ) : (
           <div className="mt-8 border border-dashed border-browin-dark/15 bg-browin-white p-8 text-center shadow-sm">
-            <h2 className="text-2xl font-bold text-browin-dark">Brak dopasowanych produktów</h2>
+            <h2 className="text-2xl font-semibold text-browin-dark">Brak dopasowanych produktów</h2>
             <p className="mt-3 text-sm leading-relaxed text-browin-dark/65">
               Spróbuj zmienić kategorię, usunąć ograniczenia lub wpisać szerszą frazę.
             </p>
@@ -746,10 +746,10 @@ export function CatalogView({
         >
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
                 Filtry
               </p>
-              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-browin-dark">
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark">
                 Zawęź listing
               </h2>
             </div>
@@ -764,11 +764,11 @@ export function CatalogView({
 
           {search ? (
             <div className="mb-4 border border-browin-dark/10 bg-browin-gray px-4 py-4">
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                 Aktywne wyszukiwanie
               </p>
               <div className="mt-2 flex items-center justify-between gap-3">
-                <p className="text-sm font-bold text-browin-dark">{search}</p>
+                <p className="text-sm font-semibold text-browin-dark">{search}</p>
                 <button
                   className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
                   onClick={() => setSearch("")}
@@ -783,12 +783,12 @@ export function CatalogView({
           <div className="space-y-5">
             {!lockedCategoryId ? (
               <div>
-                <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                   Kategoria
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
                   <button
-                    className={`border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                    className={`border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                       selectedCategory === "all"
                         ? "border-browin-red bg-browin-red text-browin-white"
                         : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -800,7 +800,7 @@ export function CatalogView({
                   </button>
                   {categories.map((category) => (
                     <button
-                      className={`border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition-colors ${
+                      className={`border px-4 py-2 text-xs font-semibold uppercase tracking-[0.16em] transition-colors ${
                         selectedCategory === category.id
                           ? "border-browin-red bg-browin-red text-browin-white"
                           : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
@@ -817,7 +817,7 @@ export function CatalogView({
             ) : null}
 
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                 Zakres cen
               </p>
               <div className="mt-3 border border-browin-dark/10 bg-browin-gray px-4 py-4">
@@ -833,11 +833,11 @@ export function CatalogView({
             </div>
 
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                 Dostępność i promocje
               </p>
               <div className="mt-3 space-y-3">
-                <label className="flex items-center justify-between border border-browin-dark/10 bg-browin-gray px-4 py-4 text-sm font-bold text-browin-dark">
+                <label className="flex items-center justify-between border border-browin-dark/10 bg-browin-gray px-4 py-4 text-sm font-semibold text-browin-dark">
                   <span>Tylko promocje</span>
                   <input
                     checked={dealsOnly}
@@ -847,7 +847,7 @@ export function CatalogView({
                   />
                 </label>
 
-                <label className="flex items-center justify-between border border-browin-dark/10 bg-browin-gray px-4 py-4 text-sm font-bold text-browin-dark">
+                <label className="flex items-center justify-between border border-browin-dark/10 bg-browin-gray px-4 py-4 text-sm font-semibold text-browin-dark">
                   <span>Tylko dostępne</span>
                   <input
                     checked={inStockOnly}
@@ -862,7 +862,7 @@ export function CatalogView({
 
           <div className="mt-6 grid grid-cols-2 gap-3">
             <button
-              className="border border-browin-dark/10 bg-browin-white px-4 py-3 text-sm font-bold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
+              className="border border-browin-dark/10 bg-browin-white px-4 py-3 text-sm font-semibold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
               onClick={resetFilters}
               type="button"
             >
@@ -885,10 +885,10 @@ export function CatalogView({
         >
           <div className="mb-5 flex items-start justify-between gap-4">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-red">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
                 Sortowanie
               </p>
-              <h2 className="mt-2 text-2xl font-extrabold tracking-tight text-browin-dark">
+              <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark">
                 {activeSortLabel}
               </h2>
             </div>
@@ -916,7 +916,7 @@ export function CatalogView({
                 }}
                 type="button"
               >
-                <span className="text-sm font-bold uppercase tracking-[0.16em]">
+                <span className="text-sm font-semibold uppercase tracking-[0.16em]">
                   {option.label}
                 </span>
                 {sort === option.value ? <Check size={18} weight="bold" /> : null}

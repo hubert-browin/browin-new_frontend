@@ -93,7 +93,7 @@ export function StoreFooter() {
 
           {footerColumns.map((column) => (
             <div key={column.title}>
-              <h2 className="text-[11px] font-bold uppercase tracking-[0.18em] text-browin-white">
+              <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-browin-white">
                 {column.title}
               </h2>
               <ul className="mt-5 space-y-3 text-sm text-browin-white/65">
@@ -114,7 +114,7 @@ export function StoreFooter() {
       </div>
 
       <div className="border-t border-browin-white/10 pb-[calc(env(safe-area-inset-bottom,0px)+4.5rem)] md:pb-0">
-        <div className="container mx-auto flex flex-col gap-3 px-4 py-5 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-white/55 sm:flex-row sm:items-center sm:justify-between">
+        <div className="container mx-auto flex flex-col gap-3 px-4 py-5 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-white/55 sm:flex-row sm:items-center sm:justify-between">
           <p>&copy; {currentYear} BROWIN Sp. z o.o. — Wszystkie prawa zastrzeżone.</p>
           <ul className="flex flex-wrap gap-x-5 gap-y-2">
             {infoPages.map((page) => (

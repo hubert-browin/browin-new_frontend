@@ -37,7 +37,7 @@ export function CartDrawer() {
         id="cart-drawer"
       >
         <div className="flex items-center justify-between border-b border-browin-dark/10 bg-browin-white p-5 shrink-0">
-          <h2 className="text-xl font-extrabold uppercase tracking-wide text-browin-dark">
+          <h2 className="text-xl font-bold uppercase tracking-wide text-browin-dark">
             Twój koszyk ({count})
           </h2>
           <button
@@ -51,13 +51,13 @@ export function CartDrawer() {
 
         <div className="border-b border-browin-dark/10 bg-browin-gray p-5 shrink-0">
           {shippingRemaining > 0 ? (
-            <p className="mb-3 text-[13px] font-bold text-browin-dark">
+            <p className="mb-3 text-[13px] font-semibold text-browin-dark">
               Brakuje Ci{" "}
               <span className="text-browin-red">{formatCurrency(shippingRemaining)}</span>{" "}
               do darmowej dostawy!
             </p>
           ) : (
-            <p className="mb-3 text-[13px] font-bold text-browin-red">
+            <p className="mb-3 text-[13px] font-semibold text-browin-red">
               Masz już darmową dostawę.
             </p>
           )}
@@ -92,14 +92,14 @@ export function CartDrawer() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="pr-2">
                       <Link
-                        className="text-[13px] font-bold leading-tight text-browin-dark transition-colors hover:text-browin-red"
+                        className="text-[13px] font-semibold leading-tight text-browin-dark transition-colors hover:text-browin-red"
                         href={`/produkt/${product.slug}`}
                         onClick={closeCart}
                       >
                         {product.title}
                       </Link>
                       {variant.label.trim() ? (
-                        <p className="mt-1 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                        <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                           {variant.label}
                         </p>
                       ) : null}
@@ -134,7 +134,7 @@ export function CartDrawer() {
                         +
                       </button>
                     </div>
-                    <span className="text-[15px] font-extrabold text-browin-dark">
+                    <span className="text-[15px] font-bold text-browin-dark">
                       {formatCurrency(variant.price * quantity)}
                     </span>
                   </div>
@@ -146,12 +146,12 @@ export function CartDrawer() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center bg-browin-dark/5 text-browin-red">
                 <ShoppingCart size={22} />
               </div>
-              <p className="mt-4 font-bold text-browin-dark">Koszyk jest pusty.</p>
+              <p className="mt-4 font-semibold text-browin-dark">Koszyk jest pusty.</p>
               <p className="mt-2 text-sm text-browin-dark/65">
                 Dodaj kilka produktów, żeby zobaczyć pełny przepływ zakupowy.
               </p>
               <Link
-                className="mt-5 inline-flex items-center justify-center border border-browin-red px-4 py-3 text-xs font-bold uppercase tracking-[0.16em] !text-browin-red transition-colors hover:bg-browin-red hover:!text-browin-white"
+                className="mt-5 inline-flex items-center justify-center border border-browin-red px-4 py-3 text-xs font-semibold uppercase tracking-[0.16em] !text-browin-red transition-colors hover:bg-browin-red hover:!text-browin-white"
                 href="/produkty"
                 onClick={closeCart}
               >
@@ -163,15 +163,15 @@ export function CartDrawer() {
 
         <div className="border-t border-browin-dark/10 bg-browin-white p-5 shrink-0 md:bg-browin-gray">
           <div className="mb-4 flex items-center justify-between">
-            <span className="text-[13px] font-bold uppercase tracking-[0.16em] text-browin-dark/70">
+            <span className="text-[13px] font-semibold uppercase tracking-[0.16em] text-browin-dark/70">
               Suma
             </span>
-            <span className="text-2xl font-extrabold tracking-tight text-browin-dark">
+            <span className="text-2xl font-bold tracking-tight text-browin-dark">
               {formatCurrency(subtotal)}
             </span>
           </div>
           <Link
-            className="checkout-cta inline-flex w-full items-center justify-center gap-2 bg-browin-red py-4 text-sm font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+            className="checkout-cta inline-flex w-full items-center justify-center gap-2 bg-browin-red py-4 text-sm font-bold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
             href="/checkout"
             onClick={closeCart}
           >
@@ -179,7 +179,7 @@ export function CartDrawer() {
             <ArrowRight size={18} />
           </Link>
           <Link
-            className="mt-3 hidden text-center text-[12px] font-bold uppercase tracking-[0.16em] text-browin-dark/65 transition-colors hover:text-browin-red md:block"
+            className="mt-3 hidden text-center text-[12px] font-semibold uppercase tracking-[0.16em] text-browin-dark/65 transition-colors hover:text-browin-red md:block"
             href="/koszyk"
             onClick={closeCart}
           >

@@ -246,7 +246,7 @@ export function HomePage({
 
                     return (
                       <Link
-                        className={`desktop-cat-tab group relative flex flex-1 items-center justify-between rounded-none border px-5 py-2 font-bold transition-colors duration-150 ${
+                        className={`desktop-cat-tab group relative flex flex-1 items-center justify-between rounded-none border px-5 py-2 font-semibold transition-colors duration-150 ${
                           isActive
                             ? "z-40 -mr-[1px] w-[calc(100%+2px)] border-y border-l border-r-transparent border-browin-dark/10 bg-browin-white text-browin-red"
                             : "w-full border-transparent text-browin-dark hover:bg-browin-dark/5"
@@ -276,7 +276,7 @@ export function HomePage({
 
                 <div className="mt-auto shrink-0 border-t border-browin-dark/10 px-5 pt-4 pb-2">
                   <Link
-                    className="group flex items-center font-bold text-browin-red transition-colors hover:text-browin-dark"
+                    className="group flex items-center font-semibold text-browin-red transition-colors hover:text-browin-dark"
                     href="/produkty?deal=true"
                   >
                     <Gift className="mr-3 transition-transform group-hover:rotate-12" size={22} weight="fill" />
@@ -297,10 +297,10 @@ export function HomePage({
                   <div className="flex w-[65%] gap-8 p-8 xl:p-12">
                     {activeDesktopData.menuSections.map((section) => (
                       <div className="flex-1" key={section.title}>
-                        <h3 className="mb-5 border-b border-browin-dark/10 pb-3 text-[13px] font-extrabold uppercase tracking-wider text-browin-dark">
+                        <h3 className="mb-5 border-b border-browin-dark/10 pb-3 text-[13px] font-semibold uppercase tracking-wider text-browin-dark">
                           {section.title}
                         </h3>
-                        <ul className="space-y-4 text-[14px] font-medium text-browin-dark/80">
+                        <ul className="space-y-4 text-[14px] font-semibold text-browin-dark/80">
                           {section.topics.map((topic) => (
                             <li key={topic.label}>
                               <Link
@@ -322,7 +322,7 @@ export function HomePage({
                     <div className="group/promo relative flex w-[35%] flex-col items-center justify-center overflow-hidden border-l border-browin-dark/10 bg-browin-gray p-8 text-center xl:p-12">
                       <div className="relative z-10 flex w-full max-w-[18rem] flex-col items-center">
                         {activePromo.eyebrow ? (
-                          <span className="mb-5 w-max rounded-none bg-browin-red px-3 py-1.5 text-[10px] font-bold uppercase text-browin-white shadow-sharp">
+                          <span className="mb-5 w-max rounded-none bg-browin-red px-3 py-1.5 text-[10px] font-semibold uppercase text-browin-white shadow-sharp">
                             {activePromo.eyebrow}
                           </span>
                         ) : null}
@@ -336,14 +336,14 @@ export function HomePage({
                           />
                         ) : null}
 
-                        <h4 className="mb-4 text-[26px] font-extrabold leading-tight text-browin-dark">
+                        <h4 className="mb-4 text-[26px] font-bold leading-tight text-browin-dark">
                           {activePromo.title}
                         </h4>
                         <p className="mb-10 text-sm leading-relaxed text-browin-dark/70">
                           {activePromo.description}
                         </p>
                         <Link
-                          className="w-full border-2 border-browin-red px-8 py-3.5 text-center text-sm font-bold uppercase tracking-wide !text-browin-red transition-colors hover:bg-transparent hover:!text-browin-red"
+                          className="w-full border-2 border-browin-red px-8 py-3.5 text-center text-sm font-semibold uppercase tracking-wide !text-browin-red transition-colors hover:bg-transparent hover:!text-browin-red"
                           href={activePromoHref}
                           onClick={() => setDesktopMenuOpen(false)}
                         >
@@ -354,12 +354,12 @@ export function HomePage({
                   ) : (
                     <div className="group/promo relative flex w-[35%] flex-col justify-center border-l border-browin-dark/10 bg-browin-gray p-8 xl:p-12">
                       {activePromo.eyebrow ? (
-                        <span className="mb-5 w-max rounded-none bg-browin-red px-3 py-1.5 text-[10px] font-bold uppercase text-browin-white shadow-sharp">
+                        <span className="mb-5 w-max rounded-none bg-browin-red px-3 py-1.5 text-[10px] font-semibold uppercase text-browin-white shadow-sharp">
                           {activePromo.eyebrow}
                         </span>
                       ) : null}
 
-                      <h4 className="mb-3 text-[22px] font-extrabold leading-tight text-browin-dark xl:text-[26px]">
+                      <h4 className="mb-3 text-[22px] font-bold leading-tight text-browin-dark xl:text-[26px]">
                         {activePromo.title}
                       </h4>
                       <p className="mb-8 text-sm leading-relaxed text-browin-dark/70">
@@ -393,28 +393,28 @@ export function HomePage({
               <div className="utility-strip hidden h-14 w-full shrink-0 items-center justify-between border border-browin-dark/10 bg-browin-white px-6 shadow-none lg:flex">
                 <div className="utility-strip-links flex items-center gap-6 overflow-hidden xl:gap-8">
                   <Link
-                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
+                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
                     href="/produkty?search=prezent"
                   >
                     <Gift className="text-browin-red transition-transform group-hover:scale-110" size={18} />
                     <span>Karty podarunkowe</span>
                   </Link>
                   <Link
-                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
+                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
                     href="/produkty?search=starter"
                   >
                     <Sliders className="text-browin-red transition-transform group-hover:rotate-90" size={18} />
                     <span>Konfigurator</span>
                   </Link>
                   <Link
-                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
+                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
                     href="/produkty?search=termometr"
                   >
                     <Calculator className="text-browin-red transition-transform group-hover:scale-110" size={18} />
                     <span>Kalkulatory</span>
                   </Link>
                   <Link
-                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-bold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
+                    className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
                     href="/checkout"
                   >
                     <Handshake className="text-browin-red transition-transform group-hover:scale-110" size={18} />
@@ -423,7 +423,7 @@ export function HomePage({
                 </div>
 
                 <Link
-                  className="utility-strip-highlight group -mr-6 flex h-full shrink-0 items-center space-x-2 bg-browin-red px-6 text-[11px] font-extrabold uppercase tracking-wider text-browin-white transition-colors hover:bg-browin-red/90 xl:px-8 xl:text-[12px]"
+                  className="utility-strip-highlight group -mr-6 flex h-full shrink-0 items-center space-x-2 bg-browin-red px-6 text-[11px] font-semibold uppercase tracking-wider text-browin-white transition-colors hover:bg-browin-red/90 xl:px-8 xl:text-[12px]"
                   href="/produkty?search=zestaw"
                 >
                   <BookOpen className="transition-transform group-hover:scale-110" size={20} weight="fill" />
@@ -473,13 +473,13 @@ export function HomePage({
                                   />
                                 ))}
                               </div>
-                              <span className="text-[11px] font-bold tracking-wide text-browin-white">
+                              <span className="text-[11px] font-semibold tracking-wide text-browin-white">
                                 {slide.eyebrow}
                               </span>
                             </div>
                           ) : (
                             <span
-                              className={`mb-4 w-max rounded-none px-3 py-1.5 text-[10px] font-bold uppercase shadow-sharp ${
+                              className={`mb-4 w-max rounded-none px-3 py-1.5 text-[10px] font-semibold uppercase shadow-sharp ${
                                 slide.emphasis === "light"
                                   ? "bg-browin-red text-browin-white"
                                   : "border border-browin-white/20 bg-browin-dark/50 text-browin-white backdrop-blur-sm"
@@ -489,12 +489,12 @@ export function HomePage({
                             </span>
                           )}
 
-                          <h1 className="mb-4 max-w-[16rem] text-[1.95rem] font-extrabold leading-[1.08] text-browin-white drop-shadow-md sm:max-w-[18rem] sm:text-[2.35rem] md:max-w-[26rem] md:text-4xl xl:max-w-[30rem] xl:text-5xl">
+                          <h1 className="mb-4 max-w-[16rem] text-[1.95rem] font-bold leading-[1.08] text-browin-white drop-shadow-md sm:max-w-[18rem] sm:text-[2.35rem] md:max-w-[26rem] md:text-4xl xl:max-w-[30rem] xl:text-5xl">
                             {slide.title}
                           </h1>
 
                           <Link
-                            className="hero-primary-cta inline-flex w-max items-center bg-browin-red px-5 py-3 text-[11px] font-extrabold uppercase tracking-wide text-browin-white shadow-sharp transition-colors hover:bg-browin-dark hover:text-browin-white md:px-8 md:py-3.5 md:text-sm"
+                            className="hero-primary-cta inline-flex w-max items-center bg-browin-red px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-browin-white shadow-sharp transition-colors hover:bg-browin-dark hover:text-browin-white md:px-8 md:py-3.5 md:text-sm"
                             href={slide.href}
                           >
                             {slide.cta}
@@ -563,11 +563,11 @@ export function HomePage({
 
                       <div className="relative z-10 flex items-start justify-between">
                         <div>
-                          <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                          <span className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-browin-red xl:text-[11px]">
                             <Fire className="mr-1" size={16} weight="fill" />
                             Hit Tygodnia
                           </span>
-                          <h3 className="mt-1 max-w-[90%] text-base font-bold leading-tight text-browin-dark transition-colors group-hover:text-browin-red xl:text-lg">
+                          <h3 className="mt-1 max-w-[90%] text-base font-semibold leading-tight text-browin-dark transition-colors group-hover:text-browin-red xl:text-lg">
                             {weeklyHit.title}
                           </h3>
                         </div>
@@ -575,13 +575,13 @@ export function HomePage({
 
                       <div className="relative z-10 mt-auto flex items-end justify-between pt-2">
                         <div>
-                          <p className="mb-0.5 text-xs font-bold text-browin-dark/50 line-through">
+                          <p className="mb-0.5 text-xs font-semibold text-browin-dark/50 line-through">
                             {formatCurrency(
                               (getPrimaryVariant(weeklyHit).compareAtPrice ??
                                 getPrimaryVariant(weeklyHit).price) + 12,
                             )}
                           </p>
-                          <p className="text-2xl font-extrabold leading-none text-browin-dark xl:text-3xl">
+                          <p className="text-2xl font-bold leading-none text-browin-dark xl:text-3xl">
                             {formatCurrency(getPrimaryVariant(weeklyHit).price)}
                           </p>
                         </div>
@@ -595,7 +595,7 @@ export function HomePage({
                           type="button"
                         >
                           <ShoppingCart className="shrink-0" size={20} />
-                          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-bold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 xl:block xl:group-hover:max-w-[3.8rem] xl:group-hover:translate-x-0 xl:group-hover:opacity-100 xl:hover:max-w-[3.8rem] xl:hover:translate-x-0 xl:hover:opacity-100 xl:focus-visible:max-w-[3.8rem] xl:focus-visible:translate-x-0 xl:focus-visible:opacity-100">
+                          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 xl:block xl:group-hover:max-w-[3.8rem] xl:group-hover:translate-x-0 xl:group-hover:opacity-100 xl:hover:max-w-[3.8rem] xl:hover:translate-x-0 xl:hover:opacity-100 xl:focus-visible:max-w-[3.8rem] xl:focus-visible:translate-x-0 xl:focus-visible:opacity-100">
                             Dodaj
                           </span>
                         </button>
@@ -605,11 +605,11 @@ export function HomePage({
                   ) : (
                     <div className="flex h-full flex-col justify-between border border-browin-dark/10 bg-browin-white p-5 shadow-sm xl:p-6">
                       <div>
-                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                        <span className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-browin-red xl:text-[11px]">
                           <Fire className="mr-1" size={16} weight="fill" />
                           Feed aktywny
                         </span>
-                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                        <h3 className="mt-1 text-base font-semibold leading-tight text-browin-dark xl:text-lg">
                           Produkty są wczytywane z publicznego JSON-a BROWIN.
                         </h3>
                       </div>
@@ -625,14 +625,14 @@ export function HomePage({
                       />
 
                       <div className="relative z-10">
-                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                        <span className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-browin-red xl:text-[11px]">
                           <ClockCountdown className="mr-1" size={16} weight="fill" />
                           Oferta Dnia
                         </span>
-                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                        <h3 className="mt-1 text-base font-semibold leading-tight text-browin-dark xl:text-lg">
                           {offerDay.title}
                         </h3>
-                        <span className="mt-2 inline-block bg-browin-red px-2 py-0.5 text-[9px] font-bold text-browin-white">
+                        <span className="mt-2 inline-block bg-browin-red px-2 py-0.5 text-[9px] font-semibold text-browin-white">
                           Sprawdź teraz
                         </span>
                       </div>
@@ -641,14 +641,14 @@ export function HomePage({
 
                       <div className="relative z-10 mt-4">
                         <div className="mb-3 flex items-end gap-2">
-                          <span className="text-2xl font-extrabold leading-none tracking-tight text-browin-red xl:text-3xl">
+                          <span className="text-2xl font-bold leading-none tracking-tight text-browin-red xl:text-3xl">
                             {formatCurrency(getPrimaryVariant(offerDay).price)}
                           </span>
                         </div>
                         <div className="mb-1.5 h-1.5 w-full rounded-none bg-browin-dark/10">
                           <div className="h-1.5 w-[85%] rounded-none bg-browin-red" />
                         </div>
-                        <div className="flex items-center justify-between text-[9px] font-bold uppercase text-browin-dark/60">
+                        <div className="flex items-center justify-between text-[9px] font-semibold uppercase text-browin-dark/60">
                           <span>Oferta specjalna</span>
                           <span className="text-browin-red">Zobacz produkt</span>
                         </div>
@@ -657,11 +657,11 @@ export function HomePage({
                   ) : (
                     <div className="flex h-full flex-col justify-between border border-browin-dark/10 bg-browin-white p-5 shadow-sm xl:p-6">
                       <div>
-                        <span className="flex items-center text-[10px] font-bold uppercase tracking-wider text-browin-red xl:text-[11px]">
+                        <span className="flex items-center text-[10px] font-semibold uppercase tracking-wider text-browin-red xl:text-[11px]">
                           <ClockCountdown className="mr-1" size={16} weight="fill" />
                           Dane live
                         </span>
-                        <h3 className="mt-1 text-base font-bold leading-tight text-browin-dark xl:text-lg">
+                        <h3 className="mt-1 text-base font-semibold leading-tight text-browin-dark xl:text-lg">
                           Draft sklepu czeka na pierwsze produkty z feedu.
                         </h3>
                       </div>

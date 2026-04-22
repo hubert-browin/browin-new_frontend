@@ -13,14 +13,11 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import {
   useEffect,
   useLayoutEffect,
   useRef,
   useState,
-  type KeyboardEvent as ReactKeyboardEvent,
-  type MouseEvent as ReactMouseEvent,
   type PointerEvent as ReactPointerEvent,
   type TouchEvent as ReactTouchEvent,
   type WheelEvent as ReactWheelEvent,
@@ -258,7 +255,7 @@ function VariantSelector({
           >
             {variant.label.trim() ? (
               <p
-                className={`leading-tight ${compact ? "text-[0.95rem]" : "text-sm"} font-bold ${
+                className={`leading-tight ${compact ? "text-[0.95rem]" : "text-sm"} font-semibold ${
                   isActive ? "text-browin-white" : "text-browin-dark"
                 }`}
               >
@@ -309,7 +306,7 @@ function QuantitySelector({
       <input
         aria-label={`Wpisz ilosc produktu, aktualnie ${quantity}`}
         autoComplete="off"
-        className={`appearance-none flex flex-1 self-stretch items-center justify-center bg-transparent text-center font-black tabular-nums tracking-tight text-browin-dark outline-none ${valueClass}`}
+        className={`appearance-none flex flex-1 self-stretch items-center justify-center bg-transparent text-center font-bold tabular-nums tracking-tight text-browin-dark outline-none ${valueClass}`}
         enterKeyHint="done"
         inputMode="numeric"
         onBlur={onQuantityInputBlur}
@@ -391,11 +388,11 @@ function TrustSummary({
               <StoreIcon icon={signal.icon} size={18} weight="fill" />
             </div>
             <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                 {signal.label}
               </p>
               <p
-                className={`mt-1 font-bold leading-snug text-browin-dark ${
+                className={`mt-1 font-semibold leading-snug text-browin-dark ${
                   compact ? "text-[13px]" : "text-sm"
                 }`}
               >
@@ -413,7 +410,7 @@ function TrustSummary({
 
       {!qualifiesForFreeShipping && !compact ? (
         <div className="mt-3 rounded-sm border border-browin-red/18 bg-browin-white px-3 py-3 text-xs leading-relaxed text-browin-dark/72">
-          Brakuje <span className="font-extrabold text-browin-dark">{formatCurrency(amountToFreeShipping)}</span> do darmowej dostawy.
+          Brakuje <span className="font-bold text-browin-dark">{formatCurrency(amountToFreeShipping)}</span> do darmowej dostawy.
         </div>
       ) : null}
 
@@ -454,20 +451,20 @@ function ProductFileTile({ file }: { file: ProductFile }) {
     >
       <span
         aria-hidden
-        className="grid h-11 w-11 shrink-0 place-items-center border border-browin-dark/10 bg-browin-white font-mono text-[11px] font-extrabold tracking-[0.06em] text-browin-red"
+        className="grid h-11 w-11 shrink-0 place-items-center border border-browin-dark/10 bg-browin-white font-mono text-[11px] font-semibold tracking-[0.06em] text-browin-red"
       >
         PDF
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+        <span className="block text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
           {fileTypeLabels[file.type] ?? "PDF"}
         </span>
-        <span className="mt-1 block break-words text-sm font-bold text-browin-dark transition-colors group-hover:text-browin-red sm:truncate">
+        <span className="mt-1 block break-words text-sm font-semibold text-browin-dark transition-colors group-hover:text-browin-red sm:truncate">
           {file.label}
         </span>
       </span>
       {file.sizeLabel ? (
-        <span className="col-start-2 row-start-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/45 sm:col-auto sm:row-auto sm:shrink-0">
+        <span className="col-start-2 row-start-2 text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/45 sm:col-auto sm:row-auto sm:shrink-0">
           {file.sizeLabel}
         </span>
       ) : null}
@@ -497,10 +494,10 @@ function BundleItemsList({ items }: { items: ProductBundleItem[] }) {
               </div>
             ) : null}
             <div className="min-w-0 flex-1">
-              <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                 {item.quantity} szt.
               </p>
-              <p className="mt-1 text-sm font-bold text-browin-dark">{item.name}</p>
+              <p className="mt-1 text-sm font-semibold text-browin-dark">{item.name}</p>
             </div>
             {item.slug ? (
               <ArrowRight className="shrink-0 text-browin-dark/35 transition-colors group-hover:text-browin-red" size={16} />
@@ -541,7 +538,7 @@ function ProductSpecsList({ product }: { product: Product }) {
           className="grid gap-1.5 py-3 text-sm md:grid-cols-[minmax(0,13rem)_minmax(0,1fr)] md:gap-4"
           key={spec.label}
         >
-          <dt className="font-bold text-browin-dark">{spec.label}</dt>
+          <dt className="font-semibold text-browin-dark">{spec.label}</dt>
           <dd className="text-browin-dark/68">{spec.value}</dd>
         </div>
       ))}
@@ -560,16 +557,16 @@ function ProductQuestionsPrompt() {
           <ChatCircleText size={24} weight="fill" />
         </span>
         <div className="min-w-0">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-white/72">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-white/72">
             Masz pytania?
           </p>
-          <p className="mt-1 text-lg font-extrabold uppercase tracking-tight text-browin-white md:text-xl">
+          <p className="mt-1 text-lg font-bold uppercase tracking-tight text-browin-white md:text-xl">
             Zapytaj o ten produkt
           </p>
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-2 text-browin-white/78 transition-colors group-hover:text-browin-white">
-        <span className="hidden text-[11px] font-bold uppercase tracking-[0.14em] sm:inline">
+        <span className="hidden text-[11px] font-semibold uppercase tracking-[0.14em] sm:inline">
           Czat
         </span>
         <ArrowRight
@@ -586,10 +583,10 @@ function ComplementaryProductsGrid({ products }: { products: Product[] }) {
     <section className="mt-12 border-t border-browin-dark/10 pt-10">
       <div className="mb-5">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
             Kompletuj zestaw
           </p>
-          <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+          <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark md:text-3xl">
             Produkty uzupełniające
           </h2>
         </div>
@@ -611,125 +608,11 @@ function BuyboxRecommendationRail({
   products: Product[];
 }) {
   const { addItem } = useCart();
-  const router = useRouter();
   const railRef = useRef<HTMLDivElement | null>(null);
-  const pointerIdRef = useRef<number | null>(null);
-  const pointerStartXRef = useRef(0);
-  const scrollStartLeftRef = useRef(0);
-  const draggedRef = useRef(false);
 
   if (products.length === 0) {
     return null;
   }
-
-  const handlePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "mouse" || event.button !== 0) {
-      return;
-    }
-
-    if (event.target instanceof HTMLElement && event.target.closest("button")) {
-      return;
-    }
-
-    const rail = railRef.current;
-
-    if (!rail || rail.scrollWidth <= rail.clientWidth) {
-      return;
-    }
-
-    pointerIdRef.current = event.pointerId;
-    pointerStartXRef.current = event.clientX;
-    scrollStartLeftRef.current = rail.scrollLeft;
-    draggedRef.current = false;
-    rail.setPointerCapture(event.pointerId);
-  };
-
-  const handlePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (event.pointerType !== "mouse" || pointerIdRef.current !== event.pointerId) {
-      return;
-    }
-
-    const rail = railRef.current;
-
-    if (!rail) {
-      return;
-    }
-
-    const deltaX = event.clientX - pointerStartXRef.current;
-
-    if (Math.abs(deltaX) > 3) {
-      draggedRef.current = true;
-    }
-
-    rail.scrollLeft = scrollStartLeftRef.current - deltaX;
-    event.preventDefault();
-  };
-
-  const releasePointer = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (pointerIdRef.current !== event.pointerId) {
-      return;
-    }
-
-    const rail = railRef.current;
-
-    if (rail?.hasPointerCapture(event.pointerId)) {
-      rail.releasePointerCapture(event.pointerId);
-    }
-
-    pointerIdRef.current = null;
-    pointerStartXRef.current = 0;
-    scrollStartLeftRef.current = 0;
-
-    window.setTimeout(() => {
-      draggedRef.current = false;
-    }, 0);
-  };
-
-  const handleRailClickCapture = (event: ReactMouseEvent<HTMLElement>) => {
-    if (!draggedRef.current) {
-      return;
-    }
-
-    event.preventDefault();
-    event.stopPropagation();
-  };
-
-  const openRecommendationProduct = (slug: string) => {
-    router.push(`/produkt/${slug}`);
-  };
-
-  const handleRecommendationClick = (
-    event: ReactMouseEvent<HTMLElement>,
-    slug: string,
-  ) => {
-    if (draggedRef.current) {
-      event.preventDefault();
-      event.stopPropagation();
-      return;
-    }
-
-    if (event.target instanceof HTMLElement && event.target.closest("button")) {
-      return;
-    }
-
-    openRecommendationProduct(slug);
-  };
-
-  const handleRecommendationKeyDown = (
-    event: ReactKeyboardEvent<HTMLElement>,
-    slug: string,
-  ) => {
-    if (event.target instanceof HTMLElement && event.target.closest("button")) {
-      return;
-    }
-
-    if (event.key !== "Enter" && event.key !== " ") {
-      return;
-    }
-
-    event.preventDefault();
-    openRecommendationProduct(slug);
-  };
 
   const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
     const rail = railRef.current;
@@ -749,7 +632,7 @@ function BuyboxRecommendationRail({
   return (
     <div className="hidden pt-3 2xl:block">
       {!fallbackToRelated ? (
-        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-red">
           Kompletuj zestaw
         </p>
       ) : null}
@@ -757,12 +640,7 @@ function BuyboxRecommendationRail({
       <div
         className={`no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1 ${
           fallbackToRelated ? "" : "mt-3"
-        } cursor-grab select-none active:cursor-grabbing`}
-        onClickCapture={handleRailClickCapture}
-        onPointerCancel={releasePointer}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={releasePointer}
+        }`}
         onWheel={handleWheel}
         ref={railRef}
         style={{ scrollSnapType: "x mandatory" }}
@@ -772,15 +650,15 @@ function BuyboxRecommendationRail({
 
           return (
             <article
-              aria-label={`Zobacz produkt ${item.title}`}
-              className="group relative flex w-[8.75rem] shrink-0 snap-start cursor-pointer flex-col border border-browin-dark/10 bg-browin-white transition-colors hover:border-browin-red focus-visible:border-browin-red focus-visible:outline-none"
+              className="group relative flex w-[8.75rem] shrink-0 snap-start flex-col border border-browin-dark/10 bg-browin-white transition-colors hover:border-browin-red"
               key={`buybox-rail-${item.id}`}
-              onClick={(event) => handleRecommendationClick(event, item.slug)}
-              onKeyDown={(event) => handleRecommendationKeyDown(event, item.slug)}
-              role="link"
-              tabIndex={0}
             >
-              <div className="flex min-h-full flex-1 flex-col">
+              <Link
+                aria-label={`Zobacz produkt ${item.title}`}
+                className="flex min-h-full flex-1 flex-col focus-visible:outline-none"
+                draggable={false}
+                href={`/produkt/${item.slug}`}
+              >
                 <div className="relative h-[5rem] overflow-hidden bg-browin-white">
                   <Image
                     alt={item.title}
@@ -791,7 +669,7 @@ function BuyboxRecommendationRail({
                   />
                 </div>
                 <div className="flex min-h-[5rem] flex-1 flex-col px-2 py-2">
-                  <span className="line-clamp-2 text-[11px] font-bold leading-[1.22] text-browin-dark transition-colors group-hover:text-browin-red">
+                  <span className="line-clamp-2 text-[11px] font-semibold leading-[1.22] text-browin-dark transition-colors group-hover:text-browin-red">
                     {item.title}
                   </span>
                   <div className="mt-auto min-w-0 pr-8 pt-2">
@@ -800,12 +678,12 @@ function BuyboxRecommendationRail({
                         {formatCurrency(itemVariant.compareAtPrice)}
                       </p>
                     ) : null}
-                    <p className="mt-1 text-[0.9rem] font-extrabold tracking-tight text-browin-dark">
+                    <p className="mt-1 text-[0.9rem] font-bold tracking-tight text-browin-dark">
                       {formatCurrency(itemVariant.price)}
                     </p>
                   </div>
                 </div>
-              </div>
+              </Link>
 
               <button
                 aria-label={`Dodaj ${item.title} do koszyka`}
@@ -831,14 +709,14 @@ function BuyboxRecommendationRail({
 function ProductStatusBadge({ product }: { product: Product }) {
   if (product.status === "nowosc") {
     return (
-      <span className="inline-flex items-center bg-browin-red px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+      <span className="inline-flex items-center bg-browin-red px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-browin-white">
         Nowość
       </span>
     );
   }
   if (product.status === "wyprzedaz") {
     return (
-      <span className="inline-flex items-center bg-browin-dark px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+      <span className="inline-flex items-center bg-browin-dark px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-browin-white">
         Wyprzedaż
       </span>
     );
@@ -859,7 +737,7 @@ function ProductCodes({
 }) {
   return (
     <dl
-      className={`flex items-center ${compact ? "flex-nowrap gap-x-3 text-[11px] tracking-[0.14em]" : "w-full justify-between gap-x-4 gap-y-1 text-[11px] tracking-[0.14em]"} font-bold uppercase text-browin-dark/55 ${className ?? ""}`}
+      className={`flex items-center ${compact ? "flex-nowrap gap-x-3 text-[11px] tracking-[0.14em]" : "w-full justify-between gap-x-4 gap-y-1 text-[11px] tracking-[0.14em]"} font-semibold uppercase text-browin-dark/55 ${className ?? ""}`}
     >
       <div className="flex items-center gap-1.5">
         <dt>Symbol</dt>
@@ -898,7 +776,7 @@ function ReviewSummaryRow({
             />
           ))}
         </div>
-        <span className="text-sm font-extrabold text-browin-dark">{product.rating.toFixed(1)}</span>
+        <span className="text-sm font-semibold text-browin-dark">{product.rating.toFixed(1)}</span>
         <span className="product-detail-review-count text-sm font-semibold text-browin-dark/68">
           {product.reviews} opinii
         </span>
@@ -925,19 +803,19 @@ function ReviewsSection({
     <section className="bg-browin-white" id={sectionId}>
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+          <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
             Opinie klientow
           </p>
-          <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark">
+          <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark">
             Opinie o produkcie
           </h2>
         </div>
 
         <div className="border-l-4 border-browin-red bg-browin-gray/80 px-4 py-2.5">
-          <p className="text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
             Poleca produkt
           </p>
-          <p className="mt-1 text-lg font-extrabold text-browin-dark">
+          <p className="mt-1 text-lg font-bold text-browin-dark">
             {recommendationPercent}%
           </p>
         </div>
@@ -950,7 +828,7 @@ function ReviewsSection({
               <Star size={26} weight="fill" />
             </div>
             <div>
-              <p className="text-3xl font-extrabold tracking-tight text-browin-dark">
+              <p className="text-3xl font-bold tracking-tight text-browin-dark">
                 {product.rating.toFixed(1)}
               </p>
               <p className="text-sm text-browin-dark/65">
@@ -962,7 +840,7 @@ function ReviewsSection({
           <div className="mt-5 space-y-3">
             {reviewBreakdown.map((item) => (
               <div className="grid grid-cols-[2.2rem_minmax(0,1fr)_3rem] items-center gap-3" key={item.stars}>
-                <span className="text-sm font-bold text-browin-dark">{item.stars}★</span>
+                <span className="text-sm font-semibold text-browin-dark">{item.stars}★</span>
                 <div className="h-2.5 overflow-hidden rounded-full bg-browin-white">
                   <div
                     className="h-full rounded-full bg-browin-red"
@@ -978,7 +856,7 @@ function ReviewsSection({
             {["Zweryfikowany zakup", "Dostawa zgodna z obietnica", "Czytelna oferta"].map(
               (tag) => (
                 <span
-                  className="bg-browin-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/72"
+                  className="bg-browin-white px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-browin-dark/72"
                   key={tag}
                 >
                   {tag}
@@ -1002,13 +880,13 @@ function ReviewsSection({
                       />
                     ))}
                   </div>
-                  <h3 className="mt-2 text-base font-extrabold text-browin-dark">
+                  <h3 className="mt-2 text-base font-semibold text-browin-dark">
                     {review.title}
                   </h3>
                 </div>
 
                 {review.verified ? (
-                  <span className="bg-browin-red/8 px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-red">
+                  <span className="bg-browin-red/8 px-2.5 py-1 text-[11px] font-semibold uppercase tracking-[0.12em] text-browin-red">
                     Zweryfikowany zakup
                   </span>
                 ) : null}
@@ -1017,7 +895,7 @@ function ReviewsSection({
               <p className="mt-3 text-sm leading-relaxed text-browin-dark/72">{review.body}</p>
 
               <div className="mt-4 flex flex-wrap items-center gap-3 text-[12px] text-browin-dark/55">
-                <span className="font-bold text-browin-dark">{review.author}</span>
+                <span className="font-semibold text-browin-dark">{review.author}</span>
                 <span>{review.meta}</span>
               </div>
             </article>
@@ -1045,7 +923,7 @@ function MobileSection({
       onToggle={(event) => setIsOpen(event.currentTarget.open)}
       open={isOpen}
     >
-      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-xl font-extrabold uppercase tracking-tight text-browin-dark">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-4 px-4 py-4 text-xl font-semibold uppercase tracking-tight text-browin-dark">
         <span>{title}</span>
         {isOpen ? <CaretUp size={18} /> : <CaretDown size={18} />}
       </summary>
@@ -1700,7 +1578,7 @@ export function ProductDetail({
       <div className="w-full px-0 md:container md:mx-auto md:px-4">
         <div className="product-detail-shell border-y border-browin-dark/10 bg-browin-white px-4 py-4 shadow-sm md:border md:px-6 md:py-6 xl:px-8 xl:py-7">
           <Link
-            className="mb-4 inline-flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-browin-dark/55 transition-colors hover:text-browin-red md:hidden"
+            className="mb-4 inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/55 transition-colors hover:text-browin-red md:hidden"
             href={categoryHref}
           >
             <ArrowLeft size={14} />
@@ -1794,12 +1672,12 @@ export function ProductDetail({
                 )}
               </div>
               {product.badge ? (
-                <span className="absolute left-0 top-3 bg-browin-dark px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-browin-white">
+                <span className="absolute left-0 top-3 bg-browin-dark px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-browin-white">
                   {product.badge}
                 </span>
               ) : null}
               {discount > 0 ? (
-                <span className="absolute right-0 top-3 bg-browin-red px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-[0.16em] text-browin-white">
+                <span className="absolute right-0 top-3 bg-browin-red px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.16em] text-browin-white">
                   -{discount}%
                 </span>
               ) : null}
@@ -1829,7 +1707,7 @@ export function ProductDetail({
             ) : null}
 
             <div className="min-w-0">
-              <h1 className="text-[1.375rem] font-extrabold tracking-tight text-browin-dark">
+              <h1 className="text-[1.375rem] font-bold tracking-tight text-browin-dark">
                 {product.title}
               </h1>
             </div>
@@ -1849,17 +1727,17 @@ export function ProductDetail({
                     </p>
                   ) : null}
                   <div className="flex flex-wrap items-end gap-2">
-                    <p className="text-[2rem] font-extrabold tracking-tight text-browin-dark">
+                    <p className="text-[2rem] font-bold tracking-tight text-browin-dark">
                       {formatCurrency(selectedVariant.price)}
                     </p>
                   </div>
                 </div>
 
                 <div className="text-right">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                     Dostepnosc
                   </p>
-                  <p className="mt-1 text-xs font-extrabold text-browin-red pb-1">
+                  <p className="mt-1 text-xs font-semibold text-browin-red pb-1">
                     {stockLabel}
                   </p>
                 </div>
@@ -1877,7 +1755,7 @@ export function ProductDetail({
                 />
 
                 <button
-                  className="checkout-cta inline-flex h-12 w-full items-center justify-center gap-2 bg-browin-red px-6 text-sm font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+                  className="checkout-cta inline-flex h-12 w-full items-center justify-center gap-2 bg-browin-red px-6 text-sm font-bold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
                   onClick={handleAddToCart}
                   ref={mobilePrimaryCtaRef}
                   type="button"
@@ -1890,7 +1768,7 @@ export function ProductDetail({
               <div className="rounded-sm border border-browin-dark/10 bg-browin-gray/70 px-3 py-3 text-sm">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="mt-1 font-bold text-browin-dark">
+                    <p className="mt-1 font-semibold text-browin-dark">
                       Dostawa do {deliveryDateLabel}
                     </p>
                     <p className="mt-1 text-browin-dark/62">
@@ -1926,7 +1804,7 @@ export function ProductDetail({
               >
                 <div className="flex items-center gap-2 text-browin-red">
                   <Star size={15} weight="fill" />
-                  <span className="text-base font-extrabold text-browin-dark">
+                  <span className="text-base font-semibold text-browin-dark">
                     {product.rating.toFixed(1)}
                   </span>
                 </div>
@@ -2069,12 +1947,12 @@ export function ProductDetail({
                     </div>
                   </div>
                   {product.badge ? (
-                    <span className="absolute left-0 top-4 bg-browin-dark px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                    <span className="absolute left-0 top-4 bg-browin-dark px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-browin-white">
                       {product.badge}
                     </span>
                   ) : null}
                   {discount > 0 ? (
-                    <span className="absolute right-0 top-4 bg-browin-red px-3 py-1 text-[11px] font-extrabold uppercase tracking-[0.18em] text-browin-white">
+                    <span className="absolute right-0 top-4 bg-browin-red px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-browin-white">
                       -{discount}%
                     </span>
                   ) : null}
@@ -2089,7 +1967,7 @@ export function ProductDetail({
                         <ArrowLeft size={14} />
                       </button>
 
-                      <div className="min-w-[4.5rem] text-center text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/55">
+                      <div className="min-w-[4.5rem] text-center text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/55">
                         <span>{safeActiveImageIndex + 1}</span>
                         <span className="px-1.5 text-browin-dark/32">/</span>
                         <span>{product.images.length}</span>
@@ -2170,12 +2048,12 @@ export function ProductDetail({
                 <div className="product-detail-buybox-meta border-b border-browin-dark/10 bg-browin-gray/40 px-5 py-3 xl:px-6">
                   <div className="flex flex-wrap items-center gap-2">
                     <Link
-                      className="product-accent-badge bg-browin-red px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-white"
+                      className="product-accent-badge bg-browin-red px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-white"
                       href={categoryHref}
                     >
                       {category?.label ?? "Kategoria"}
                     </Link>
-                    <span className="bg-browin-white px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/72">
+                    <span className="bg-browin-white px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/72">
                       {product.line}
                     </span>
                     <ProductStatusBadge product={product} />
@@ -2183,7 +2061,7 @@ export function ProductDetail({
                 </div>
 
                 <div className="product-detail-buybox-overview px-5 py-5 xl:px-6 xl:py-6">
-                  <h1 className="product-detail-title text-[1.95rem] font-extrabold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
+                  <h1 className="product-detail-title text-[1.95rem] font-bold leading-[1.03] tracking-tight text-browin-dark xl:text-[2.2rem]">
                     {product.title}
                   </h1>
 
@@ -2216,17 +2094,17 @@ export function ProductDetail({
                       </p>
                     </div>
                     <div className="flex flex-wrap items-end gap-2">
-                      <p className="product-detail-price text-[2.8rem] font-extrabold leading-none tracking-tight text-browin-dark">
+                      <p className="product-detail-price text-[2.8rem] font-bold leading-none tracking-tight text-browin-dark">
                         {formatCurrency(selectedVariant.price)}
                       </p>
                     </div>
                   </div>
 
                   <div className="text-left xl:text-right">
-                    <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-browin-dark/45">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-browin-dark/45">
                       Dostępność
                     </p>
-                    <p className="mt-1 text-sm font-extrabold text-browin-red">
+                    <p className="mt-1 text-sm font-semibold text-browin-red">
                       {stockLabel}
                     </p>
                     <p className="mt-1 text-xs text-browin-dark/62">
@@ -2257,7 +2135,7 @@ export function ProductDetail({
                     />
 
                     <button
-                      className="checkout-cta inline-flex h-12 flex-1 items-center justify-center gap-2 bg-browin-red px-6 text-base font-extrabold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
+                      className="checkout-cta inline-flex h-12 flex-1 items-center justify-center gap-2 bg-browin-red px-6 text-base font-bold uppercase tracking-[0.16em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark"
                       onClick={handleAddToCart}
                       type="button"
                     >
@@ -2271,10 +2149,10 @@ export function ProductDetail({
                   <div className="product-detail-buybox-shipping-progress border border-browin-dark/10 bg-browin-white px-4 py-3">
                     <div className="flex items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/45">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-dark/45">
                           Darmowa dostawa
                         </p>
-                        <p className="mt-1 text-sm font-bold text-browin-dark">
+                        <p className="mt-1 text-sm font-semibold text-browin-dark">
                           {qualifiesForFreeShipping ? (
                             "Aktywna w tym koszyku"
                           ) : (
@@ -2284,7 +2162,7 @@ export function ProductDetail({
                           )}
                         </p>
                       </div>
-                      <p className="shrink-0 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-dark/45">
+                      <p className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark/45">
                         Dostawa do {deliveryDateLabel}
                       </p>
                     </div>
@@ -2367,10 +2245,10 @@ export function ProductDetail({
             <div className="mt-12 lg:hidden">
               <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
                     Dobierz razem
                   </p>
-                  <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                  <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark md:text-3xl">
                     Powiazane produkty
                   </h2>
                 </div>
@@ -2387,10 +2265,10 @@ export function ProductDetail({
             <div className="mt-12 hidden lg:block">
               <div className="mb-5 flex items-end justify-between gap-4">
                 <div>
-                  <p className="text-sm font-bold uppercase tracking-[0.16em] text-browin-red">
+                  <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
                     Dobierz razem
                   </p>
-                  <h2 className="mt-2 text-2xl font-extrabold uppercase tracking-tight text-browin-dark md:text-3xl">
+                  <h2 className="mt-2 text-2xl font-bold uppercase tracking-tight text-browin-dark md:text-3xl">
                     Powiazane produkty
                   </h2>
                 </div>
@@ -2422,13 +2300,13 @@ export function ProductDetail({
         >
           <div className="mx-auto grid max-w-[32rem] grid-cols-[minmax(0,0.86fr)_minmax(0,1.74fr)] items-stretch">
             <div className="flex min-h-14 min-w-0 items-center pr-3">
-              <p className="text-xl font-extrabold tracking-tight text-browin-dark">
+              <p className="text-xl font-bold tracking-tight text-browin-dark">
                 {formatCurrency(selectedVariant.price)}
               </p>
             </div>
 
             <button
-              className="checkout-cta -mt-px inline-flex min-h-14 w-full items-center justify-center gap-1.5 self-stretch bg-browin-red px-3 text-[0.62rem] font-extrabold uppercase leading-none tracking-[0.04em] whitespace-nowrap text-browin-white transition-colors hover:bg-browin-dark"
+              className="checkout-cta -mt-px inline-flex min-h-14 w-full items-center justify-center gap-1.5 self-stretch bg-browin-red px-3 text-[0.62rem] font-bold uppercase leading-none tracking-[0.04em] whitespace-nowrap text-browin-white transition-colors hover:bg-browin-dark"
               onClick={handleAddToCart}
               type="button"
             >
