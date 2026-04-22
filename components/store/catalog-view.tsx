@@ -26,6 +26,7 @@ type CatalogViewProps = {
   title: string;
   description: string;
   products: Product[];
+  recipeCountsByProductId?: Record<string, number>;
   lockedCategoryId?: CategoryId;
   initialSearch?: string;
   initialSort?: SortOption;
@@ -134,7 +135,13 @@ function PriceRangeControl({
   );
 }
 
-function InfiniteProductGrid({ products }: { products: Product[] }) {
+function InfiniteProductGrid({
+  products,
+  recipeCountsByProductId = {},
+}: {
+  products: Product[];
+  recipeCountsByProductId?: Record<string, number>;
+}) {
   const [visibleCount, setVisibleCount] = useState(PRODUCT_BATCH_SIZE);
   const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
   const renderedProducts = products.slice(0, visibleCount);
@@ -178,6 +185,7 @@ function InfiniteProductGrid({ products }: { products: Product[] }) {
             key={product.id}
             priority={index < 4}
             product={product}
+            recipeCount={recipeCountsByProductId[product.id] ?? 0}
             titleLines={3}
           />
         ))}
@@ -208,6 +216,7 @@ export function CatalogView({
   initialSort = "featured",
   lockedCategoryId,
   products,
+  recipeCountsByProductId = {},
   title,
 }: CatalogViewProps) {
   const [search, setSearch] = useState(initialSearch);
@@ -715,7 +724,11 @@ export function CatalogView({
         </div>
 
         {visibleProducts.length ? (
-          <InfiniteProductGrid key={infiniteListKey} products={visibleProducts} />
+      <InfiniteProductGrid
+        key={infiniteListKey}
+        products={visibleProducts}
+        recipeCountsByProductId={recipeCountsByProductId}
+      />
         ) : (
           <div className="mt-8 border border-dashed border-browin-dark/15 bg-browin-white p-8 text-center shadow-sm">
             <h2 className="text-2xl font-semibold text-browin-dark">Brak dopasowanych produktów</h2>

@@ -1,0 +1,265 @@
+import type { Metadata } from "next";
+import Image from "next/image";
+import Link from "next/link";
+import { notFound } from "next/navigation";
+
+import { RecipeCard } from "@/components/store/recipe-card";
+import { RecipeProductPicker } from "@/components/store/recipe-product-picker";
+import { getProducts } from "@/lib/product-feed";
+import {
+  getRecipeBySlug,
+  getRecipes,
+  hydrateRecipe,
+  toRecipeSummary,
+} from "@/lib/recipes";
+import { getMetadataBase } from "@/lib/site-url";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}): Promise<Metadata> {
+  const { slug } = await params;
+  const recipe = await getRecipeBySlug(slug);
+
+  if (!recipe) {
+    return {
+      title: "Przepis nie istnieje",
+    };
+  }
+
+  return {
+    title: recipe.title,
+    description: recipe.metaDescription,
+    alternates: {
+      canonical: `/przepisnik/przepis/${recipe.slug}`,
+    },
+    openGraph: {
+      title: recipe.title,
+      description: recipe.metaDescription,
+      images: [{ url: recipe.heroImage }],
+      type: "article",
+      publishedTime: recipe.publishedAt,
+    },
+  };
+}
+
+const formatDate = (value: string) => {
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat("pl-PL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  }).format(date);
+};
+
+const buildRecipeJsonLd = ({
+  canonicalUrl,
+  recipe,
+}: {
+  canonicalUrl: string;
+  recipe: Awaited<ReturnType<typeof getRecipeBySlug>> extends infer T ? NonNullable<T> : never;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "Recipe",
+  name: recipe.title,
+  description: recipe.metaDescription,
+  image: recipe.images,
+  author: {
+    "@type": "Organization",
+    name: "BROWIN",
+  },
+  datePublished: recipe.publishedAt,
+  recipeCategory: recipe.category.name,
+  keywords: recipe.tags.join(", "),
+  recipeIngredient: recipe.ingredientLines,
+  recipeInstructions: [
+    {
+      "@type": "HowToStep",
+      text: recipe.contentText,
+    },
+  ],
+  mainEntityOfPage: canonicalUrl,
+});
+
+const buildBreadcrumbJsonLd = ({
+  canonicalUrl,
+  title,
+}: {
+  canonicalUrl: string;
+  title: string;
+}) => ({
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  itemListElement: [
+    {
+      "@type": "ListItem",
+      position: 1,
+      name: "BROWIN",
+      item: getMetadataBase().toString(),
+    },
+    {
+      "@type": "ListItem",
+      position: 2,
+      name: "Przepiśnik",
+      item: new URL("/przepisnik", getMetadataBase()).toString(),
+    },
+    {
+      "@type": "ListItem",
+      position: 3,
+      name: title,
+      item: canonicalUrl,
+    },
+  ],
+});
+
+export default async function RecipePage({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const products = await getProducts();
+  const recipe = await getRecipeBySlug(slug, products);
+
+  if (!recipe) {
+    notFound();
+  }
+
+  const hydratedRecipe = hydrateRecipe(recipe, products);
+  const allRecipes = await getRecipes(products);
+  const relatedRecipes = allRecipes
+    .filter((entry) => entry.id !== recipe.id && entry.category.slug === recipe.category.slug)
+    .slice(0, 3);
+  const canonicalUrl = new URL(
+    `/przepisnik/przepis/${recipe.slug}`,
+    getMetadataBase(),
+  ).toString();
+  const jsonLd = [
+    buildRecipeJsonLd({ canonicalUrl, recipe }),
+    buildBreadcrumbJsonLd({ canonicalUrl, title: recipe.title }),
+  ];
+
+  return (
+    <section className="bg-browin-gray pb-16">
+      <script
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
+        }}
+        type="application/ld+json"
+      />
+
+      <div className="bg-browin-white">
+        <div className="container mx-auto px-4 py-5">
+          <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-browin-dark/48">
+            <Link className="transition-colors hover:text-browin-red" href="/przepisnik">
+              Przepiśnik
+            </Link>
+            <span>/</span>
+            <span className="text-browin-red">{recipe.category.name}</span>
+          </nav>
+        </div>
+      </div>
+
+      <header className="bg-browin-white">
+        <div className="container mx-auto grid gap-8 px-4 pb-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-stretch">
+          <div className="relative min-h-[24rem] overflow-hidden bg-browin-dark md:min-h-[32rem]">
+            <Image
+              alt={recipe.title}
+              className="object-cover"
+              fill
+              priority
+              sizes="(max-width: 1023px) 100vw, 44vw"
+              src={recipe.heroImage}
+            />
+          </div>
+
+          <div className="flex flex-col justify-center py-2 lg:py-8">
+            <div className="flex flex-wrap gap-2">
+              <Link
+                className="bg-browin-red px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-white"
+                href={`/przepisnik?category=${recipe.category.slug}`}
+              >
+                {recipe.category.name}
+              </Link>
+              <span className="bg-browin-gray px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/62">
+                {formatDate(recipe.publishedAt)}
+              </span>
+            </div>
+
+            <h1 className="mt-5 text-4xl font-bold leading-[1.04] tracking-tight text-browin-dark md:text-6xl">
+              {recipe.title}
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-relaxed text-browin-dark/68 md:text-lg">
+              {recipe.excerpt}
+            </p>
+
+          </div>
+        </div>
+      </header>
+
+      <div className="container mx-auto grid gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <article className="min-w-0 bg-browin-white shadow-sm">
+          {recipe.introHtml ? (
+            <div className="border border-browin-dark/10 bg-browin-gray/55 p-5 md:p-7">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
+                Wprowadzenie
+              </p>
+              <div
+                className="recipe-rich-text text-base leading-relaxed text-browin-dark/74 md:text-lg"
+                dangerouslySetInnerHTML={{ __html: recipe.introHtml }}
+              />
+            </div>
+          ) : null}
+
+          <div className="border-x border-b border-browin-dark/10 p-5 md:p-8">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
+              Przygotowanie
+            </p>
+            <div
+              className="recipe-rich-text mt-5 text-base leading-relaxed text-browin-dark/74"
+              dangerouslySetInnerHTML={{ __html: recipe.contentHtml }}
+            />
+
+            {recipe.footer ? (
+              <p className="mt-8 border-l-4 border-browin-red bg-browin-gray px-5 py-4 text-base font-bold text-browin-dark">
+                {recipe.footer}
+              </p>
+            ) : null}
+          </div>
+        </article>
+
+        <div className="lg:sticky lg:top-28">
+          <RecipeProductPicker
+            groups={hydratedRecipe.productGroups}
+            ingredients={recipe.ingredients}
+            recipeTitle={recipe.title}
+          />
+        </div>
+      </div>
+
+      {relatedRecipes.length > 0 ? (
+        <div className="container mx-auto px-4">
+          <div className="border-t border-browin-dark/10 pt-10">
+            <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
+              Więcej inspiracji
+            </p>
+            <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark md:text-3xl">
+              Z tej samej kategorii
+            </h2>
+            <div className="mt-6 grid gap-5 md:grid-cols-3">
+              {relatedRecipes.map((related) => (
+                <RecipeCard compact key={related.id} recipe={toRecipeSummary(related)} />
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}

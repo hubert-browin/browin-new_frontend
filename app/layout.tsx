@@ -6,6 +6,7 @@ import { FavoritesProvider } from "@/components/store/favorites-provider";
 import { StoreChrome } from "@/components/store/store-chrome";
 import { getStoreCategories } from "@/data/store";
 import { getProducts } from "@/lib/product-feed";
+import { getRecipeCommerceEntries } from "@/lib/recipes";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
@@ -46,12 +47,15 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
+export const dynamic = "force-dynamic";
+
 export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   const products = await getProducts();
+  const recipeCommerceEntries = await getRecipeCommerceEntries(products);
   const storeCategories = getStoreCategories(products);
   const cartProducts = products.map(({ id, slug, title, subtitle, images, variants }) => ({
     id,
@@ -67,7 +71,12 @@ export default async function RootLayout({
       <body className="min-h-full bg-background font-sans text-foreground antialiased selection:bg-browin-red selection:text-white">
         <CartProvider products={cartProducts}>
           <FavoritesProvider>
-            <StoreChrome storeCategories={storeCategories}>{children}</StoreChrome>
+            <StoreChrome
+              recipeCommerceEntries={recipeCommerceEntries}
+              storeCategories={storeCategories}
+            >
+              {children}
+            </StoreChrome>
           </FavoritesProvider>
         </CartProvider>
       </body>

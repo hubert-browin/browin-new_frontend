@@ -1,6 +1,7 @@
 import { CatalogView } from "@/components/store/catalog-view";
 import type { SortOption } from "@/lib/catalog";
 import { getProducts } from "@/lib/product-feed";
+import { getRecipeCountsByProductId } from "@/lib/recipes";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
@@ -27,7 +28,10 @@ export default async function ProductsPage({
 }: {
   searchParams: Promise<SearchParamRecord>;
 }) {
-  const products = await getProducts();
+  const [products, recipeCountsByProductId] = await Promise.all([
+    getProducts(),
+    getRecipeCountsByProductId(),
+  ]);
   const params = await searchParams;
   const search = readString(params.search);
   const sortCandidate = readString(params.sort) as SortOption;
@@ -52,6 +56,7 @@ export default async function ProductsPage({
       initialSearch={search}
       initialSort={sort}
       products={products}
+      recipeCountsByProductId={recipeCountsByProductId}
       title="Katalog produktów"
     />
   );

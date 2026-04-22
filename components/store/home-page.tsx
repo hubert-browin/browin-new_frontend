@@ -424,7 +424,7 @@ export function HomePage({
 
                 <Link
                   className="utility-strip-highlight group -mr-6 flex h-full shrink-0 items-center space-x-2 bg-browin-red px-6 text-[11px] font-semibold uppercase tracking-wider text-browin-white transition-colors hover:bg-browin-red/90 xl:px-8 xl:text-[12px]"
-                  href="/produkty?search=zestaw"
+                  href="/przepisnik"
                 >
                   <BookOpen className="transition-transform group-hover:scale-110" size={20} weight="fill" />
                   <span>Przepiśnik</span>

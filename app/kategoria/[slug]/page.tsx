@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { CatalogView } from "@/components/store/catalog-view";
 import { getCategoryBySlug, type SortOption } from "@/lib/catalog";
 import { getProducts } from "@/lib/product-feed";
+import { getRecipeCountsByProductId } from "@/lib/recipes";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
@@ -73,7 +74,10 @@ export default async function CategoryPage({
   }
 
   const paramsRecord = await searchParams;
-  const products = await getProducts();
+  const [products, recipeCountsByProductId] = await Promise.all([
+    getProducts(),
+    getRecipeCountsByProductId(),
+  ]);
   const sortCandidate = readString(paramsRecord.sort) as SortOption;
   const sort = sortOptions.has(sortCandidate) ? sortCandidate : "featured";
   const initialSearch = readString(paramsRecord.search);
@@ -98,6 +102,7 @@ export default async function CategoryPage({
       initialSort={sort}
       lockedCategoryId={category.id}
       products={products}
+      recipeCountsByProductId={recipeCountsByProductId}
       title={category.label}
     />
   );

@@ -25,8 +25,10 @@ import {
 
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
+import { ProductRecipeBridge } from "@/components/store/product-recipe-bridge";
 import { useCart } from "@/components/store/cart-provider";
 import type { Product, ProductBundleItem, ProductFile } from "@/data/products";
+import type { RecipeSummary } from "@/data/recipes";
 import { categories } from "@/data/store";
 import {
   formatCurrency,
@@ -40,6 +42,7 @@ type ProductDetailProps = {
   product: Product;
   relatedProducts: Product[];
   complementaryProducts: Product[];
+  recipeInspirations?: RecipeSummary[];
 };
 
 type VariantSelectorProps = {
@@ -936,6 +939,7 @@ export function ProductDetail({
   product,
   relatedProducts,
   complementaryProducts,
+  recipeInspirations = [],
 }: ProductDetailProps) {
   const { addItem } = useCart();
   const defaultVariant = getPrimaryVariant(product);
@@ -1795,6 +1799,12 @@ export function ProductDetail({
                 </div>
               </div>
 
+              <ProductRecipeBridge
+                placement="mobile"
+                product={product}
+                recipes={recipeInspirations}
+              />
+
               <ProductCodes ean={product.ean} symbol={product.symbol} />
 
               <button
@@ -2179,6 +2189,8 @@ export function ProductDetail({
                     orderValue={orderValue}
                     selectedVariantLeadTime={selectedVariant.leadTime}
                   />
+
+                  <ProductRecipeBridge product={product} recipes={recipeInspirations} />
 
                   <BuyboxRecommendationRail
                     fallbackToRelated={buyboxUsesRelatedFallback}

@@ -1,6 +1,6 @@
 "use client";
 
-import { Heart, ShoppingCart, Star } from "@phosphor-icons/react";
+import { BookOpen, Heart, ShoppingCart, Star } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -14,6 +14,7 @@ type ProductCardProps = {
   priority?: boolean;
   squareImage?: boolean;
   imageQuality?: number;
+  recipeCount?: number;
   titleLines?: 2 | 3;
 };
 
@@ -22,6 +23,7 @@ export function ProductCard({
   priority = false,
   squareImage = true,
   imageQuality,
+  recipeCount = 0,
   titleLines = 2,
 }: ProductCardProps) {
   const { addItem } = useCart();
@@ -73,6 +75,12 @@ export function ProductCard({
             className={`pointer-events-none absolute left-0 top-0 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.14em] ${statusClass}`}
           >
             {statusLabel}
+          </span>
+        ) : null}
+        {recipeCount > 0 ? (
+          <span className="pointer-events-none absolute right-0 top-0 inline-flex items-center gap-1 bg-browin-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-browin-red shadow-sm">
+            <BookOpen size={12} weight="fill" />
+            {recipeCount} {recipeCount === 1 ? "przepis" : "przepisy"}
           </span>
         ) : null}
       </div>

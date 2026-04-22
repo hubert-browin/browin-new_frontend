@@ -3,16 +3,18 @@
 import { createContext, useContext, useEffect, useState } from "react";
 
 import type { CartProductSummary } from "@/data/products";
+import type { CartLine } from "@/lib/cart-lines";
+import { mergeCartLines } from "@/lib/cart-lines";
 import {
   freeShippingThreshold,
   getPrimaryVariant,
   getVariantById,
 } from "@/lib/catalog";
 
-type CartLine = {
+type CartLineInput = {
   productId: string;
-  variantId: string;
-  quantity: number;
+  variantId?: string;
+  quantity?: number;
 };
 
 type CartDetailedLine = {
@@ -24,6 +26,7 @@ type CartDetailedLine = {
 type CartContextValue = {
   isOpen: boolean;
   items: CartDetailedLine[];
+  products: CartProductSummary[];
   count: number;
   subtotal: number;
   shippingRemaining: number;
@@ -31,6 +34,7 @@ type CartContextValue = {
   openCart: () => void;
   closeCart: () => void;
   addItem: (productId: string, variantId?: string, quantity?: number) => void;
+  addItems: (items: CartLineInput[]) => void;
   updateQuantity: (productId: string, variantId: string, quantity: number) => void;
   removeItem: (productId: string, variantId: string) => void;
   clearCart: () => void;
@@ -146,6 +150,31 @@ export function CartProvider({
     setIsOpen(true);
   };
 
+  const addItems = (items: CartLineInput[]) => {
+    const normalizedLines = items
+      .map((item) => {
+        const product = products.find((candidate) => candidate.id === item.productId);
+
+        if (!product) {
+          return null;
+        }
+
+        return {
+          productId: item.productId,
+          variantId: item.variantId ?? getPrimaryVariant(product).id,
+          quantity: Math.max(1, Math.floor(item.quantity ?? 1)),
+        };
+      })
+      .filter((item): item is CartLine => Boolean(item));
+
+    if (normalizedLines.length === 0) {
+      return;
+    }
+
+    setLines((current) => mergeCartLines(current, normalizedLines));
+    setIsOpen(true);
+  };
+
   const updateQuantity = (productId: string, variantId: string, quantity: number) => {
     setLines((current) => {
       if (quantity <= 0) {
@@ -177,6 +206,7 @@ export function CartProvider({
       value={{
         isOpen,
         items,
+        products,
         count,
         subtotal,
         shippingRemaining,
@@ -184,6 +214,7 @@ export function CartProvider({
         openCart,
         closeCart,
         addItem,
+        addItems,
         updateQuantity,
         removeItem,
         clearCart,

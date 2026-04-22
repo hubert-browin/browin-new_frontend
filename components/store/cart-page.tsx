@@ -6,14 +6,17 @@ import Link from "next/link";
 
 import { ProductCard } from "@/components/store/product-card";
 import { useCart } from "@/components/store/cart-provider";
+import { RecipeCartCrossSell } from "@/components/store/recipe-cart-cross-sell";
 import type { Product } from "@/data/products";
+import type { RecipeCommerceEntry } from "@/data/recipes";
 import { formatCurrency } from "@/lib/catalog";
 
 type CartPageProps = {
   recommendations: Product[];
+  recipeCommerceEntries?: RecipeCommerceEntry[];
 };
 
-export function CartPage({ recommendations }: CartPageProps) {
+export function CartPage({ recommendations, recipeCommerceEntries = [] }: CartPageProps) {
   const {
     clearCart,
     items,
@@ -200,6 +203,10 @@ export function CartPage({ recommendations }: CartPageProps) {
               Przejdź do checkoutu
               <ArrowRight size={18} />
             </Link>
+
+            <div className="mt-6">
+              <RecipeCartCrossSell entries={recipeCommerceEntries} variant="page" />
+            </div>
 
             <div className="mt-10">
               <div className="mb-4 flex items-end justify-between gap-4">

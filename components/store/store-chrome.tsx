@@ -26,7 +26,7 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
@@ -40,10 +40,12 @@ import {
   type CategoryTopic,
   type StoreCategory,
 } from "@/data/store";
+import type { RecipeCommerceEntry } from "@/data/recipes";
 import { formatCurrency } from "@/lib/catalog";
 
 type StoreChromeProps = {
   children: React.ReactNode;
+  recipeCommerceEntries?: RecipeCommerceEntry[];
   storeCategories: StoreCategory[];
 };
 
@@ -62,6 +64,11 @@ const topBarLinks = [
 ] as const;
 
 const mobileMenuQuickLinks = [
+  {
+    href: "/przepisnik",
+    icon: BookOpen,
+    label: "Przepiśnik",
+  },
   {
     href: "/produkty?search=termometr",
     icon: Calculator,
@@ -84,14 +91,7 @@ const mobileMenuQuickLinks = [
   },
 ] as const;
 
-const dockUtilityLinks = [
-  {
-    href: "/produkty?search=zestaw",
-    icon: BookOpen,
-    label: "Przepiśnik",
-  },
-  ...mobileMenuQuickLinks,
-] as const;
+const dockUtilityLinks = mobileMenuQuickLinks;
 
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
@@ -127,7 +127,7 @@ const getMobileBottomNavActiveItem = ({
     return "categories";
   }
 
-  if (pathname === "/produkty") {
+  if (pathname.startsWith("/przepisnik")) {
     return "recipes";
   }
 
@@ -152,8 +152,9 @@ function MobileSearchForm({
         <input
           className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent pl-11 pr-4 text-browin-dark transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
           defaultValue={searchSeed}
+          key={searchSeed}
           name="search"
-          placeholder="Szukaj produktów..."
+          placeholder="Szukaj produktów i przepisów..."
         />
         <MagnifyingGlass
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
@@ -188,9 +189,14 @@ const getUniqueTopics = (category: StoreCategory) => {
     });
 };
 
-export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
+export function StoreChrome({
+  children,
+  recipeCommerceEntries = [],
+  storeCategories,
+}: StoreChromeProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const routeSearchParams = useSearchParams();
   const { closeCart, count: cartCount, isOpen, openCart, subtotal } = useCart();
   const { count: favoritesCount } = useFavorites();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -215,7 +221,8 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const searchSeed = "";
+  const searchSeed =
+    pathname === "/szukaj" ? routeSearchParams.get("search") ?? "" : "";
   const isProductPage = pathname.startsWith("/produkt/");
   const showDesktopNav = pathname !== "/";
   const routeBreadcrumbCategory =
@@ -399,7 +406,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
       params.set("search", trimmedSearch);
     }
 
-    router.push(params.size ? `/produkty?${params.toString()}` : "/produkty");
+    router.push(params.size ? `/szukaj?${params.toString()}` : "/szukaj");
     setBreadcrumbMenuOpen(false);
     closeMobileMenu();
   };
@@ -759,6 +766,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
               <input
                 className="search-ui-copy block h-full w-full rounded-none border-0 bg-transparent py-3.5 pl-12 pr-14 text-sm text-browin-dark outline-none transition-colors placeholder:text-browin-dark/45 focus:bg-transparent"
                 defaultValue={searchSeed}
+                key={searchSeed}
                 name="search"
                 placeholder="Szukaj sprzętu, drożdży, przepisów..."
               />
@@ -1145,7 +1153,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         <div className="relative flex-1 overflow-y-auto bg-browin-white pb-8 no-scrollbar">
           {!activeMobileCategory ? (
             <div className="border-b border-browin-border bg-browin-white py-2.5">
-              <div className="grid grid-cols-4 gap-2 px-4">
+              <div className="grid grid-cols-5 gap-2 px-4">
                 {mobileMenuQuickLinks.map((item) => {
                   const Icon = item.icon;
 
@@ -1297,7 +1305,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         <Link
           aria-current={isRecipesBottomNavActive ? "page" : undefined}
           className={mobileBottomNavItemClass}
-          href="/produkty?search=zestaw"
+          href="/przepisnik"
           onClick={closeMobileOverlays}
         >
           <BookOpen
@@ -1325,7 +1333,7 @@ export function StoreChrome({ children, storeCategories }: StoreChromeProps) {
         </button>
       </div>
 
-      <CartDrawer />
+      <CartDrawer recipeCommerceEntries={recipeCommerceEntries} />
     </div>
   );
 }

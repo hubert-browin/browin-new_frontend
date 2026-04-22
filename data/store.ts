@@ -566,7 +566,7 @@ export const utilityLinks: UtilityLink[] = [
   { label: "Nowości", href: "/produkty?search=nowość", icon: "sparkle" },
   { label: "Bestsellery", href: "/produkty?sort=popular", icon: "star" },
   { label: "Promocje", href: "/produkty?deal=true", icon: "gift" },
-  { label: "Przepiśnik", href: "/produkty?search=zestaw", icon: "book" },
+  { label: "Przepiśnik", href: "/przepisnik", icon: "book" },
   { label: "Checkout demo", href: "/checkout", icon: "package" },
 ];
 

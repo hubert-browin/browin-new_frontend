@@ -8,6 +8,7 @@ import {
   resolveProductSlug,
 } from "@/lib/catalog";
 import { getProducts } from "@/lib/product-feed";
+import { getRecipesByProductId, toRecipeSummary } from "@/lib/recipes";
 
 export async function generateMetadata({
   params,
@@ -53,12 +54,16 @@ export default async function ProductPage({
   }
 
   const { product } = resolvedProduct;
+  const recipeInspirations = (await getRecipesByProductId(product.id, products))
+    .slice(0, 6)
+    .map(toRecipeSummary);
 
   return (
     <ProductDetail
       key={product.id}
       complementaryProducts={getComplementaryProducts(products, product)}
       product={product}
+      recipeInspirations={recipeInspirations}
       relatedProducts={getRelatedProducts(products, product)}
     />
   );
