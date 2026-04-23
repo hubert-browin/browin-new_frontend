@@ -26,6 +26,7 @@ import {
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
 import { ProductRecipeBridge } from "@/components/store/product-recipe-bridge";
+import { useProductRecipeNav } from "@/components/store/product-recipe-nav-context";
 import { useCart } from "@/components/store/cart-provider";
 import type { Product, ProductBundleItem, ProductFile } from "@/data/products";
 import type { RecipeSummary } from "@/data/recipes";
@@ -942,6 +943,7 @@ export function ProductDetail({
   recipeInspirations = [],
 }: ProductDetailProps) {
   const { addItem } = useCart();
+  const { registerProductRecipes } = useProductRecipeNav();
   const defaultVariant = getPrimaryVariant(product);
   const category = categories.find((entry) => entry.id === product.categoryId);
   const categoryHref = category ? `/kategoria/${category.slug}` : "/produkty";
@@ -996,6 +998,33 @@ export function ProductDetail({
   const handleAddToCart = () => addItem(product.id, selectedVariant.id, quantity);
   const safeDesktopStageWidth = Math.max(desktopStageWidth, 1);
   const safeMobileGalleryWidth = Math.max(mobileGalleryWidth, 1);
+
+  useEffect(() => {
+    if (recipeInspirations.length === 0) {
+      registerProductRecipes(null);
+
+      return () => registerProductRecipes(null);
+    }
+
+    registerProductRecipes({
+      product: {
+        id: product.id,
+        images: product.images,
+        slug: product.slug,
+        title: product.title,
+      },
+      recipes: recipeInspirations.slice(0, 6),
+    });
+
+    return () => registerProductRecipes(null);
+  }, [
+    product.id,
+    product.images,
+    product.slug,
+    product.title,
+    recipeInspirations,
+    registerProductRecipes,
+  ]);
 
   useLayoutEffect(() => {
     window.scrollTo({ left: 0, top: 0, behavior: "auto" });
@@ -1799,12 +1828,6 @@ export function ProductDetail({
                 </div>
               </div>
 
-              <ProductRecipeBridge
-                placement="mobile"
-                product={product}
-                recipes={recipeInspirations}
-              />
-
               <ProductCodes ean={product.ean} symbol={product.symbol} />
 
               <button
@@ -2190,8 +2213,6 @@ export function ProductDetail({
                     selectedVariantLeadTime={selectedVariant.leadTime}
                   />
 
-                  <ProductRecipeBridge product={product} recipes={recipeInspirations} />
-
                   <BuyboxRecommendationRail
                     fallbackToRelated={buyboxUsesRelatedFallback}
                     products={buyboxRecommendationProducts}
@@ -2200,6 +2221,11 @@ export function ProductDetail({
               </div>
             </div>
           </div>
+
+          <ProductRecipeBridge
+            product={product}
+            recipes={recipeInspirations}
+          />
 
           <div className="mt-8 hidden border-t border-browin-dark/10 pt-7 lg:block">
             <div className="rounded-sm border border-browin-dark/10 bg-browin-white p-6">

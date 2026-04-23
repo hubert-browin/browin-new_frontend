@@ -32,6 +32,8 @@ import { useEffect, useRef, useState } from "react";
 import { CartDrawer } from "@/components/store/cart-drawer";
 import { StoreFooter } from "@/components/store/store-footer";
 import { StoreIcon } from "@/components/store/icon-map";
+import { MobileProductRecipePanel } from "@/components/store/mobile-product-recipe-panel";
+import { useProductRecipeNav } from "@/components/store/product-recipe-nav-context";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
 import {
@@ -154,7 +156,7 @@ function MobileSearchForm({
           defaultValue={searchSeed}
           key={searchSeed}
           name="search"
-          placeholder="Szukaj produktów i przepisów..."
+          placeholder="Szukaj..."
         />
         <MagnifyingGlass
           className="absolute left-3.5 top-1/2 -translate-y-1/2 text-browin-dark/40 transition-colors group-focus-within:text-browin-red"
@@ -199,11 +201,16 @@ export function StoreChrome({
   const routeSearchParams = useSearchParams();
   const { closeCart, count: cartCount, isOpen, openCart, subtotal } = useCart();
   const { count: favoritesCount } = useFavorites();
+  const {
+    closeProductRecipePanel,
+    currentProductRecipeContext,
+    isProductRecipePanelOpen,
+    openProductRecipePanel,
+  } = useProductRecipeNav();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileLangOpen, setMobileLangOpen] = useState(false);
   const [activeMobileCategoryId, setActiveMobileCategoryId] =
     useState<CategoryId | null>(null);
-  const [isIslandEnabled, setIsIslandEnabled] = useState(false);
   const [breadcrumbCategoryId, setBreadcrumbCategoryId] = useState<CategoryId | null>(
     null,
   );
@@ -212,18 +219,22 @@ export function StoreChrome({
   const [breadcrumbMenuMode, setBreadcrumbMenuMode] = useState<"categories" | "topics">(
     "categories",
   );
-  const [activeIslandCategoryId, setActiveIslandCategoryId] = useState<CategoryId | null>(
-    storeCategories[0]?.id ?? null,
-  );
   const [activeDockCategoryId, setActiveDockCategoryId] = useState<CategoryId | null>(
     null,
   );
+  const [isMobileRecipeSearchHidden, setIsMobileRecipeSearchHidden] = useState(false);
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileRecipeSearchScrollY = useRef(0);
   const searchSeed =
     pathname === "/szukaj" ? routeSearchParams.get("search") ?? "" : "";
   const isProductPage = pathname.startsWith("/produkt/");
+  const isRecipePage =
+    pathname.startsWith("/przepisnik") || pathname.startsWith("/przepisy");
+  const isRecipeDetailPage =
+    pathname.startsWith("/przepisnik/przepis/") || pathname.startsWith("/przepisy/");
+  const showMobileCategoryStrip = !isProductPage && !isRecipePage;
   const showDesktopNav = pathname !== "/";
   const routeBreadcrumbCategory =
     storeCategories.find((category) => pathname === `/kategoria/${category.slug}`) ??
@@ -231,16 +242,9 @@ export function StoreChrome({
   const stateBreadcrumbCategory =
     storeCategories.find((category) => category.id === breadcrumbCategoryId) ?? null;
   const activeBreadcrumbCategory = routeBreadcrumbCategory ?? stateBreadcrumbCategory;
-  const activeIslandCategory =
-    storeCategories.find((category) => category.id === activeIslandCategoryId) ??
-    storeCategories[0] ??
-    null;
   const activeDockCategory =
     storeCategories.find((category) => category.id === activeDockCategoryId) ?? null;
   const highlightedDockCategory = activeDockCategory ?? routeBreadcrumbCategory;
-  const activeIslandSections = activeIslandCategory
-    ? activeIslandCategory.menuSections.slice(0, 2)
-    : [];
   const activeBreadcrumbTopics = activeBreadcrumbCategory
     ? getUniqueTopics(activeBreadcrumbCategory)
     : [];
@@ -261,6 +265,13 @@ export function StoreChrome({
   const isCategoriesBottomNavActive = activeMobileBottomNavItem === "categories";
   const isRecipesBottomNavActive = activeMobileBottomNavItem === "recipes";
   const isCartBottomNavActive = activeMobileBottomNavItem === "cart";
+  const productRecipeNavProductId = currentProductRecipeContext?.product.id ?? null;
+  const productRecipeNavCount = currentProductRecipeContext?.recipes.length ?? 0;
+  const hasProductRecipeNavContext = isProductPage && productRecipeNavCount > 0;
+  const isRecipesBottomNavHighlighted =
+    isRecipesBottomNavActive || isProductRecipePanelOpen;
+  const shouldHideMobileSearch =
+    isRecipeDetailPage && isMobileRecipeSearchHidden && !mobileMenuOpen && !isOpen;
   const activeMobileCategory =
     storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
 
@@ -271,6 +282,62 @@ export function StoreChrome({
       document.body.style.overflow = "";
     };
   }, [isOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    closeProductRecipePanel();
+  }, [closeProductRecipePanel, pathname]);
+
+  useEffect(() => {
+    if (!isRecipeDetailPage) {
+      return;
+    }
+
+    let frame = 0;
+
+    const resetFrame = window.requestAnimationFrame(() => {
+      mobileRecipeSearchScrollY.current = window.scrollY;
+      setIsMobileRecipeSearchHidden(false);
+    });
+
+    const evaluateScrollDirection = () => {
+      frame = 0;
+
+      const currentScrollY = window.scrollY;
+      const delta = currentScrollY - mobileRecipeSearchScrollY.current;
+
+      if (currentScrollY < 24) {
+        setIsMobileRecipeSearchHidden(false);
+      } else if (delta > 8) {
+        setIsMobileRecipeSearchHidden(true);
+      } else if (delta < -8) {
+        setIsMobileRecipeSearchHidden(false);
+      }
+
+      mobileRecipeSearchScrollY.current = currentScrollY;
+    };
+
+    const scheduleScrollEvaluation = () => {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(evaluateScrollDirection);
+    };
+
+    window.addEventListener("scroll", scheduleScrollEvaluation, { passive: true });
+    window.addEventListener("resize", scheduleScrollEvaluation);
+
+    return () => {
+      window.cancelAnimationFrame(resetFrame);
+
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      window.removeEventListener("scroll", scheduleScrollEvaluation);
+      window.removeEventListener("resize", scheduleScrollEvaluation);
+    };
+  }, [isRecipeDetailPage, pathname]);
 
   useEffect(() => {
     if (!showDesktopNav || !activeDockCategoryId) {
@@ -343,15 +410,18 @@ export function StoreChrome({
     setMobileMenuOpen(false);
     setMobileLangOpen(false);
     setActiveMobileCategoryId(null);
+    closeProductRecipePanel();
   };
 
   const closeMobileOverlays = () => {
     closeMobileMenu();
     closeCart();
+    closeProductRecipePanel();
   };
 
   const openMobileMenu = () => {
     closeCart();
+    closeProductRecipePanel();
     setMobileLangOpen(false);
     setActiveMobileCategoryId(null);
     setMobileMenuOpen(true);
@@ -368,6 +438,7 @@ export function StoreChrome({
 
   const handleOpenCart = () => {
     closeMobileMenu();
+    closeProductRecipePanel();
     openCart();
   };
 
@@ -393,6 +464,18 @@ export function StoreChrome({
       left: 0,
       top: 0,
     });
+  };
+
+  const handleProductRecipesBottomNavClick = () => {
+    closeCart();
+    closeMobileMenu();
+
+    if (isProductRecipePanelOpen) {
+      closeProductRecipePanel();
+      return;
+    }
+
+    openProductRecipePanel();
   };
 
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -474,103 +557,9 @@ export function StoreChrome({
   return (
     <div className="min-h-screen bg-browin-gray text-browin-dark">
       {showDesktopNav ? (
-        <button
-          aria-pressed={isIslandEnabled}
-          className="fixed bottom-4 right-4 z-[120] hidden items-center gap-2 rounded-full border border-browin-dark/10 bg-browin-white/90 p-1.5 pr-3 text-[11px] font-semibold uppercase text-browin-dark shadow-2xl backdrop-blur-md transition-colors hover:text-browin-red md:flex"
-          onClick={() => setIsIslandEnabled((current) => !current)}
-          type="button"
-        >
-          <span
-            className={`relative flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-              isIslandEnabled ? "bg-browin-red" : "bg-browin-dark/15"
-            }`}
-          >
-            <span
-              className={`absolute h-4 w-4 rounded-full bg-browin-white transition-transform ${
-                isIslandEnabled ? "translate-x-4" : "translate-x-0.5"
-              }`}
-            />
-          </span>
-          Island
-        </button>
-      ) : null}
-
-      {showDesktopNav && isIslandEnabled && activeIslandCategory ? (
-        <nav
-          aria-label="Kategorie sklepu"
-          className="group/island fixed bottom-8 left-1/2 z-[100] hidden -translate-x-1/2 md:block"
-        >
-          <div className="pointer-events-none absolute bottom-9 left-0 right-0 translate-y-3 rounded-t-[2rem] border border-browin-dark/10 bg-white/85 px-6 pb-16 pt-4 opacity-0 shadow-2xl backdrop-blur-md transition-all duration-200 group-hover/island:pointer-events-auto group-hover/island:translate-y-0 group-hover/island:opacity-100">
-            <div className="mb-4 flex items-center justify-between gap-4 border-b border-browin-dark/8 pb-3">
-              <div className="flex min-w-0 items-center gap-3">
-                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-browin-red/10 text-browin-red">
-                  <StoreIcon icon={activeIslandCategory.icon} size={22} weight="fill" />
-                </span>
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase text-browin-dark/45">
-                    Kategoria
-                  </p>
-                  <h3 className="truncate text-sm font-semibold text-browin-dark">
-                    {activeIslandCategory.label}
-                  </h3>
-                </div>
-              </div>
-
-              <Link
-                className="shrink-0 rounded-full border border-browin-red/25 px-3 py-1.5 text-[11px] font-semibold uppercase text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
-                href={`/kategoria/${activeIslandCategory.slug}`}
-              >
-                Wszystkie
-              </Link>
-            </div>
-
-            <div className="grid max-h-[18rem] grid-cols-2 gap-5 overflow-y-auto pr-1">
-              {activeIslandSections.map((section) => (
-                <div key={section.title}>
-                  <div className="space-y-1">
-                    {section.topics.map((topic) => (
-                      <Link
-                        className="block rounded-md px-2 py-1.5 text-[12px] font-semibold leading-snug text-browin-dark/75 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
-                        href={buildCategoryHref(activeIslandCategory.slug, topic.query)}
-                        key={`${section.title}-${topic.label}-${topic.query ?? ""}`}
-                      >
-                        {topic.label}
-                      </Link>
-                    ))}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="relative z-10 flex items-center gap-2 rounded-full border border-browin-dark/10 bg-white/80 px-6 py-3 shadow-2xl backdrop-blur-md">
-            {storeCategories.map((category) => {
-              const isActive = category.id === activeIslandCategory.id;
-
-              return (
-                <Link
-                  aria-label={category.label}
-                  className={`flex h-12 w-12 items-center justify-center rounded-full border transition-all duration-200 ${
-                    isActive
-                      ? "-translate-y-0.5 border-browin-red/20 bg-browin-red text-browin-white"
-                      : "border-transparent text-browin-dark hover:-translate-y-0.5 hover:border-browin-red/20 hover:bg-browin-red hover:text-browin-white"
-                  }`}
-                  href={`/kategoria/${category.slug}`}
-                  key={category.id}
-                  onFocus={() => setActiveIslandCategoryId(category.id)}
-                  onMouseEnter={() => setActiveIslandCategoryId(category.id)}
-                >
-                  <StoreIcon icon={category.icon} size={23} weight="fill" />
-                </Link>
-              );
-            })}
-          </div>
-        </nav>
-      ) : null}
-
-      {showDesktopNav ? (
         <aside
           className="group/dock fixed left-0 top-0 z-[100] hidden h-screen w-20 overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:w-72 md:block"
+          id="desktop-category-dock"
           ref={dockRef}
         >
           <div className="flex h-full flex-col overflow-hidden">
@@ -868,7 +857,13 @@ export function StoreChrome({
           </div>
         </div>
 
-        <div className="block border-t border-browin-dark/8 bg-browin-white px-4 pb-3 pt-2 md:hidden">
+        <div
+          className={`block overflow-hidden bg-browin-white px-4 transition-[max-height,opacity,padding] duration-200 ease-out md:hidden ${
+            shouldHideMobileSearch
+              ? "max-h-0 border-t-0 pb-0 pt-0 opacity-0"
+              : "max-h-20 border-t border-browin-dark/8 pb-3 pt-2 opacity-100"
+          }`}
+        >
           <MobileSearchForm onSubmit={handleSearchSubmit} searchSeed={searchSeed} />
         </div>
       </header>
@@ -1061,7 +1056,7 @@ export function StoreChrome({
         </div>
       ) : null}
 
-      {!isProductPage ? (
+      {showMobileCategoryStrip ? (
         <div className="no-scrollbar overflow-x-auto border-b border-browin-border bg-browin-white py-3 md:hidden">
           <div className="flex w-max space-x-4 px-4">
             {storeCategories.map((category) => (
@@ -1302,19 +1297,43 @@ export function StoreChrome({
           />
           <span className="text-[9px] font-semibold uppercase">Kategorie</span>
         </button>
-        <Link
-          aria-current={isRecipesBottomNavActive ? "page" : undefined}
-          className={mobileBottomNavItemClass}
-          href="/przepisnik"
-          onClick={closeMobileOverlays}
-        >
-          <BookOpen
-            className={getMobileBottomNavIconClass(isRecipesBottomNavActive)}
-            size={26}
-            weight={isRecipesBottomNavActive ? "fill" : "regular"}
-          />
-          <span className="text-[9px] font-semibold uppercase">Przepisy</span>
-        </Link>
+        {hasProductRecipeNavContext ? (
+          <button
+            aria-pressed={isProductRecipePanelOpen}
+            className={`${mobileBottomNavItemClass} relative focus:outline-none`}
+            onClick={handleProductRecipesBottomNavClick}
+            type="button"
+          >
+            <span
+              className="mobile-recipe-nav-buzz relative flex"
+              key={productRecipeNavProductId}
+            >
+              <BookOpen
+                className={getMobileBottomNavIconClass(isRecipesBottomNavHighlighted)}
+                size={26}
+                weight={isRecipesBottomNavHighlighted ? "fill" : "regular"}
+              />
+              <span className="absolute -right-2 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-browin-red px-1 text-[9px] font-semibold leading-none text-browin-white">
+                {productRecipeNavCount}
+              </span>
+            </span>
+            <span className="text-[9px] font-semibold uppercase">Przepisy</span>
+          </button>
+        ) : (
+          <Link
+            aria-current={isRecipesBottomNavActive ? "page" : undefined}
+            className={mobileBottomNavItemClass}
+            href="/przepisnik"
+            onClick={closeMobileOverlays}
+          >
+            <BookOpen
+              className={getMobileBottomNavIconClass(isRecipesBottomNavActive)}
+              size={26}
+              weight={isRecipesBottomNavActive ? "fill" : "regular"}
+            />
+            <span className="text-[9px] font-semibold uppercase">Przepisy</span>
+          </Link>
+        )}
         <button
           aria-pressed={isCartBottomNavActive}
           className={`${mobileBottomNavItemClass} relative focus:outline-none`}
@@ -1332,6 +1351,12 @@ export function StoreChrome({
           </span>
         </button>
       </div>
+
+      <MobileProductRecipePanel
+        context={hasProductRecipeNavContext ? currentProductRecipeContext : null}
+        isOpen={isProductRecipePanelOpen}
+        onClose={closeProductRecipePanel}
+      />
 
       <CartDrawer recipeCommerceEntries={recipeCommerceEntries} />
     </div>

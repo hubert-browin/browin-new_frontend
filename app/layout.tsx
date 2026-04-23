@@ -3,6 +3,7 @@ import { Montserrat } from "next/font/google";
 
 import { CartProvider } from "@/components/store/cart-provider";
 import { FavoritesProvider } from "@/components/store/favorites-provider";
+import { ProductRecipeNavProvider } from "@/components/store/product-recipe-nav-context";
 import { StoreChrome } from "@/components/store/store-chrome";
 import { getStoreCategories } from "@/data/store";
 import { getProducts } from "@/lib/product-feed";
@@ -71,12 +72,14 @@ export default async function RootLayout({
       <body className="min-h-full bg-background font-sans text-foreground antialiased selection:bg-browin-red selection:text-white">
         <CartProvider products={cartProducts}>
           <FavoritesProvider>
-            <StoreChrome
-              recipeCommerceEntries={recipeCommerceEntries}
-              storeCategories={storeCategories}
-            >
-              {children}
-            </StoreChrome>
+            <ProductRecipeNavProvider>
+              <StoreChrome
+                recipeCommerceEntries={recipeCommerceEntries}
+                storeCategories={storeCategories}
+              >
+                {children}
+              </StoreChrome>
+            </ProductRecipeNavProvider>
           </FavoritesProvider>
         </CartProvider>
       </body>

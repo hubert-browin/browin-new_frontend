@@ -4,7 +4,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { RecipeCard } from "@/components/store/recipe-card";
+import { RecipeListBackButton } from "@/components/store/recipe-list-back-button";
 import { RecipeProductPicker } from "@/components/store/recipe-product-picker";
+import { RecipeProductReturnDock } from "@/components/store/recipe-product-return-dock";
 import { getProducts } from "@/lib/product-feed";
 import {
   getRecipeBySlug,
@@ -146,41 +148,28 @@ export default async function RecipePage({
   ];
 
   return (
-    <section className="bg-browin-gray pb-16">
+    <section className="bg-browin-gray pb-[calc(var(--mobile-bottom-nav-height)+var(--mobile-recipe-cta-height)+2rem)] lg:pb-16">
       <script
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c"),
         }}
         type="application/ld+json"
       />
+      <RecipeProductReturnDock recipeSlug={recipe.slug} recipeTitle={recipe.title} />
 
-      <div className="bg-browin-white">
-        <div className="container mx-auto px-4 py-5">
-          <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-browin-dark/48">
-            <Link className="transition-colors hover:text-browin-red" href="/przepisnik">
-              Przepiśnik
-            </Link>
-            <span>/</span>
-            <span className="text-browin-red">{recipe.category.name}</span>
-          </nav>
-        </div>
-      </div>
+      <div className="grid gap-6 px-0 py-0 lg:container lg:mx-auto lg:gap-8 lg:px-4 lg:py-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
+        <article className="min-w-0 bg-browin-white lg:shadow-sm">
+          <div className="border-b border-browin-dark/10 p-4 md:p-8 lg:border">
+            <RecipeListBackButton />
+            <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-browin-dark/48">
+              <Link className="transition-colors hover:text-browin-red" href="/przepisnik">
+                Przepiśnik
+              </Link>
+              <span>/</span>
+              <span className="text-browin-red">{recipe.category.name}</span>
+            </nav>
 
-      <header className="bg-browin-white">
-        <div className="container mx-auto grid gap-8 px-4 pb-10 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)] lg:items-stretch">
-          <div className="relative min-h-[24rem] overflow-hidden bg-browin-dark md:min-h-[32rem]">
-            <Image
-              alt={recipe.title}
-              className="object-cover"
-              fill
-              priority
-              sizes="(max-width: 1023px) 100vw, 44vw"
-              src={recipe.heroImage}
-            />
-          </div>
-
-          <div className="flex flex-col justify-center py-2 lg:py-8">
-            <div className="flex flex-wrap gap-2">
+            <div className="mt-5 flex flex-wrap gap-2">
               <Link
                 className="bg-browin-red px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-white"
                 href={`/przepisnik?category=${recipe.category.slug}`}
@@ -192,21 +181,27 @@ export default async function RecipePage({
               </span>
             </div>
 
-            <h1 className="mt-5 text-4xl font-bold leading-[1.04] tracking-tight text-browin-dark md:text-6xl">
+            <h1 className="mt-5 text-3xl font-bold leading-[1.06] tracking-tight text-browin-dark md:text-5xl">
               {recipe.title}
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-relaxed text-browin-dark/68 md:text-lg">
+            <p className="mt-4 max-w-3xl text-base leading-relaxed text-browin-dark/68 md:text-lg">
               {recipe.excerpt}
             </p>
 
+            <div className="relative mt-6 aspect-[5/2] max-h-[22rem] overflow-hidden bg-browin-dark">
+              <Image
+                alt={recipe.title}
+                className="object-cover"
+                fill
+                priority
+                sizes="(max-width: 1023px) 100vw, 56vw"
+                src={recipe.heroImage}
+              />
+            </div>
           </div>
-        </div>
-      </header>
 
-      <div className="container mx-auto grid gap-8 px-4 py-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
-        <article className="min-w-0 bg-browin-white shadow-sm">
           {recipe.introHtml ? (
-            <div className="border border-browin-dark/10 bg-browin-gray/55 p-5 md:p-7">
+            <div className="border-b border-browin-dark/10 bg-browin-gray/55 p-4 md:p-7 lg:border-x">
               <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
                 Wprowadzenie
               </p>
@@ -217,7 +212,7 @@ export default async function RecipePage({
             </div>
           ) : null}
 
-          <div className="border-x border-b border-browin-dark/10 p-5 md:p-8">
+          <div className="border-b border-browin-dark/10 p-4 md:p-8 lg:border-x">
             <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-red">
               Przygotowanie
             </p>
@@ -238,6 +233,7 @@ export default async function RecipePage({
           <RecipeProductPicker
             groups={hydratedRecipe.productGroups}
             ingredients={recipe.ingredients}
+            recipeSlug={recipe.slug}
             recipeTitle={recipe.title}
           />
         </div>
