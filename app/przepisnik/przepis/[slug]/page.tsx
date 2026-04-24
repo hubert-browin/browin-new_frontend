@@ -7,6 +7,7 @@ import { RecipeCard } from "@/components/store/recipe-card";
 import { RecipeListBackButton } from "@/components/store/recipe-list-back-button";
 import { RecipeProductPicker } from "@/components/store/recipe-product-picker";
 import { RecipeProductReturnDock } from "@/components/store/recipe-product-return-dock";
+import { getPrimaryVariant } from "@/lib/catalog";
 import { getProducts } from "@/lib/product-feed";
 import {
   getRecipeBySlug,
@@ -134,6 +135,21 @@ export default async function RecipePage({
   }
 
   const hydratedRecipe = hydrateRecipe(recipe, products);
+  const hasRecipeIngredients = recipe.ingredients.length > 0;
+  const hasRecipeProducts = hydratedRecipe.productGroups.some(
+    (group) =>
+      group.products.some((entry) => getPrimaryVariant(entry.product).stock > 0),
+  );
+  const hasRecipeProductPickerContent =
+    hasRecipeIngredients || hasRecipeProducts;
+  const recipeGridColumnsClass =
+    hasRecipeIngredients && hasRecipeProducts
+      ? "lg:grid-cols-[minmax(0,1fr)_14rem_15rem] xl:grid-cols-[minmax(0,1fr)_16rem_17rem] 2xl:grid-cols-[minmax(0,1fr)_18rem_19rem]"
+      : hasRecipeIngredients
+        ? "lg:grid-cols-[minmax(0,1fr)_18rem]"
+        : hasRecipeProducts
+          ? "lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_17rem] 2xl:grid-cols-[minmax(0,1fr)_19rem]"
+          : "lg:grid-cols-1";
   const allRecipes = await getRecipes(products);
   const relatedRecipes = allRecipes
     .filter((entry) => entry.id !== recipe.id && entry.category.slug === recipe.category.slug)
@@ -157,19 +173,12 @@ export default async function RecipePage({
       />
       <RecipeProductReturnDock recipeSlug={recipe.slug} recipeTitle={recipe.title} />
 
-      <div className="grid gap-6 px-0 py-0 lg:container lg:mx-auto lg:gap-8 lg:px-4 lg:py-8 lg:grid-cols-[minmax(0,1fr)_25rem] lg:items-start xl:grid-cols-[minmax(0,1fr)_28rem]">
+      <div className={`recipe-detail-layout grid gap-6 px-0 py-0 ${recipeGridColumnsClass}`}>
         <article className="min-w-0 bg-browin-white lg:shadow-sm">
           <div className="border-b border-browin-dark/10 p-4 md:p-8 lg:border">
             <RecipeListBackButton />
-            <nav className="flex flex-wrap items-center gap-2 text-xs font-semibold uppercase tracking-[0.14em] text-browin-dark/48">
-              <Link className="transition-colors hover:text-browin-red" href="/przepisnik">
-                Przepiśnik
-              </Link>
-              <span>/</span>
-              <span className="text-browin-red">{recipe.category.name}</span>
-            </nav>
 
-            <div className="mt-5 flex flex-wrap gap-2">
+            <div className="flex flex-wrap gap-2">
               <Link
                 className="bg-browin-red px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-white"
                 href={`/przepisnik?category=${recipe.category.slug}`}
@@ -229,14 +238,14 @@ export default async function RecipePage({
           </div>
         </article>
 
-        <div className="lg:sticky lg:top-28">
+        {hasRecipeProductPickerContent ? (
           <RecipeProductPicker
             groups={hydratedRecipe.productGroups}
             ingredients={recipe.ingredients}
             recipeSlug={recipe.slug}
             recipeTitle={recipe.title}
           />
-        </div>
+        ) : null}
       </div>
 
       {relatedRecipes.length > 0 ? (

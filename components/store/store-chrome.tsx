@@ -44,6 +44,15 @@ import {
 } from "@/data/store";
 import type { RecipeCommerceEntry } from "@/data/recipes";
 import { formatCurrency } from "@/lib/catalog";
+import {
+  RECIPEBOOK_LAST_HREF_STORAGE_KEY,
+  RECIPEBOOK_LAST_LIST_HREF_STORAGE_KEY,
+  buildCurrentRouteHref,
+  getRecipebookScrollStorageKey,
+  isRecipebookPathname,
+  normalizeRecipebookHref,
+  normalizeRecipebookListHref,
+} from "@/lib/recipebook-navigation";
 
 type StoreChromeProps = {
   children: React.ReactNode;
@@ -65,7 +74,7 @@ const topBarLinks = [
   { label: "Blog", href: "/produkty?search=poradnik" },
 ] as const;
 
-const mobileMenuQuickLinks = [
+const utilityQuickLinks = [
   {
     href: "/przepisnik",
     icon: BookOpen,
@@ -93,10 +102,16 @@ const mobileMenuQuickLinks = [
   },
 ] as const;
 
-const dockUtilityLinks = mobileMenuQuickLinks;
+const mobileMenuQuickLinks = utilityQuickLinks.filter(
+  (item) => item.label !== "Przepiśnik",
+);
+
+const dockUtilityLinks = utilityQuickLinks;
 
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
+
+const isMobileViewport = () => window.matchMedia("(max-width: 767px)").matches;
 
 const mobileBottomNavItemClass =
   "flex w-16 flex-col items-center text-browin-dark/60 transition-colors hover:text-browin-red";
@@ -222,11 +237,16 @@ export function StoreChrome({
   const [activeDockCategoryId, setActiveDockCategoryId] = useState<CategoryId | null>(
     null,
   );
-  const [isMobileRecipeSearchHidden, setIsMobileRecipeSearchHidden] = useState(false);
+  const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
+    useState(false);
+  const [rememberedRecipebookHref, setRememberedRecipebookHref] =
+    useState("/przepisnik");
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const mobileRecipeSearchScrollY = useRef(0);
+  const mobileContextSearchScrollY = useRef(0);
+  const routeSearch = routeSearchParams.toString();
+  const currentRouteHref = buildCurrentRouteHref(pathname, routeSearch);
   const searchSeed =
     pathname === "/szukaj" ? routeSearchParams.get("search") ?? "" : "";
   const isProductPage = pathname.startsWith("/produkt/");
@@ -234,6 +254,7 @@ export function StoreChrome({
     pathname.startsWith("/przepisnik") || pathname.startsWith("/przepisy");
   const isRecipeDetailPage =
     pathname.startsWith("/przepisnik/przepis/") || pathname.startsWith("/przepisy/");
+  const canAutoHideMobileSearch = isProductPage || isRecipeDetailPage;
   const showMobileCategoryStrip = !isProductPage && !isRecipePage;
   const showDesktopNav = pathname !== "/";
   const routeBreadcrumbCategory =
@@ -271,7 +292,13 @@ export function StoreChrome({
   const isRecipesBottomNavHighlighted =
     isRecipesBottomNavActive || isProductRecipePanelOpen;
   const shouldHideMobileSearch =
-    isRecipeDetailPage && isMobileRecipeSearchHidden && !mobileMenuOpen && !isOpen;
+    canAutoHideMobileSearch &&
+    isMobileContextSearchHidden &&
+    !mobileMenuOpen &&
+    !isOpen;
+  const recipeBottomNavHref = isRecipebookPathname(pathname)
+    ? currentRouteHref
+    : rememberedRecipebookHref;
   const activeMobileCategory =
     storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
 
@@ -288,32 +315,177 @@ export function StoreChrome({
   }, [closeProductRecipePanel, pathname]);
 
   useEffect(() => {
-    if (!isRecipeDetailPage) {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        setRememberedRecipebookHref(
+          normalizeRecipebookHref(
+            window.sessionStorage.getItem(RECIPEBOOK_LAST_HREF_STORAGE_KEY),
+          ),
+        );
+      } catch {
+        // Remembered recipebook navigation is a client-side enhancement.
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
+
+  useEffect(() => {
+    if (!isRecipebookPathname(pathname)) {
+      return;
+    }
+
+    const nextRecipebookHref = normalizeRecipebookHref(currentRouteHref);
+    const nextRecipebookListHref =
+      pathname === "/przepisnik"
+        ? normalizeRecipebookListHref(currentRouteHref)
+        : null;
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        window.sessionStorage.setItem(
+          RECIPEBOOK_LAST_HREF_STORAGE_KEY,
+          nextRecipebookHref,
+        );
+
+        if (nextRecipebookListHref) {
+          window.sessionStorage.setItem(
+            RECIPEBOOK_LAST_LIST_HREF_STORAGE_KEY,
+            nextRecipebookListHref,
+          );
+        }
+      } catch {
+        // Remembered recipebook navigation is a client-side enhancement.
+      }
+
+      setRememberedRecipebookHref(nextRecipebookHref);
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentRouteHref, pathname]);
+
+  useEffect(() => {
+    if (pathname !== "/przepisnik" || !isMobileViewport()) {
+      return;
+    }
+
+    let savedScrollTop = 0;
+
+    try {
+      savedScrollTop = Number(
+        window.sessionStorage.getItem(getRecipebookScrollStorageKey(currentRouteHref)) ??
+          0,
+      );
+    } catch {
+      savedScrollTop = 0;
+    }
+
+    if (!Number.isFinite(savedScrollTop) || savedScrollTop < 24) {
+      return;
+    }
+
+    let secondFrame = 0;
+    const firstFrame = window.requestAnimationFrame(() => {
+      secondFrame = window.requestAnimationFrame(() => {
+        window.scrollTo({
+          behavior: "auto",
+          left: 0,
+          top: savedScrollTop,
+        });
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(firstFrame);
+
+      if (secondFrame) {
+        window.cancelAnimationFrame(secondFrame);
+      }
+    };
+  }, [currentRouteHref, pathname]);
+
+  useEffect(() => {
+    if (pathname !== "/przepisnik") {
+      return;
+    }
+
+    let frame = 0;
+    let isListening = false;
+
+    const saveScrollPosition = () => {
+      if (!isMobileViewport()) {
+        return;
+      }
+
+      try {
+        window.sessionStorage.setItem(
+          getRecipebookScrollStorageKey(currentRouteHref),
+          String(window.scrollY),
+        );
+      } catch {
+        // Scroll memory is best-effort only.
+      }
+    };
+
+    const scheduleScrollSave = () => {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(() => {
+        frame = 0;
+        saveScrollPosition();
+      });
+    };
+
+    const startListeningFrame = window.requestAnimationFrame(() => {
+      isListening = true;
+      window.addEventListener("scroll", scheduleScrollSave, { passive: true });
+      window.addEventListener("pagehide", saveScrollPosition);
+    });
+
+    return () => {
+      window.cancelAnimationFrame(startListeningFrame);
+
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      if (isListening) {
+        window.removeEventListener("scroll", scheduleScrollSave);
+        window.removeEventListener("pagehide", saveScrollPosition);
+      }
+
+      saveScrollPosition();
+    };
+  }, [currentRouteHref, pathname]);
+
+  useEffect(() => {
+    if (!canAutoHideMobileSearch) {
       return;
     }
 
     let frame = 0;
 
     const resetFrame = window.requestAnimationFrame(() => {
-      mobileRecipeSearchScrollY.current = window.scrollY;
-      setIsMobileRecipeSearchHidden(false);
+      mobileContextSearchScrollY.current = window.scrollY;
+      setIsMobileContextSearchHidden(false);
     });
 
     const evaluateScrollDirection = () => {
       frame = 0;
 
       const currentScrollY = window.scrollY;
-      const delta = currentScrollY - mobileRecipeSearchScrollY.current;
+      const delta = currentScrollY - mobileContextSearchScrollY.current;
 
       if (currentScrollY < 24) {
-        setIsMobileRecipeSearchHidden(false);
+        setIsMobileContextSearchHidden(false);
       } else if (delta > 8) {
-        setIsMobileRecipeSearchHidden(true);
+        setIsMobileContextSearchHidden(true);
       } else if (delta < -8) {
-        setIsMobileRecipeSearchHidden(false);
+        setIsMobileContextSearchHidden(false);
       }
 
-      mobileRecipeSearchScrollY.current = currentScrollY;
+      mobileContextSearchScrollY.current = currentScrollY;
     };
 
     const scheduleScrollEvaluation = () => {
@@ -337,7 +509,7 @@ export function StoreChrome({
       window.removeEventListener("scroll", scheduleScrollEvaluation);
       window.removeEventListener("resize", scheduleScrollEvaluation);
     };
-  }, [isRecipeDetailPage, pathname]);
+  }, [canAutoHideMobileSearch, pathname]);
 
   useEffect(() => {
     if (!showDesktopNav || !activeDockCategoryId) {
@@ -1148,7 +1320,7 @@ export function StoreChrome({
         <div className="relative flex-1 overflow-y-auto bg-browin-white pb-8 no-scrollbar">
           {!activeMobileCategory ? (
             <div className="border-b border-browin-border bg-browin-white py-2.5">
-              <div className="grid grid-cols-5 gap-2 px-4">
+              <div className="grid grid-cols-4 gap-2 px-4">
                 {mobileMenuQuickLinks.map((item) => {
                   const Icon = item.icon;
 
@@ -1323,7 +1495,7 @@ export function StoreChrome({
           <Link
             aria-current={isRecipesBottomNavActive ? "page" : undefined}
             className={mobileBottomNavItemClass}
-            href="/przepisnik"
+            href={recipeBottomNavHref}
             onClick={closeMobileOverlays}
           >
             <BookOpen

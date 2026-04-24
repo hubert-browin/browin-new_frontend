@@ -21,6 +21,7 @@ type ProductRecipeBridgeProps = {
 
 const recipePluralRules = new Intl.PluralRules("pl-PL");
 const MAX_VISIBLE_RECIPES = 6;
+const ALL_RECIPEBOOK_HREF = "/przepisnik";
 
 const getRecipeCountLabel = (count: number) => {
   const suffixByPlural = {
@@ -34,9 +35,6 @@ const getRecipeCountLabel = (count: number) => {
 
   return `${count} ${suffixByPlural[recipePluralRules.select(count)]}`;
 };
-
-const getProductSearchHref = (product: Product) =>
-  `/szukaj?search=${encodeURIComponent(product.title)}`;
 
 const getRecipeHref = (recipe: RecipeSummary) =>
   `/przepisnik/przepis/${recipe.slug}`;
@@ -117,13 +115,11 @@ function RecipeDrawer({
   isReturnContext,
   onClose,
   onRecipeSelect,
-  product,
   recipes,
 }: {
   isReturnContext: boolean;
   onClose: () => void;
   onRecipeSelect: (recipe: RecipeSummary) => void;
-  product: Product;
   recipes: RecipeSummary[];
 }) {
   const [leadRecipe, ...secondaryRecipes] = recipes;
@@ -134,26 +130,19 @@ function RecipeDrawer({
 
   return (
     <div className="overflow-hidden rounded-sm border border-browin-dark/10 bg-browin-white shadow-2xl">
-      <div className="flex items-center justify-between gap-3 border-b border-browin-dark/10 bg-browin-white px-3 py-2.5">
+      <div className="flex items-center justify-between gap-3 border-b border-browin-dark/10 bg-browin-white px-4 py-3">
         <div className="min-w-0">
-          <p className="line-clamp-1 text-xs font-bold text-browin-dark">
-            <span className="mr-2 text-[9px] uppercase tracking-[0.14em] text-browin-red">
-              {isReturnContext ? "Wróć" : getRecipeCountLabel(recipes.length)}
-            </span>
+          <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-browin-red">
+            {isReturnContext ? "Wróć do przepisu" : getRecipeCountLabel(recipes.length)}
+          </p>
+          <p className="mt-1 line-clamp-1 text-sm font-bold text-browin-dark">
             {leadRecipe.title}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
-          <Link
-            className="hidden h-8 items-center gap-1.5 border border-browin-dark/10 px-2.5 text-[9px] font-bold uppercase tracking-[0.1em] text-browin-red transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white sm:inline-flex"
-            href={getProductSearchHref(product)}
-          >
-            Wszystkie
-            <ArrowRight size={12} />
-          </Link>
           <button
             aria-label="Zamknij przepisy"
-            className="flex h-8 w-8 items-center justify-center border border-browin-dark/10 text-browin-dark/60 transition-colors hover:border-browin-red hover:text-browin-red"
+            className="flex h-9 w-9 items-center justify-center border border-browin-dark/10 text-browin-dark/60 transition-colors hover:border-browin-red hover:text-browin-red"
             onClick={onClose}
             type="button"
           >
@@ -162,7 +151,7 @@ function RecipeDrawer({
         </div>
       </div>
 
-      <div className="no-scrollbar flex gap-2.5 overflow-x-auto p-2.5">
+      <div className="no-scrollbar flex gap-2.5 overflow-x-auto p-3">
         <RecipeTile featured onSelect={onRecipeSelect} recipe={leadRecipe} />
         {secondaryRecipes.map((recipe) => (
           <RecipeTile key={recipe.id} onSelect={onRecipeSelect} recipe={recipe} />
@@ -170,10 +159,10 @@ function RecipeDrawer({
       </div>
 
       <Link
-        className="flex min-h-9 items-center justify-center gap-2 border-t border-browin-dark/10 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white sm:hidden"
-        href={getProductSearchHref(product)}
+        className="flex min-h-10 items-center justify-center gap-2 border-t border-browin-dark/10 px-3 text-[10px] font-bold uppercase tracking-[0.1em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white"
+        href={ALL_RECIPEBOOK_HREF}
       >
-        Wszystkie
+        Wszystkie inspiracje
         <ArrowRight size={13} />
       </Link>
     </div>
@@ -296,7 +285,6 @@ export function ProductRecipeBridge({
             isReturnContext={Boolean(contextRecipe)}
             onClose={() => setIsOpen(false)}
             onRecipeSelect={persistProductContext}
-            product={product}
             recipes={orderedRecipes}
           />
         </div>

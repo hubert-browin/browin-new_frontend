@@ -64,7 +64,7 @@ function ReturnLink({
 }) {
   return (
     <Link
-      className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-sm border border-browin-dark/10 bg-browin-dark/94 p-1.5 pr-2 text-left text-browin-white shadow-2xl backdrop-blur-md transition-colors hover:bg-browin-red"
+      className="group grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-2 rounded-sm border border-browin-dark/10 bg-browin-dark/94 p-1.5 pr-3 text-left text-browin-white shadow-2xl backdrop-blur-md transition-colors hover:bg-browin-red"
       href={`/produkt/${context.productSlug}`}
       onClick={onReturn}
     >
@@ -81,8 +81,13 @@ function ReturnLink({
           <ArrowLeft size={17} weight="bold" />
         )}
       </span>
-      <span className="line-clamp-1 min-w-0 text-[12px] font-bold leading-tight text-browin-white">
-        Wróć · {context.productTitle}
+      <span className="min-w-0">
+        <span className="block text-[9px] font-bold uppercase tracking-[0.12em] text-browin-white/70">
+          Wróć do produktu
+        </span>
+        <span className="line-clamp-1 text-[12px] font-bold leading-tight text-browin-white">
+          {context.productTitle}
+        </span>
       </span>
       <ArrowLeft className="shrink-0 text-browin-white" size={16} />
     </Link>
