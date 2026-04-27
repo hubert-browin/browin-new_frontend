@@ -81,27 +81,38 @@ function RecipeIngredientSection({
 
   return (
     <div>
-      <ul className="divide-y divide-browin-dark/8 text-sm leading-relaxed text-browin-dark/74">
+      <div className="divide-y divide-browin-dark/8 text-sm leading-relaxed text-browin-dark/74">
         {ingredients.map((ingredient) => {
+          if (ingredient.kind === "separator") {
+            return (
+              <p
+                className="py-2.5 font-semibold leading-relaxed text-browin-dark/58 first:pt-0 last:pb-0"
+                key={ingredient.id}
+              >
+                {ingredient.text}
+              </p>
+            );
+          }
+
           const productEntry = ingredient.productId
             ? availableIngredientProductById.get(ingredient.productId)
             : undefined;
 
           if (!productEntry) {
             return (
-              <li className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0" key={ingredient.id}>
+              <div className="flex gap-2.5 py-2.5 first:pt-0 last:pb-0" key={ingredient.id}>
                 <Check
                   className="mt-0.5 shrink-0"
                   size={14}
                   weight="bold"
                 />
                 <span>{ingredient.text}</span>
-              </li>
+              </div>
             );
           }
 
           return (
-            <li className="text-browin-red py-2.5 first:pt-0 last:pb-0" key={ingredient.id}>
+            <div className="py-2.5 text-browin-red first:pt-0 last:pb-0" key={ingredient.id}>
               <Link
                 aria-label={`Zobacz produkt dla składnika: ${ingredient.text}`}
                 className="flex gap-2.5 text-browin-red"
@@ -115,10 +126,10 @@ function RecipeIngredientSection({
                 />
                 <span>{ingredient.text}</span>
               </Link>
-            </li>
+            </div>
           );
         })}
-      </ul>
+      </div>
     </div>
   );
 }
@@ -318,6 +329,10 @@ export function RecipeProductPicker({
   const { addItems } = useCart();
   const pathname = usePathname();
   const mobilePanelRef = useRef<HTMLElement | null>(null);
+  const ingredientItemCount = useMemo(
+    () => ingredients.filter((ingredient) => ingredient.kind !== "separator").length,
+    [ingredients],
+  );
   const allProducts = useMemo(
     () => groups.flatMap((group) => group.products).filter(isPurchasable),
     [groups],
@@ -349,10 +364,10 @@ export function RecipeProductPicker({
   const selectedProducts = allProducts.filter((entry) => selectedIds.has(entry.product.id));
   const selectedTotal = selectedProducts.reduce((sum, entry) => sum + getProductPrice(entry), 0);
   const selectedProductCountLabel = getProductCountLabel(selectedProducts.length);
-  const ingredientCountLabel = getIngredientCountLabel(ingredients.length);
+  const ingredientCountLabel = getIngredientCountLabel(ingredientItemCount);
   const allProductCountLabel = getProductCountLabel(allProducts.length);
   const mobileSummaryItems = [
-    ingredients.length > 0 ? ingredientCountLabel : null,
+    ingredientItemCount > 0 ? ingredientCountLabel : null,
     allProducts.length > 0 ? allProductCountLabel : null,
   ].filter((item): item is string => Boolean(item));
   const mobileSummaryLabel = mobileSummaryItems.join(" · ");
@@ -448,7 +463,7 @@ export function RecipeProductPicker({
     <>
       {hasPanelContent ? (
         <>
-          {ingredients.length > 0 ? (
+          {ingredientItemCount > 0 ? (
             <aside className="recipe-shopbox hidden overflow-hidden border border-browin-dark/10 bg-browin-white shadow-sm lg:sticky lg:top-36 lg:flex lg:max-h-[calc(100dvh-10rem)] lg:flex-col">
               <div className="border-b border-browin-dark/10 bg-browin-white px-4 py-3.5">
                 <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-browin-red">
@@ -583,7 +598,7 @@ export function RecipeProductPicker({
 
             <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
               <div className="grid gap-5">
-                {ingredients.length > 0 ? (
+                {ingredientItemCount > 0 ? (
                   <div className="border border-browin-dark/10 bg-browin-gray/50 p-4">
                     <p className="text-sm font-bold text-browin-dark">
                       Składniki bazowe

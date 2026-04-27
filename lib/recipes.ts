@@ -4,7 +4,7 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 import { mockBrowinRecipes } from "@/data/mock-recipes";
-import type { BrowinJsonRecipe, Recipe } from "@/data/recipes";
+import { RECIPEBOOK_PAGE_SIZE, type BrowinJsonRecipe, type Recipe } from "@/data/recipes";
 import type { Product } from "@/data/products";
 import {
   buildRecipeCountsByProductId,
@@ -12,7 +12,8 @@ import {
   findRecipesByProductId,
   hydrateRecipeProducts,
 } from "@/lib/recipe-commerce";
-import { transformBrowinRecipes } from "@/lib/recipe-transformer";
+import { enrichRecipeIngredientMatches } from "@/lib/recipe-ingredient-matcher";
+import { toRecipeSummary, transformBrowinRecipes } from "@/lib/recipe-transformer";
 
 export type {
   HydratedRecipe,
@@ -157,8 +158,35 @@ const getRawRecipes = async (): Promise<BrowinJsonRecipe[]> => {
 
 export const getRecipes = async (products?: Product[]): Promise<Recipe[]> => {
   const rawRecipes = await getRawRecipes();
+  const recipes = transformBrowinRecipes(rawRecipes, getProductSlugMap(products));
 
-  return transformBrowinRecipes(rawRecipes, getProductSlugMap(products));
+  return products ? enrichRecipeIngredientMatches(recipes, products) : recipes;
+};
+
+export const filterRecipesForRecipebook = (recipes: Recipe[], categorySlug = "") =>
+  recipes
+    .filter((recipe) => !categorySlug || recipe.category.slug === categorySlug)
+    .sort((left, right) => right.newestOrder - left.newestOrder);
+
+export const getRecipebookPage = async ({
+  categorySlug = "",
+  limit = RECIPEBOOK_PAGE_SIZE,
+  offset = 0,
+}: {
+  categorySlug?: string;
+  limit?: number;
+  offset?: number;
+}) => {
+  const recipes = filterRecipesForRecipebook(await getRecipes(), categorySlug.trim());
+  const safeOffset = Math.max(0, offset);
+  const safeLimit = Math.max(1, limit);
+  const visibleRecipes = recipes.slice(safeOffset, safeOffset + safeLimit).map(toRecipeSummary);
+
+  return {
+    recipes: visibleRecipes,
+    totalCount: recipes.length,
+    hasMore: safeOffset + safeLimit < recipes.length,
+  };
 };
 
 export const getRecipeBySlug = async (slug: string, products?: Product[]) => {

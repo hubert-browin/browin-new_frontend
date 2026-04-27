@@ -1,5 +1,7 @@
 import type { Product } from "./products";
 
+export const RECIPEBOOK_PAGE_SIZE = 12;
+
 export type BrowinJsonRecipeCategory = {
   nazwa?: string | null;
   slug?: string | null;
@@ -34,6 +36,7 @@ export type RecipeCategory = {
 export type RecipeIngredient = {
   id: string;
   text: string;
+  kind?: "item" | "separator";
   productId?: string;
 };
 

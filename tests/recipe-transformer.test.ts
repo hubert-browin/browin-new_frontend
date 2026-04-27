@@ -8,15 +8,26 @@ import {
   findRecipesByProductId,
   hydrateRecipeProducts,
 } from "../lib/recipe-commerce";
+import { enrichRecipeIngredientMatches } from "../lib/recipe-ingredient-matcher";
 import { transformBrowinRecipes } from "../lib/recipe-transformer";
 
 const makeProduct = ({
   id,
   price,
   title,
+  categoryId = "wedliniarstwo",
+  features = [],
+  line = "Linia testowa",
+  subtitle = "BROWIN",
+  tags = [],
 }: {
+  categoryId?: Product["categoryId"];
+  features?: string[];
   id: string;
+  line?: string;
   price: number;
+  subtitle?: string;
+  tags?: string[];
   title: string;
 }): Product => ({
   id,
@@ -26,15 +37,15 @@ const makeProduct = ({
   symbol: id,
   ean: id,
   title,
-  subtitle: "BROWIN",
-  line: "Linia testowa",
-  categoryId: "wedliniarstwo",
+  subtitle,
+  line,
+  categoryId,
   shortDescription: title,
   description: title,
   longDescription: title,
   images: ["/assets/produkt1.webp"],
   status: "standard",
-  tags: [],
+  tags,
   rating: 4.8,
   reviews: 12,
   soldLast30Days: 3,
@@ -42,7 +53,7 @@ const makeProduct = ({
   popularityScore: 10,
   newestOrder: 1,
   benefits: [],
-  features: [],
+  features,
   specs: [],
   faq: [],
   files: [],
@@ -61,6 +72,43 @@ const makeProduct = ({
       availabilityLabel: "Dostępny",
     },
   ],
+});
+
+const makeRecipe = ({
+  contentHtml = "",
+  ingredients,
+  relatedProductIds,
+  slug,
+}: {
+  contentHtml?: string;
+  ingredients: Array<{ id: string; text: string; productId?: string }>;
+  relatedProductIds: string[];
+  slug: string;
+}) => ({
+  id: slug,
+  slug,
+  title: slug,
+  excerpt: slug,
+  metaDescription: slug,
+  author: "BROWIN",
+  category: {
+    name: "Test",
+    slug: "test",
+  },
+  publishedAt: "2026-04-27",
+  heroImage: "/assets/produkt1.webp",
+  images: ["/assets/produkt1.webp"],
+  introHtml: "",
+  ingredientsHtml: "",
+  contentHtml,
+  footer: "",
+  tags: [],
+  ingredients,
+  ingredientLines: ingredients.map((ingredient) => ingredient.text),
+  relatedProductIds,
+  contentText: "",
+  introText: "",
+  newestOrder: 1,
 });
 
 test("transformuje przepisy, SEO pola, składniki i bezpieczny HTML", () => {
@@ -127,6 +175,66 @@ test("renderuje obrazki i starszy HTML z feedu przepisów", () => {
   assert.ok(!recipe.contentText.includes("static/images"));
 });
 
+test("oznacza przerywniki sekcji jako separatory zamiast skladnikow", () => {
+  const [recipe] = transformBrowinRecipes([
+    {
+      id: "recipe-separators",
+      datapublikacji: "2026-04-27",
+      kategoria: {
+        slug: "test",
+        nazwa: "Test",
+      },
+      skladniki:
+        "<p><span>Na 1 L zalewy:</span></p><p>500 g ciecierzycy</p><p>Zalewa:</p><ul><li>250 ml octu</li></ul>",
+      slug: "recipe-separators",
+      tresc: "<p>Test</p>",
+      tytul: "Recipe separators",
+      zdjecie: "https://browin.pl/static/images/900/domowy-ocet-jablkowy.webp",
+    },
+  ]);
+
+  assert.ok(recipe);
+  assert.deepEqual(
+    recipe.ingredients.map((ingredient) => ({
+      kind: ingredient.kind,
+      text: ingredient.text,
+    })),
+    [
+      { kind: "separator", text: "Na 1 L zalewy:" },
+      { kind: undefined, text: "500 g ciecierzycy" },
+      { kind: "separator", text: "Zalewa:" },
+      { kind: undefined, text: "250 ml octu" },
+    ],
+  );
+  assert.deepEqual(recipe.ingredientLines, ["500 g ciecierzycy", "250 ml octu"]);
+});
+
+test("dzieli paragraf z wieloma skladnikami na osobne pozycje", () => {
+  const [recipe] = transformBrowinRecipes([
+    {
+      id: "recipe-br-lines",
+      datapublikacji: "2026-04-27",
+      kategoria: {
+        slug: "test",
+        nazwa: "Test",
+      },
+      skladniki: "<p>1 kg szynki<br>3 g saletry<br>80 g soli<br>1 L zimnej wody</p>",
+      slug: "recipe-br-lines",
+      tresc: "<p>Test</p>",
+      tytul: "Recipe br lines",
+      zdjecie: "https://browin.pl/static/images/900/domowy-ocet-jablkowy.webp",
+    },
+  ]);
+
+  assert.ok(recipe);
+  assert.deepEqual(recipe.ingredientLines, [
+    "1 kg szynki",
+    "3 g saletry",
+    "80 g soli",
+    "1 L zimnej wody",
+  ]);
+});
+
 test("buduje odwrotny indeks przepisów po ID produktu", () => {
   const recipes = transformBrowinRecipes(mockBrowinRecipes);
   const counts = buildRecipeCountsByProductId(recipes);
@@ -155,4 +263,180 @@ test("klasyfikuje produkty przepisu na sprzęt i zapasy", () => {
     hydrated.productGroups.find((group) => group.role === "consumable")?.products[0]?.product.id,
     "310002",
   );
+});
+
+test("zachowuje jawny link produktowy w skladniku", () => {
+  const [recipe] = enrichRecipeIngredientMatches(
+    [
+      makeRecipe({
+        slug: "jawny-link",
+        ingredients: [
+          {
+            id: "ingredient-1",
+            text: "Mieszanka peklujaca",
+            productId: "310002",
+          },
+        ],
+        relatedProductIds: ["310002", "404922"],
+      }),
+    ],
+    [
+      makeProduct({
+        id: "310002",
+        price: 7.99,
+        title: "Receptura Babci Leokadii do peklowania, 35 g",
+      }),
+      makeProduct({
+        id: "404922",
+        price: 19.99,
+        title: "Mieszanka peklujaca premium, 40 g",
+      }),
+    ],
+  );
+
+  assert.equal(recipe.ingredients[0]?.productId, "310002");
+});
+
+test("automatycznie podpina skladnik VLEYTO do powiazanego produktu", () => {
+  const ingredientText = "pół nakrętki esencji VLEYTO Pigwa & Miód";
+  const [recipe] = enrichRecipeIngredientMatches(
+    [
+      makeRecipe({
+        slug: "sparkling-pigwa-orzezwiajacy-bezalkoholowy-drink-z-nuta-miodu-i-pigwy",
+        ingredients: [{ id: "ingredient-1", text: ingredientText }],
+        relatedProductIds: ["312022", "602555", "602503", "404922"],
+      }),
+    ],
+    [
+      makeProduct({
+        id: "312022",
+        price: 249.99,
+        title: "Saturator Soda Joy do wody gazowanej",
+        categoryId: "gorzelnictwo",
+      }),
+      makeProduct({
+        id: "602555",
+        price: 14.99,
+        title: "Miarka barmańska 20/40 ml",
+      }),
+      makeProduct({
+        id: "602503",
+        price: 11.99,
+        title: "Syrop do drinków miodowy, 250 ml",
+      }),
+      makeProduct({
+        id: "404922",
+        price: 17.99,
+        title: "VLEYTO Pigwa & Miód - esencja smakowa z naturalnymi aromatami, 250 ml",
+        tags: ["name_keyword:vleyto pigwa miod", "esencja smakowa"],
+      }),
+    ],
+  );
+
+  assert.equal(recipe.ingredients[0]?.productId, "404922");
+
+  const hydrated = hydrateRecipeProducts(recipe, [
+    makeProduct({
+      id: "312022",
+      price: 249.99,
+      title: "Saturator Soda Joy do wody gazowanej",
+      categoryId: "gorzelnictwo",
+    }),
+    makeProduct({
+      id: "404922",
+      price: 17.99,
+      title: "VLEYTO Pigwa & Miód - esencja smakowa z naturalnymi aromatami, 250 ml",
+      tags: ["name_keyword:vleyto pigwa miod", "esencja smakowa"],
+    }),
+  ]);
+
+  assert.equal(
+    hydrated.availableProducts.find((entry) => entry.product.id === "404922")?.ingredientText,
+    ingredientText,
+  );
+});
+
+test("preferuje produkt o zgodnej pojemnosci", () => {
+  const [recipe] = enrichRecipeIngredientMatches(
+    [
+      makeRecipe({
+        slug: "sloiki",
+        ingredients: [{ id: "ingredient-1", text: "1 słoik 900 ml" }],
+        relatedProductIds: ["500001", "900001"],
+      }),
+    ],
+    [
+      makeProduct({
+        id: "500001",
+        price: 3.49,
+        title: "Słoik TO fi 82, 500 ml",
+        categoryId: "domiogrod",
+      }),
+      makeProduct({
+        id: "900001",
+        price: 4.19,
+        title: "Słoik TO fi 82, 900 ml",
+        categoryId: "domiogrod",
+      }),
+    ],
+  );
+
+  assert.equal(recipe.ingredients[0]?.productId, "900001");
+});
+
+test("nie matchuje skladu przy zbyt slabym sygnale", () => {
+  const [recipe] = enrichRecipeIngredientMatches(
+    [
+      makeRecipe({
+        slug: "slaby-sygnal",
+        ingredients: [
+          { id: "ingredient-1", text: "74 C" },
+          { id: "ingredient-2", text: "wino" },
+        ],
+        relatedProductIds: ["thermo", "yeast"],
+      }),
+    ],
+    [
+      makeProduct({
+        id: "thermo",
+        price: 22.99,
+        title: "Termometr do wina 0-100 C",
+        categoryId: "termometry",
+      }),
+      makeProduct({
+        id: "yeast",
+        price: 5.99,
+        title: "Drożdże winiarskie do czerwonych win",
+      }),
+    ],
+  );
+
+  assert.equal(recipe.ingredients[0]?.productId, undefined);
+  assert.equal(recipe.ingredients[1]?.productId, undefined);
+});
+
+test("wybiera najlepiej punktowany produkt sposrod kwalifikowanych kandydatow", () => {
+  const [recipe] = enrichRecipeIngredientMatches(
+    [
+      makeRecipe({
+        slug: "najlepszy-kandydat",
+        ingredients: [{ id: "ingredient-1", text: "1 butelka esencji VLEYTO Pigwa & Miód" }],
+        relatedProductIds: ["404922", "404923"],
+      }),
+    ],
+    [
+      makeProduct({
+        id: "404922",
+        price: 17.99,
+        title: "VLEYTO Pigwa & Miód - esencja smakowa, 250 ml",
+      }),
+      makeProduct({
+        id: "404923",
+        price: 17.99,
+        title: "VLEYTO Cytryna - esencja smakowa, 250 ml",
+      }),
+    ],
+  );
+
+  assert.equal(recipe.ingredients[0]?.productId, "404922");
 });

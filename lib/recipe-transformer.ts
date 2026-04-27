@@ -151,6 +151,12 @@ const dedupeStrings = (values: Array<string | number | null | undefined>) => {
   return result;
 };
 
+const normalizeComparableRecipeText = (value: string) =>
+  normalizeRecipeWhitespace(value)
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+
 const takeFirstSentences = (value: string, maxLength = 210) => {
   const normalized = normalizeRecipeWhitespace(value);
 
@@ -416,10 +422,28 @@ export const sanitizeRecipeHtml = (
     .trim();
 };
 
-const extractIngredientBlocks = (html?: string | null) => {
+type IngredientBlock = {
+  html: string;
+  tagName: "li" | "p";
+};
+
+type IngredientFragment = {
+  html: string;
+  sourceTagName: "li" | "p";
+};
+
+const ingredientSectionLabelPattern =
+  /^(zalewa|zalewa peklujaca|solanka|marynata|skladniki(?: na [^:]+)?|do smaku|do dekoracji|uwaga!?)(?:\b|:)/i;
+const ingredientPortionHeadingPattern =
+  /^(na|do|dla)\b.*(?:\d|litr|litr[ay]?\b|ml\b|kg\b|g\b|dag\b|sloik|sloicz|porcj|nastaw|nalewk|trunk|chleb|ciast|farsz|kruszonk|sos|zup|barszcz|hummus|pasztet|krem|dzem|majonez|musztard|golonk|salank|zalew|ser|drink)/i;
+
+const extractIngredientBlocks = (html?: string | null): IngredientBlock[] => {
   const source = html ?? "";
   const blocks = [...source.matchAll(/<(li|p)\b[^>]*>([\s\S]*?)<\/\1>/gi)]
-    .map((match) => match[0])
+    .map((match) => ({
+      html: match[0],
+      tagName: String(match[1]).toLowerCase() as "li" | "p",
+    }))
     .filter(Boolean);
 
   if (blocks.length > 0) {
@@ -428,19 +452,74 @@ const extractIngredientBlocks = (html?: string | null) => {
 
   const fallbackText = stripHtml(source);
 
-  return fallbackText ? fallbackText.split(/\s*[-•]\s+/).filter(Boolean) : [];
+  return fallbackText
+    ? fallbackText
+        .split(/\s*[-•]\s+/)
+        .filter(Boolean)
+        .map((text) => ({ html: text, tagName: "p" }))
+    : [];
+};
+
+const splitIngredientBlock = ({ html, tagName }: IngredientBlock): IngredientFragment[] => {
+  if (tagName !== "p") {
+    return [{ html, sourceTagName: tagName }];
+  }
+
+  const innerMatch = html.match(/^<p\b[^>]*>([\s\S]*?)<\/p>$/i);
+  const innerHtml = innerMatch?.[1] ?? html;
+  const fragments = innerHtml
+    .split(/(?:<br\s*\/?>\s*){1,}/i)
+    .map((fragment) => fragment.trim())
+    .filter((fragment) => stripHtml(fragment));
+
+  if (fragments.length <= 1) {
+    return [{ html, sourceTagName: tagName }];
+  }
+
+  return fragments.map((fragment) => ({
+    html: fragment,
+    sourceTagName: tagName,
+  }));
+};
+
+const isIngredientSeparator = (text: string, sourceTagName: "li" | "p") => {
+  if (sourceTagName !== "p") {
+    return false;
+  }
+
+  const normalized = normalizeComparableRecipeText(text);
+
+  if (!normalized) {
+    return false;
+  }
+
+  if (/^[*•]/.test(text.trim())) {
+    return true;
+  }
+
+  if (/:$/.test(normalized)) {
+    return true;
+  }
+
+  if (ingredientSectionLabelPattern.test(normalized)) {
+    return true;
+  }
+
+  return normalized.length <= 96 && ingredientPortionHeadingPattern.test(normalized);
 };
 
 export const extractRecipeIngredients = (html?: string | null): RecipeIngredient[] => {
   const seen = new Set<string>();
 
   return extractIngredientBlocks(html)
-    .map((block, index) => {
-      const text = stripHtml(block).replace(/^[-•]\s*/, "");
-      const productIdMatch = [...block.matchAll(/<a\b[^>]*href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi)]
+    .flatMap(splitIngredientBlock)
+    .map((fragment, index) => {
+      const text = stripHtml(fragment.html).replace(/^[-•]\s*/, "");
+      const productIdMatch = [...fragment.html.matchAll(/<a\b[^>]*href\s*=\s*(?:"([^"]*)"|'([^']*)'|([^\s>]+))[^>]*>/gi)]
         .map((match) => extractProductIdFromHref(match[1] ?? match[2] ?? match[3] ?? ""))
         .find(Boolean);
-      const key = `${text}::${productIdMatch ?? ""}`;
+      const kind = isIngredientSeparator(text, fragment.sourceTagName) ? "separator" : "item";
+      const key = `${kind}::${text}::${productIdMatch ?? ""}`;
 
       if (!text || seen.has(key)) {
         return null;
@@ -451,6 +530,7 @@ export const extractRecipeIngredients = (html?: string | null): RecipeIngredient
       return {
         id: `ingredient-${index}-${slugify(text).slice(0, 32) || "item"}`,
         text,
+        ...(kind === "separator" ? { kind } : {}),
         ...(productIdMatch ? { productId: productIdMatch } : {}),
       };
     })
@@ -512,7 +592,9 @@ export const transformBrowinRecipe = (
   const introText = stripHtml(rawRecipe.wstep ?? "");
   const contentText = stripHtml(rawRecipe.tresc ?? "");
   const ingredients = extractRecipeIngredients(rawRecipe.skladniki);
-  const ingredientLines = ingredients.map((ingredient) => ingredient.text);
+  const ingredientLines = ingredients
+    .filter((ingredient) => ingredient.kind !== "separator")
+    .map((ingredient) => ingredient.text);
   const relatedProductIds = dedupeStrings(rawRecipe.asortymenty ?? []);
   const images = normalizeImages(rawRecipe);
   const metaDescription =

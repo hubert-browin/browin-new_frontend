@@ -1,6 +1,6 @@
 "use client";
 
-import { BookOpen, Clock } from "@phosphor-icons/react";
+import { BookOpen } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -10,20 +10,6 @@ type RecipeCardProps = {
   recipe: RecipeSummary;
   priority?: boolean;
   compact?: boolean;
-};
-
-const formatRecipeDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
 };
 
 export function RecipeCard({ compact = false, priority = false, recipe }: RecipeCardProps) {
@@ -56,10 +42,6 @@ export function RecipeCard({ compact = false, priority = false, recipe }: Recipe
             <span className="inline-flex items-center gap-1.5">
               <BookOpen className="text-browin-red" size={14} weight="fill" />
               Przepis
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <Clock className="text-browin-red" size={14} />
-              {formatRecipeDate(recipe.publishedAt)}
             </span>
           </div>
 

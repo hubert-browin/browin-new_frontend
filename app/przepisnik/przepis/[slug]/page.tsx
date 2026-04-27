@@ -7,6 +7,7 @@ import { RecipeCard } from "@/components/store/recipe-card";
 import { RecipeListBackButton } from "@/components/store/recipe-list-back-button";
 import { RecipeProductPicker } from "@/components/store/recipe-product-picker";
 import { RecipeProductReturnDock } from "@/components/store/recipe-product-return-dock";
+import type { Recipe } from "@/data/recipes";
 import { getPrimaryVariant } from "@/lib/catalog";
 import { getProducts } from "@/lib/product-feed";
 import {
@@ -47,26 +48,12 @@ export async function generateMetadata({
   };
 }
 
-const formatDate = (value: string) => {
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return value;
-  }
-
-  return new Intl.DateTimeFormat("pl-PL", {
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-  }).format(date);
-};
-
 const buildRecipeJsonLd = ({
   canonicalUrl,
   recipe,
 }: {
   canonicalUrl: string;
-  recipe: Awaited<ReturnType<typeof getRecipeBySlug>> extends infer T ? NonNullable<T> : never;
+  recipe: Recipe;
 }) => ({
   "@context": "https://schema.org",
   "@type": "Recipe",
@@ -128,14 +115,17 @@ export default async function RecipePage({
 }) {
   const { slug } = await params;
   const products = await getProducts();
-  const recipe = await getRecipeBySlug(slug, products);
+  const recipes = await getRecipes(products);
+  const recipe = recipes.find((entry) => entry.slug === slug) ?? null;
 
   if (!recipe) {
     notFound();
   }
 
   const hydratedRecipe = hydrateRecipe(recipe, products);
-  const hasRecipeIngredients = recipe.ingredients.length > 0;
+  const hasRecipeIngredients = recipe.ingredients.some(
+    (ingredient) => ingredient.kind !== "separator",
+  );
   const hasRecipeProducts = hydratedRecipe.productGroups.some(
     (group) =>
       group.products.some((entry) => getPrimaryVariant(entry.product).stock > 0),
@@ -150,8 +140,7 @@ export default async function RecipePage({
         : hasRecipeProducts
           ? "lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_17rem] 2xl:grid-cols-[minmax(0,1fr)_19rem]"
           : "lg:grid-cols-1";
-  const allRecipes = await getRecipes(products);
-  const relatedRecipes = allRecipes
+  const relatedRecipes = recipes
     .filter((entry) => entry.id !== recipe.id && entry.category.slug === recipe.category.slug)
     .slice(0, 3);
   const canonicalUrl = new URL(
@@ -185,9 +174,6 @@ export default async function RecipePage({
               >
                 {recipe.category.name}
               </Link>
-              <span className="bg-browin-gray px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-dark/62">
-                {formatDate(recipe.publishedAt)}
-              </span>
             </div>
 
             <h1 className="mt-5 text-3xl font-bold leading-[1.06] tracking-tight text-browin-dark md:text-5xl">

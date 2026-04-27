@@ -176,7 +176,7 @@ export const hydrateRecipeProducts = (
   const productIndex = new Map(products.map((product) => [product.id, product]));
   const ingredientByProductId = new Map(
     recipe.ingredients
-      .filter((ingredient) => ingredient.productId)
+      .filter((ingredient) => ingredient.kind !== "separator" && ingredient.productId)
       .map((ingredient) => [ingredient.productId!, ingredient.text]),
   );
   const seenBaseProductIds = new Set<string>();
