@@ -12,5 +12,6 @@ export type ProductBridgeContext = {
   productSlug: string;
   productTitle: string;
   recipeSlug: string;
+  recipeTitle?: string;
   savedAt: number;
 };

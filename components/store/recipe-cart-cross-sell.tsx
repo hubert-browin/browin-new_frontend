@@ -1,10 +1,11 @@
 "use client";
 
-import { BookOpen, Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { useCart } from "@/components/store/cart-provider";
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import type { RecipeCommerceEntry } from "@/data/recipes";
 import { formatCurrency, getPrimaryVariant } from "@/lib/catalog";
 import { getRecipeCartCrossSellOffers } from "@/lib/recipe-commerce";
@@ -54,7 +55,7 @@ export function RecipeCartCrossSell({
     >
       <div className="flex items-start gap-3">
         <div className="flex h-10 w-10 shrink-0 items-center justify-center bg-browin-white text-browin-red">
-          <BookOpen size={21} weight="fill" />
+          <RecipebookIcon size={21} weight="fill" />
         </div>
         <div className="min-w-0 flex-1">
           <p className="text-[10px] font-semibold uppercase tracking-[0.16em] text-browin-red">

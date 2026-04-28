@@ -105,6 +105,7 @@ export type RecipeCommerceEntry = {
   title: string;
   image: string;
   categoryName: string;
+  categorySlug: string;
   equipmentProductIds: string[];
   consumableProductIds: string[];
 };

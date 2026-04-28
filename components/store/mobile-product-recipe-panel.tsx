@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, BookOpen, X } from "@phosphor-icons/react";
+import { ArrowRight, X } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect } from "react";
@@ -9,6 +9,7 @@ import {
   PRODUCT_BRIDGE_CONTEXT_STORAGE_KEY,
   type ProductBridgeContext,
 } from "@/components/store/recipe-bridge-context";
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import type { ProductRecipeNavEntry } from "@/components/store/product-recipe-nav-context";
 import type { RecipeSummary } from "@/data/recipes";
 
@@ -33,6 +34,7 @@ const persistProductContext = (
       productSlug: product.slug,
       productTitle: product.title,
       recipeSlug: recipe.slug,
+      recipeTitle: recipe.title,
       savedAt: Date.now(),
     } satisfies ProductBridgeContext;
 
@@ -93,7 +95,7 @@ export function MobileProductRecipePanel({
         <div className="flex items-center justify-between gap-3 border-b border-browin-dark/10 px-4 py-3">
           <div className="flex min-w-0 items-center gap-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center text-browin-red">
-              <BookOpen size={18} weight="fill" />
+              <RecipebookIcon size={18} weight="fill" />
             </span>
             <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red">
               Przepisy do produktu

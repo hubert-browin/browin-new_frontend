@@ -25,7 +25,6 @@ import {
 
 import { StoreIcon } from "@/components/store/icon-map";
 import { ProductCard } from "@/components/store/product-card";
-import { ProductRecipeBridge } from "@/components/store/product-recipe-bridge";
 import { useProductRecipeNav } from "@/components/store/product-recipe-nav-context";
 import { useCart } from "@/components/store/cart-provider";
 import type { Product, ProductBundleItem, ProductFile } from "@/data/products";
@@ -2221,11 +2220,6 @@ export function ProductDetail({
               </div>
             </div>
           </div>
-
-          <ProductRecipeBridge
-            product={product}
-            recipes={recipeInspirations}
-          />
 
           <div className="mt-8 hidden border-t border-browin-dark/10 pt-7 lg:block">
             <div className="rounded-sm border border-browin-dark/10 bg-browin-white p-6">

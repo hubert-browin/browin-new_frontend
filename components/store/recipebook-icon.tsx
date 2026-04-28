@@ -1,0 +1,44 @@
+"use client";
+
+import { Fire } from "@phosphor-icons/react";
+import type { ComponentProps } from "react";
+
+type RecipebookIconProps = ComponentProps<typeof Fire>;
+
+const recipebookIconPath =
+  "M18.229,87.5l-5.833,-5.833l42.708,-42.709c-1.25,-2.916 -1.423,-6.215 -0.521,-9.896c0.903,-3.68 2.882,-6.979 5.938,-9.895c3.68,-3.681 7.778,-5.834 12.292,-6.459c4.513,-0.625 8.194,0.486 11.041,3.334c2.847,2.847 3.959,6.527 3.334,11.041c-0.625,4.514 -2.778,8.611 -6.459,12.292c-2.916,3.056 -6.215,5.035 -9.896,5.938c-3.68,0.902 -6.979,0.729 -9.895,-0.521l-5.209,5.208l31.667,31.667l-5.833,5.833l-31.667,-31.458l-31.667,31.458Zm12.292,-35.625l-12.5,-12.5c-3.75,-3.75 -5.625,-8.229 -5.625,-13.438c-0,-5.208 1.875,-9.687 5.625,-13.437l25.833,26.042l-13.333,13.333Z";
+
+export function RecipebookIcon({
+  alt,
+  color,
+  mirrored: _mirrored,
+  size = 20,
+  weight: _weight,
+  ...props
+}: RecipebookIconProps) {
+  const ariaProps = alt
+    ? {
+        "aria-label": alt,
+        role: "img",
+      }
+    : {
+        "aria-hidden": true,
+      };
+
+  void _mirrored;
+  void _weight;
+
+  return (
+    <svg
+      fill="none"
+      height={size}
+      viewBox="0 0 100 100"
+      width={size}
+      xmlns="http://www.w3.org/2000/svg"
+      {...ariaProps}
+      {...props}
+    >
+      <path d={recipebookIconPath} fill={color ?? "currentColor"} />
+    </svg>
+  );
+}

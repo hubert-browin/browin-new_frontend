@@ -14,6 +14,7 @@ const readPositiveInteger = (value: string | null, fallback: number) => {
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const categorySlug = searchParams.get("category")?.trim() ?? "";
+  const searchQuery = searchParams.get("search")?.trim() ?? "";
   const offset = readPositiveInteger(searchParams.get("offset"), 0);
   const limit = Math.min(
     Math.max(readPositiveInteger(searchParams.get("limit"), RECIPEBOOK_PAGE_SIZE), 1),
@@ -23,6 +24,7 @@ export async function GET(request: Request) {
     categorySlug,
     limit,
     offset,
+    searchQuery,
   });
 
   return Response.json(page);

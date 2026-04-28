@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  BookOpen,
   Calculator,
   CaretLeft,
   CaretRight,
@@ -21,6 +20,7 @@ import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
 import { ProductCard } from "@/components/store/product-card";
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
 import type { Product } from "@/data/products";
@@ -426,7 +426,7 @@ export function HomePage({
                   className="utility-strip-highlight group -mr-6 flex h-full shrink-0 items-center space-x-2 bg-browin-red px-6 text-[11px] font-semibold uppercase tracking-wider text-browin-white transition-colors hover:bg-browin-red/90 xl:px-8 xl:text-[12px]"
                   href="/przepisnik"
                 >
-                  <BookOpen className="transition-transform group-hover:scale-110" size={20} weight="fill" />
+                  <RecipebookIcon className="transition-transform group-hover:scale-110" size={20} weight="fill" />
                   <span>Przepiśnik</span>
                 </Link>
               </div>

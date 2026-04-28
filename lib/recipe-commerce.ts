@@ -247,6 +247,7 @@ export const createRecipeCommerceEntries = (
         title: recipe.title,
         image: recipe.heroImage,
         categoryName: recipe.category.name,
+        categorySlug: recipe.category.slug,
         equipmentProductIds,
         consumableProductIds,
       };

@@ -165,7 +165,7 @@ function RecipeProductGroupsList({
 
               return (
                 <label
-                  className={`grid cursor-pointer grid-cols-[auto_4.25rem_minmax(0,1fr)] items-center gap-3 border p-3 transition-colors ${
+                  className={`grid cursor-pointer grid-cols-[auto_4.25rem_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border p-3 transition-colors ${
                     checked
                       ? "border-browin-red bg-browin-red/5"
                       : "border-browin-dark/10 bg-browin-white hover:border-browin-red/45"
@@ -188,7 +188,7 @@ function RecipeProductGroupsList({
                   >
                     <Check size={15} weight="bold" />
                   </span>
-                  <span className="relative h-16 w-16 overflow-hidden border border-browin-dark/10 bg-browin-white p-1">
+                  <span className="relative h-16 w-16 overflow-hidden bg-browin-white">
                     <Image
                       alt={entry.product.title}
                       className="object-contain"
@@ -252,12 +252,22 @@ function RecipeCompactProductsList({
 
         return (
           <article
+            aria-pressed={checked}
             className={`group relative overflow-hidden border bg-browin-white transition-colors ${
               checked
                 ? "border-browin-red"
                 : "border-browin-dark/10 bg-browin-white hover:border-browin-red/45"
             }`}
             key={entry.product.id}
+            onClick={() => onToggleProduct(entry.product.id)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter" || event.key === " ") {
+                event.preventDefault();
+                onToggleProduct(entry.product.id);
+              }
+            }}
+            role="button"
+            tabIndex={0}
           >
             <button
               aria-label={
@@ -271,33 +281,42 @@ function RecipeCompactProductsList({
                   ? "border-browin-red bg-browin-red text-browin-white"
                   : "border-browin-dark/12 bg-browin-white/95 text-transparent hover:border-browin-red hover:text-browin-red"
               }`}
-              onClick={() => onToggleProduct(entry.product.id)}
+              onClick={(event) => {
+                event.stopPropagation();
+                onToggleProduct(entry.product.id);
+              }}
               type="button"
             >
               <Check size={14} weight="bold" />
             </button>
 
-            <div className="grid grid-cols-[4.25rem_minmax(0,1fr)] gap-2.5 p-2.5">
+            <div className="grid cursor-pointer grid-cols-[4.25rem_minmax(0,1fr)] gap-3 p-2.5">
               <Link
                 aria-label={`Zobacz produkt ${entry.product.title}`}
-                className="relative h-[4.25rem] overflow-hidden bg-browin-gray/70"
+                className="relative h-[4.25rem] overflow-hidden bg-browin-white"
                 href={`/produkt/${entry.product.slug}`}
-                onClick={onProductLinkClick}
+                onClick={(event) => {
+                  onProductLinkClick();
+                  event.stopPropagation();
+                }}
               >
                 <Image
                   alt={entry.product.title}
-                  className="object-contain p-2"
+                  className="object-contain"
                   fill
                   sizes="68px"
                   src={entry.product.images[0]}
                 />
               </Link>
 
-              <div className="flex min-w-0 flex-col pr-5">
+              <div className="flex min-w-0 flex-col pr-8">
                 <Link
                   className="line-clamp-2 text-[12px] font-bold leading-tight text-browin-dark transition-colors group-hover:text-browin-red"
                   href={`/produkt/${entry.product.slug}`}
-                  onClick={onProductLinkClick}
+                  onClick={(event) => {
+                    onProductLinkClick();
+                    event.stopPropagation();
+                  }}
                 >
                   {entry.product.title}
                 </Link>

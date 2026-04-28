@@ -45,6 +45,10 @@ const readStoredProductContext = (recipeSlug: string) => {
       productSlug: parsedContext.productSlug,
       productTitle: parsedContext.productTitle,
       recipeSlug,
+      recipeTitle:
+        typeof parsedContext.recipeTitle === "string"
+          ? parsedContext.recipeTitle
+          : undefined,
       savedAt:
         typeof parsedContext.savedAt === "number"
           ? parsedContext.savedAt
@@ -130,19 +134,14 @@ export function RecipeProductReturnDock({
   };
 
   return (
-    <>
-      <div className="product-recipe-return-dock-desktop fixed bottom-5 z-[115] hidden w-[min(21rem,calc(100vw-2rem))] transition-[left] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] lg:block">
-        <ReturnLink context={context} onReturn={persistRecipeContext} />
-      </div>
-      <div
-        className="fixed inset-x-4 z-[44] md:hidden"
-        style={{
-          bottom:
-            "calc(var(--mobile-bottom-nav-height) + var(--mobile-recipe-cta-height) + 0.5rem)",
-        }}
-      >
-        <ReturnLink context={context} onReturn={persistRecipeContext} />
-      </div>
-    </>
+    <div
+      className="fixed inset-x-4 z-[44] md:hidden"
+      style={{
+        bottom:
+          "calc(var(--mobile-bottom-nav-height) + var(--mobile-recipe-cta-height) + 0.5rem)",
+      }}
+    >
+      <ReturnLink context={context} onReturn={persistRecipeContext} />
+    </div>
   );
 }

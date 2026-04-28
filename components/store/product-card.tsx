@@ -1,11 +1,12 @@
 "use client";
 
-import { BookOpen, Heart, ShoppingCart, Star } from "@phosphor-icons/react";
+import { Heart, ShoppingCart, Star } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import type { Product } from "@/data/products";
 import { formatCurrency, getDiscountPercent, getPrimaryVariant } from "@/lib/catalog";
 
@@ -79,7 +80,7 @@ export function ProductCard({
         ) : null}
         {recipeCount > 0 ? (
           <span className="pointer-events-none absolute right-0 top-0 inline-flex items-center gap-1 bg-browin-white/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-browin-red shadow-sm">
-            <BookOpen size={12} weight="fill" />
+            <RecipebookIcon size={12} weight="fill" />
             {recipeCount} {recipeCount === 1 ? "przepis" : "przepisy"}
           </span>
         ) : null}

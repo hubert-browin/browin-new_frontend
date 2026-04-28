@@ -7,7 +7,7 @@ import { ProductRecipeNavProvider } from "@/components/store/product-recipe-nav-
 import { StoreChrome } from "@/components/store/store-chrome";
 import { getStoreCategories } from "@/data/store";
 import { getProducts } from "@/lib/product-feed";
-import { getRecipeCommerceEntries } from "@/lib/recipes";
+import { getRecipeCommerceEntries, getRecipebookCategories } from "@/lib/recipes";
 import { getMetadataBase } from "@/lib/site-url";
 import "./globals.css";
 
@@ -56,7 +56,10 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const products = await getProducts();
-  const recipeCommerceEntries = await getRecipeCommerceEntries(products);
+  const [recipeCommerceEntries, recipebookCategories] = await Promise.all([
+    getRecipeCommerceEntries(products),
+    getRecipebookCategories(),
+  ]);
   const storeCategories = getStoreCategories(products);
   const cartProducts = products.map(({ id, slug, title, subtitle, images, variants }) => ({
     id,
@@ -75,6 +78,7 @@ export default async function RootLayout({
             <ProductRecipeNavProvider>
               <StoreChrome
                 recipeCommerceEntries={recipeCommerceEntries}
+                recipebookCategories={recipebookCategories}
                 storeCategories={storeCategories}
               >
                 {children}

@@ -1,9 +1,9 @@
 "use client";
 
-import { BookOpen } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
 
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import type { RecipeSummary } from "@/data/recipes";
 
 type RecipeCardProps = {
@@ -40,7 +40,7 @@ export function RecipeCard({ compact = false, priority = false, recipe }: Recipe
         <div className="flex flex-1 flex-col p-4 md:p-5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-browin-dark/45">
             <span className="inline-flex items-center gap-1.5">
-              <BookOpen className="text-browin-red" size={14} weight="fill" />
+              <RecipebookIcon className="text-browin-red" size={14} weight="fill" />
               Przepis
             </span>
           </div>

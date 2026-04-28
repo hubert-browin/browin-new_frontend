@@ -3,7 +3,6 @@
 import {
   ArrowRight,
   ArrowsLeftRight,
-  BookOpen,
   Calculator,
   Camera,
   CaretLeft,
@@ -30,10 +29,22 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
+import {
+  DesktopProductRecipeNav,
+  DesktopRecipeProductReturnNav,
+} from "@/components/store/desktop-product-recipe-nav";
+import {
+  PRODUCT_BRIDGE_CONTEXT_STORAGE_KEY,
+  RECIPE_BRIDGE_CONTEXT_STORAGE_KEY,
+  type ProductBridgeContext,
+  type RecipeBridgeContext,
+} from "@/components/store/recipe-bridge-context";
 import { StoreFooter } from "@/components/store/store-footer";
 import { StoreIcon } from "@/components/store/icon-map";
 import { MobileProductRecipePanel } from "@/components/store/mobile-product-recipe-panel";
 import { useProductRecipeNav } from "@/components/store/product-recipe-nav-context";
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
+import { RecipebookCategoryRail } from "@/components/store/recipebook-category-rail";
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
 import {
@@ -52,11 +63,13 @@ import {
   isRecipebookPathname,
   normalizeRecipebookHref,
   normalizeRecipebookListHref,
+  type RecipebookCategoryNav,
 } from "@/lib/recipebook-navigation";
 
 type StoreChromeProps = {
   children: React.ReactNode;
   recipeCommerceEntries?: RecipeCommerceEntry[];
+  recipebookCategories?: RecipebookCategoryNav[];
   storeCategories: StoreCategory[];
 };
 
@@ -77,7 +90,7 @@ const topBarLinks = [
 const utilityQuickLinks = [
   {
     href: "/przepisnik",
-    icon: BookOpen,
+    icon: RecipebookIcon,
     label: "Przepiśnik",
   },
   {
@@ -155,6 +168,64 @@ const getMobileBottomNavActiveItem = ({
   return null;
 };
 
+const getRecipeSlugFromPathname = (pathname: string) => {
+  if (pathname.startsWith("/przepisnik/przepis/")) {
+    return decodeURIComponent(pathname.split("/")[3] ?? "");
+  }
+
+  if (pathname.startsWith("/przepisy/")) {
+    return decodeURIComponent(pathname.split("/")[2] ?? "");
+  }
+
+  return null;
+};
+
+const readStoredProductContext = (recipeSlug: string | null) => {
+  if (!recipeSlug) {
+    return null;
+  }
+
+  try {
+    const storedContext = window.sessionStorage.getItem(
+      PRODUCT_BRIDGE_CONTEXT_STORAGE_KEY,
+    );
+
+    if (!storedContext) {
+      return null;
+    }
+
+    const parsedContext = JSON.parse(storedContext) as Partial<ProductBridgeContext>;
+
+    if (
+      parsedContext.recipeSlug !== recipeSlug ||
+      typeof parsedContext.productSlug !== "string" ||
+      typeof parsedContext.productTitle !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      productImage:
+        typeof parsedContext.productImage === "string"
+          ? parsedContext.productImage
+          : undefined,
+      productSlug: parsedContext.productSlug,
+      productTitle: parsedContext.productTitle,
+      recipeSlug,
+      recipeTitle:
+        typeof parsedContext.recipeTitle === "string"
+          ? parsedContext.recipeTitle
+          : undefined,
+      savedAt:
+        typeof parsedContext.savedAt === "number"
+          ? parsedContext.savedAt
+          : Date.now(),
+    } satisfies ProductBridgeContext;
+  } catch {
+    return null;
+  }
+};
+
 function MobileSearchForm({
   className = "",
   onSubmit,
@@ -209,6 +280,7 @@ const getUniqueTopics = (category: StoreCategory) => {
 export function StoreChrome({
   children,
   recipeCommerceEntries = [],
+  recipebookCategories = [],
   storeCategories,
 }: StoreChromeProps) {
   const pathname = usePathname();
@@ -237,10 +309,10 @@ export function StoreChrome({
   const [activeDockCategoryId, setActiveDockCategoryId] = useState<CategoryId | null>(
     null,
   );
+  const [recipeReturnContext, setRecipeReturnContext] =
+    useState<ProductBridgeContext | null>(null);
   const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
     useState(false);
-  const [rememberedRecipebookHref, setRememberedRecipebookHref] =
-    useState("/przepisnik");
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -254,7 +326,11 @@ export function StoreChrome({
     pathname.startsWith("/przepisnik") || pathname.startsWith("/przepisy");
   const isRecipeDetailPage =
     pathname.startsWith("/przepisnik/przepis/") || pathname.startsWith("/przepisy/");
-  const canAutoHideMobileSearch = isProductPage || isRecipeDetailPage;
+  const currentRecipeSlug = isRecipeDetailPage
+    ? getRecipeSlugFromPathname(pathname)
+    : null;
+  const canAutoHideMobileSearch =
+    isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
   const showMobileCategoryStrip = !isProductPage && !isRecipePage;
   const showDesktopNav = pathname !== "/";
   const routeBreadcrumbCategory =
@@ -271,6 +347,10 @@ export function StoreChrome({
     : [];
   const activeBreadcrumbTopic =
     activeBreadcrumbCategory?.id === breadcrumbCategoryId ? breadcrumbTopic : null;
+  const activeRecipebookCategorySlug =
+    pathname === "/przepisnik" ? routeSearchParams.get("category") ?? "" : "";
+  const activeRecipebookSearchQuery =
+    pathname === "/przepisnik" ? routeSearchParams.get("search") ?? "" : "";
   const activeDockSections = activeDockCategory
     ? activeDockCategory.menuSections.slice(0, 2)
     : [];
@@ -289,6 +369,9 @@ export function StoreChrome({
   const productRecipeNavProductId = currentProductRecipeContext?.product.id ?? null;
   const productRecipeNavCount = currentProductRecipeContext?.recipes.length ?? 0;
   const hasProductRecipeNavContext = isProductPage && productRecipeNavCount > 0;
+  const productRecipeNavContext = hasProductRecipeNavContext
+    ? currentProductRecipeContext
+    : null;
   const isRecipesBottomNavHighlighted =
     isRecipesBottomNavActive || isProductRecipePanelOpen;
   const shouldHideMobileSearch =
@@ -296,14 +379,15 @@ export function StoreChrome({
     isMobileContextSearchHidden &&
     !mobileMenuOpen &&
     !isOpen;
-  const recipeBottomNavHref = isRecipebookPathname(pathname)
-    ? currentRouteHref
-    : rememberedRecipebookHref;
   const activeMobileCategory =
     storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
+  const showRecipebookCategoryRail =
+    recipebookCategories.length > 0 && pathname === "/przepisnik";
+  const visibleRecipeReturnContext = currentRecipeSlug ? recipeReturnContext : null;
 
   useEffect(() => {
-    document.body.style.overflow = mobileMenuOpen || isOpen ? "hidden" : "";
+    document.body.style.overflow =
+      mobileMenuOpen || isOpen ? "hidden" : "";
 
     return () => {
       document.body.style.overflow = "";
@@ -311,24 +395,20 @@ export function StoreChrome({
   }, [isOpen, mobileMenuOpen]);
 
   useEffect(() => {
-    closeProductRecipePanel();
+    const frame = window.requestAnimationFrame(() => {
+      closeProductRecipePanel();
+    });
+
+    return () => window.cancelAnimationFrame(frame);
   }, [closeProductRecipePanel, pathname]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
-      try {
-        setRememberedRecipebookHref(
-          normalizeRecipebookHref(
-            window.sessionStorage.getItem(RECIPEBOOK_LAST_HREF_STORAGE_KEY),
-          ),
-        );
-      } catch {
-        // Remembered recipebook navigation is a client-side enhancement.
-      }
+      setRecipeReturnContext(readStoredProductContext(currentRecipeSlug));
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, []);
+  }, [currentRecipeSlug]);
 
   useEffect(() => {
     if (!isRecipebookPathname(pathname)) {
@@ -356,8 +436,6 @@ export function StoreChrome({
       } catch {
         // Remembered recipebook navigation is a client-side enhancement.
       }
-
-      setRememberedRecipebookHref(nextRecipebookHref);
     });
 
     return () => window.cancelAnimationFrame(frame);
@@ -534,16 +612,16 @@ export function StoreChrome({
       return;
     }
 
-    const closeBreadcrumbOnOutsideClick = (event: PointerEvent) => {
+    const closeDesktopSubnavOnOutsideClick = (event: PointerEvent) => {
       if (!breadcrumbRef.current?.contains(event.target as Node)) {
         setBreadcrumbMenuOpen(false);
       }
     };
 
-    document.addEventListener("pointerdown", closeBreadcrumbOnOutsideClick);
+    document.addEventListener("pointerdown", closeDesktopSubnavOnOutsideClick);
 
     return () => {
-      document.removeEventListener("pointerdown", closeBreadcrumbOnOutsideClick);
+      document.removeEventListener("pointerdown", closeDesktopSubnavOnOutsideClick);
     };
   }, [breadcrumbMenuOpen, showDesktopNav]);
 
@@ -650,6 +728,46 @@ export function StoreChrome({
     openProductRecipePanel();
   };
 
+  const handleProductRecipesDesktopNavClick = () => {
+    closeCart();
+    setMobileMenuOpen(false);
+    setMobileLangOpen(false);
+    setActiveMobileCategoryId(null);
+    setBreadcrumbMenuOpen(false);
+
+    if (isProductRecipePanelOpen) {
+      closeProductRecipePanel();
+      return;
+    }
+
+    openProductRecipePanel();
+  };
+
+  const handleRecipebookNavClick = () => {
+    setBreadcrumbMenuOpen(false);
+    closeProductRecipePanel();
+  };
+
+  const handleRecipeProductReturn = (context: ProductBridgeContext) => {
+    setBreadcrumbMenuOpen(false);
+    closeProductRecipePanel();
+
+    try {
+      const recipeContext = {
+        recipeSlug: context.recipeSlug,
+        recipeTitle: context.recipeTitle ?? context.recipeSlug,
+        savedAt: Date.now(),
+      } satisfies RecipeBridgeContext;
+
+      window.sessionStorage.setItem(
+        RECIPE_BRIDGE_CONTEXT_STORAGE_KEY,
+        JSON.stringify(recipeContext),
+      );
+    } catch {
+      // Session storage is an enhancement only.
+    }
+  };
+
   const handleSearchSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
@@ -667,6 +785,7 @@ export function StoreChrome({
   };
 
   const openBreadcrumbCategoryMenu = () => {
+    closeProductRecipePanel();
     setBreadcrumbCategoryId(null);
     setBreadcrumbTopic(null);
     setBreadcrumbMenuMode("categories");
@@ -674,6 +793,7 @@ export function StoreChrome({
   };
 
   const toggleBreadcrumbTopicsMenu = () => {
+    closeProductRecipePanel();
     setBreadcrumbMenuMode("topics");
     setBreadcrumbMenuOpen((current) =>
       breadcrumbMenuMode === "topics" ? !current : true,
@@ -683,6 +803,7 @@ export function StoreChrome({
   const selectBreadcrumbCategory = (categoryId: CategoryId) => {
     const category = storeCategories.find((entry) => entry.id === categoryId);
 
+    closeProductRecipePanel();
     setBreadcrumbCategoryId(categoryId);
     setBreadcrumbTopic(null);
     setBreadcrumbMenuMode("topics");
@@ -694,6 +815,8 @@ export function StoreChrome({
   };
 
   const selectBreadcrumbTopic = (topic: CategoryTopic) => {
+    closeProductRecipePanel();
+
     if (activeBreadcrumbCategory) {
       setBreadcrumbCategoryId(activeBreadcrumbCategory.id);
     }
@@ -714,6 +837,7 @@ export function StoreChrome({
     }
 
     dockHoverIntentTimeout.current = setTimeout(() => {
+      closeProductRecipePanel();
       setActiveDockCategoryId(categoryId);
       dockHoverIntentTimeout.current = null;
     }, 120);
@@ -747,7 +871,10 @@ export function StoreChrome({
                       onClick={() => {
                         navigateAfterPaint(`/kategoria/${category.slug}`);
                       }}
-                      onFocus={() => setActiveDockCategoryId(category.id)}
+                      onFocus={() => {
+                        closeProductRecipePanel();
+                        setActiveDockCategoryId(category.id);
+                      }}
                       onMouseEnter={() => scheduleDockCategoryPreview(category.id)}
                       onMouseLeave={cancelDockCategoryPreview}
                       type="button"
@@ -1041,7 +1168,7 @@ export function StoreChrome({
       </header>
 
       {showDesktopNav ? (
-        <div className="sticky top-20 z-40 hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]">
+        <div className="sticky top-20 z-[70] hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]">
           <div className="container relative mx-auto flex h-12 items-center px-4" ref={breadcrumbRef}>
             <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
               <button
@@ -1126,6 +1253,26 @@ export function StoreChrome({
                   </button>
                 </>
               ) : null}
+            </div>
+
+            <div className="ml-auto flex shrink-0 items-center">
+              {visibleRecipeReturnContext ? (
+                <DesktopRecipeProductReturnNav
+                  context={visibleRecipeReturnContext}
+                  isRecipePage={isRecipePage}
+                  onRecipebookClick={handleRecipebookNavClick}
+                  onReturn={handleRecipeProductReturn}
+                />
+              ) : (
+                <DesktopProductRecipeNav
+                  context={productRecipeNavContext}
+                  isOpen={isProductRecipePanelOpen}
+                  isRecipePage={isRecipePage}
+                  onClose={closeProductRecipePanel}
+                  onNavigate={handleRecipebookNavClick}
+                  onToggle={handleProductRecipesDesktopNavClick}
+                />
+              )}
             </div>
 
             {breadcrumbMenuOpen ? (
@@ -1224,7 +1371,20 @@ export function StoreChrome({
                 )}
               </div>
             ) : null}
+
           </div>
+        </div>
+      ) : null}
+
+      {showRecipebookCategoryRail ? (
+        <div className="z-30 md:sticky md:top-32 [@media_(min-width:1024px)_and_(max-height:900px)]:top-[7.5rem]">
+          <RecipebookCategoryRail
+            activeCategorySlug={activeRecipebookCategorySlug}
+            allActive={pathname === "/przepisnik" && !activeRecipebookCategorySlug}
+            categories={recipebookCategories}
+            searchQuery={activeRecipebookSearchQuery}
+            showScrollControls
+          />
         </div>
       ) : null}
 
@@ -1477,10 +1637,10 @@ export function StoreChrome({
             type="button"
           >
             <span
-              className="mobile-recipe-nav-buzz relative flex"
+              className="product-recipe-nav-buzz mobile-recipe-nav-buzz relative flex"
               key={productRecipeNavProductId}
             >
-              <BookOpen
+              <RecipebookIcon
                 className={getMobileBottomNavIconClass(isRecipesBottomNavHighlighted)}
                 size={26}
                 weight={isRecipesBottomNavHighlighted ? "fill" : "regular"}
@@ -1495,13 +1655,13 @@ export function StoreChrome({
           <Link
             aria-current={isRecipesBottomNavActive ? "page" : undefined}
             className={mobileBottomNavItemClass}
-            href={recipeBottomNavHref}
+            href="/przepisnik"
             onClick={closeMobileOverlays}
           >
-            <BookOpen
-              className={getMobileBottomNavIconClass(isRecipesBottomNavActive)}
+            <RecipebookIcon
+              className={getMobileBottomNavIconClass(isRecipesBottomNavHighlighted)}
               size={26}
-              weight={isRecipesBottomNavActive ? "fill" : "regular"}
+              weight={isRecipesBottomNavHighlighted ? "fill" : "regular"}
             />
             <span className="text-[9px] font-semibold uppercase">Przepisy</span>
           </Link>

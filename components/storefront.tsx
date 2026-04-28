@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  BookOpen,
   Calculator,
   Camera,
   CaretDown,
@@ -25,6 +24,8 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 
 import {
   categories,
@@ -645,7 +646,7 @@ export function Storefront() {
                     onClick={() => scrollToSection("produkty")}
                     type="button"
                   >
-                    <BookOpen size={20} weight="fill" />
+                    <RecipebookIcon size={20} weight="fill" />
                     <span>Przepiśnik</span>
                   </button>
                 </div>
@@ -1340,7 +1341,7 @@ export function Storefront() {
                 onClick={() => scrollToSection("produkty")}
                 type="button"
               >
-                <BookOpen className="mx-auto mb-2" size={24} weight="fill" />
+                <RecipebookIcon className="mx-auto mb-2" size={24} weight="fill" />
                 <span className="text-[10px] font-extrabold">Przepiśnik</span>
               </button>
               <button
@@ -1398,7 +1399,7 @@ export function Storefront() {
           onClick={() => scrollToSection("produkty")}
           type="button"
         >
-          <BookOpen size={26} />
+          <RecipebookIcon size={26} />
           <span className="text-[9px] font-bold uppercase">Przepisy</span>
         </button>
         <button

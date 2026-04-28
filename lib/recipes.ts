@@ -13,6 +13,10 @@ import {
   hydrateRecipeProducts,
 } from "@/lib/recipe-commerce";
 import { enrichRecipeIngredientMatches } from "@/lib/recipe-ingredient-matcher";
+import {
+  buildRecipebookCategories,
+  filterRecipebookRecipes,
+} from "@/lib/recipebook-navigation";
 import { toRecipeSummary, transformBrowinRecipes } from "@/lib/recipe-transformer";
 
 export type {
@@ -163,21 +167,32 @@ export const getRecipes = async (products?: Product[]): Promise<Recipe[]> => {
   return products ? enrichRecipeIngredientMatches(recipes, products) : recipes;
 };
 
-export const filterRecipesForRecipebook = (recipes: Recipe[], categorySlug = "") =>
-  recipes
-    .filter((recipe) => !categorySlug || recipe.category.slug === categorySlug)
-    .sort((left, right) => right.newestOrder - left.newestOrder);
+export const filterRecipesForRecipebook = (
+  recipes: Recipe[],
+  categorySlug = "",
+  searchQuery = "",
+) =>
+  filterRecipebookRecipes(recipes, {
+    categorySlug,
+    searchQuery,
+  });
 
 export const getRecipebookPage = async ({
   categorySlug = "",
   limit = RECIPEBOOK_PAGE_SIZE,
   offset = 0,
+  searchQuery = "",
 }: {
   categorySlug?: string;
   limit?: number;
   offset?: number;
+  searchQuery?: string;
 }) => {
-  const recipes = filterRecipesForRecipebook(await getRecipes(), categorySlug.trim());
+  const recipes = filterRecipesForRecipebook(
+    await getRecipes(),
+    categorySlug.trim(),
+    searchQuery,
+  );
   const safeOffset = Math.max(0, offset);
   const safeLimit = Math.max(1, limit);
   const visibleRecipes = recipes.slice(safeOffset, safeOffset + safeLimit).map(toRecipeSummary);
@@ -188,6 +203,9 @@ export const getRecipebookPage = async ({
     hasMore: safeOffset + safeLimit < recipes.length,
   };
 };
+
+export const getRecipebookCategories = async () =>
+  buildRecipebookCategories(await getRecipes());
 
 export const getRecipeBySlug = async (slug: string, products?: Product[]) => {
   const recipes = await getRecipes(products);

@@ -4,11 +4,27 @@ import Link from "next/link";
 import { RecipebookFeed } from "@/components/store/recipebook-feed";
 import { RECIPEBOOK_PAGE_SIZE } from "@/data/recipes";
 import { filterRecipesForRecipebook, getRecipes, toRecipeSummary } from "@/lib/recipes";
+import { buildRecipebookCategories } from "@/lib/recipebook-navigation";
 
 type SearchParamRecord = Record<string, string | string[] | undefined>;
 
 const readString = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] ?? "" : value ?? "";
+
+const recipePluralRules = new Intl.PluralRules("pl-PL");
+
+const getRecipeCountLabel = (count: number) => {
+  const suffixByPlural = {
+    few: "przepisy",
+    many: "przepisów",
+    one: "przepis",
+    other: "przepisów",
+    two: "przepisy",
+    zero: "przepisów",
+  } satisfies Record<Intl.LDMLPluralRule, string>;
+
+  return `${count} ${suffixByPlural[recipePluralRules.select(count)]}`;
+};
 
 export const metadata: Metadata = {
   title: "Czytaj, gotuj i twórz domową jakość.",
@@ -26,14 +42,22 @@ export default async function RecipesPage({
 }) {
   const params = await searchParams;
   const categorySlug = readString(params.category).trim();
+  const searchQuery = readString(params.search).trim();
   const recipes = await getRecipes();
-  const categories = [...new Map(recipes.map((recipe) => [recipe.category.slug, recipe.category])).values()]
-    .sort((left, right) => left.name.localeCompare(right.name, "pl"));
-  const filteredRecipes = filterRecipesForRecipebook(recipes, categorySlug);
+  const categories = buildRecipebookCategories(recipes, {
+    activeCategorySlug: categorySlug,
+    searchQuery,
+  });
+  const filteredRecipes = filterRecipesForRecipebook(
+    recipes,
+    categorySlug,
+    searchQuery,
+  );
   const initialRecipes = filteredRecipes
     .slice(0, RECIPEBOOK_PAGE_SIZE)
     .map(toRecipeSummary);
   const currentCategory = categories.find((category) => category.slug === categorySlug);
+  const hasActiveFilters = Boolean(categorySlug || searchQuery);
 
   return (
     <section className="bg-browin-gray pb-16">
@@ -57,48 +81,21 @@ export default async function RecipesPage({
       </div>
 
       <div className="container mx-auto px-4 py-8">
-        <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-2">
-          <Link
-            className={`shrink-0 border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-colors ${
-              !categorySlug
-                ? "border-browin-red bg-browin-red text-browin-white"
-                : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
-            }`}
-            href="/przepisnik"
-          >
-            Wszystkie
-          </Link>
-          {categories.map((category) => {
-            const hrefParams = new URLSearchParams();
-
-            hrefParams.set("category", category.slug);
-
-            return (
-              <Link
-                className={`shrink-0 border px-4 py-2 text-xs font-bold uppercase tracking-[0.14em] transition-colors ${
-                  categorySlug === category.slug
-                    ? "border-browin-red bg-browin-red text-browin-white"
-                    : "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red hover:text-browin-red"
-                }`}
-                href={`/przepisnik?${hrefParams.toString()}`}
-                key={category.slug}
-              >
-                {category.name}
-              </Link>
-            );
-          })}
-        </div>
-
-        <div className="mt-6 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+        <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
           <div>
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
               {currentCategory?.name ?? "Wszystkie kategorie"}
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark md:text-3xl">
-              {filteredRecipes.length} przepisów gotowych do zakupów
+              {getRecipeCountLabel(filteredRecipes.length)} gotowych do zakupów
             </h2>
+            {searchQuery ? (
+              <p className="mt-2 text-sm font-semibold text-browin-dark/58">
+                Wyniki dla: <span className="text-browin-dark">{searchQuery}</span>
+              </p>
+            ) : null}
           </div>
-          {categorySlug ? (
+          {hasActiveFilters ? (
             <Link
               className="text-sm font-semibold text-browin-red transition-colors hover:text-browin-dark"
               href="/przepisnik"
@@ -112,13 +109,14 @@ export default async function RecipesPage({
           <RecipebookFeed
             categorySlug={categorySlug}
             initialRecipes={initialRecipes}
+            searchQuery={searchQuery}
             totalCount={filteredRecipes.length}
           />
         ) : (
           <div className="mt-8 border border-dashed border-browin-dark/15 bg-browin-white p-8 text-center">
             <h2 className="text-2xl font-bold text-browin-dark">Brak przepisów</h2>
             <p className="mt-3 text-sm leading-relaxed text-browin-dark/62">
-              Zmień kategorię, żeby zobaczyć więcej inspiracji.
+              Zmień kategorię albo frazę, żeby zobaczyć więcej inspiracji.
             </p>
           </div>
         )}

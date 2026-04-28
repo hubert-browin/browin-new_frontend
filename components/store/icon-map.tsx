@@ -3,7 +3,6 @@
 import type { ComponentProps } from "react";
 
 import {
-  BookOpen,
   ChartPieSlice,
   Fire,
   Flask,
@@ -22,11 +21,11 @@ import {
   Wine,
 } from "@phosphor-icons/react";
 
+import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import type { IconKey } from "@/data/store";
 
 const iconMap = {
   beer: PintGlass,
-  book: BookOpen,
   cheese: ChartPieSlice,
   fire: Fire,
   flask: Flask,
@@ -42,13 +41,17 @@ const iconMap = {
   truck: Truck,
   users: Users,
   wine: Wine,
-} satisfies Record<IconKey, typeof Fire>;
+} satisfies Record<Exclude<IconKey, "book">, typeof Fire>;
 
 type StoreIconProps = {
   icon: IconKey;
 } & ComponentProps<typeof Fire>;
 
 export function StoreIcon({ icon, ...props }: StoreIconProps) {
+  if (icon === "book") {
+    return <RecipebookIcon {...props} />;
+  }
+
   const Icon = iconMap[icon];
 
   return <Icon {...props} />;

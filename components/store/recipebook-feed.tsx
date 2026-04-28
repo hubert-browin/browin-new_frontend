@@ -8,6 +8,7 @@ import { RecipeCard } from "@/components/store/recipe-card";
 type RecipebookFeedProps = {
   categorySlug: string;
   initialRecipes: RecipeSummary[];
+  searchQuery: string;
   totalCount: number;
 };
 
@@ -30,6 +31,7 @@ const dedupeRecipes = (recipes: RecipeSummary[]) => {
 export function RecipebookFeed({
   categorySlug,
   initialRecipes,
+  searchQuery,
   totalCount,
 }: RecipebookFeedProps) {
   const [recipes, setRecipes] = useState(initialRecipes);
@@ -57,6 +59,10 @@ export function RecipebookFeed({
         searchParams.set("category", categorySlug);
       }
 
+      if (searchQuery) {
+        searchParams.set("search", searchQuery);
+      }
+
       const response = await fetch(`/api/recipes?${searchParams.toString()}`, {
         cache: "no-store",
       });
@@ -77,13 +83,13 @@ export function RecipebookFeed({
     } finally {
       setIsLoading(false);
     }
-  }, [categorySlug, hasMoreRecipes, isLoading, loadedRecipesCount]);
+  }, [categorySlug, hasMoreRecipes, isLoading, loadedRecipesCount, searchQuery]);
 
   useEffect(() => {
     setRecipes(initialRecipes);
     setIsLoading(false);
     setLoadError(false);
-  }, [categorySlug, initialRecipes, totalCount]);
+  }, [categorySlug, initialRecipes, searchQuery, totalCount]);
 
   useEffect(() => {
     if (!hasMoreRecipes || isLoading || loadError || !loadMoreTriggerRef.current) {

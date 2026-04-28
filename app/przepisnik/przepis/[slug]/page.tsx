@@ -14,8 +14,12 @@ import {
   getRecipeBySlug,
   getRecipes,
   hydrateRecipe,
-  toRecipeSummary,
 } from "@/lib/recipes";
+import {
+  buildRecipebookCategoryHref,
+  buildRecipebookNavigationContext,
+  type RecipebookRecipeNavItem,
+} from "@/lib/recipebook-navigation";
 import { getMetadataBase } from "@/lib/site-url";
 
 export async function generateMetadata({
@@ -108,6 +112,42 @@ const buildBreadcrumbJsonLd = ({
   ],
 });
 
+function RecipeStepLink({
+  direction,
+  recipe,
+}: {
+  direction: "next" | "previous";
+  recipe: RecipebookRecipeNavItem;
+}) {
+  return (
+    <Link
+      className="group grid min-h-28 grid-cols-[5.75rem_minmax(0,1fr)] gap-4 border border-browin-dark/10 bg-browin-white p-3 transition-colors hover:border-browin-red md:grid-cols-[7rem_minmax(0,1fr)] md:p-4"
+      href={recipe.href}
+    >
+      <span className="relative h-20 overflow-hidden bg-browin-dark md:h-24">
+        <Image
+          alt={recipe.title}
+          className="object-cover opacity-95 transition-transform duration-500 group-hover:scale-[1.04]"
+          fill
+          sizes="112px"
+          src={recipe.heroImage}
+        />
+      </span>
+      <span className="flex min-w-0 flex-col justify-between">
+        <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
+          {direction === "previous" ? "Poprzedni przepis" : "Następny przepis"}
+        </span>
+        <span className="mt-2 line-clamp-2 text-base font-bold leading-tight tracking-tight text-browin-dark transition-colors group-hover:text-browin-red md:text-lg">
+          {recipe.title}
+        </span>
+        <span className="mt-3 text-xs font-semibold uppercase tracking-[0.12em] text-browin-dark/45">
+          {recipe.category.name}
+        </span>
+      </span>
+    </Link>
+  );
+}
+
 export default async function RecipePage({
   params,
 }: {
@@ -140,9 +180,13 @@ export default async function RecipePage({
         : hasRecipeProducts
           ? "lg:grid-cols-[minmax(0,1fr)_15rem] xl:grid-cols-[minmax(0,1fr)_17rem] 2xl:grid-cols-[minmax(0,1fr)_19rem]"
           : "lg:grid-cols-1";
-  const relatedRecipes = recipes
-    .filter((entry) => entry.id !== recipe.id && entry.category.slug === recipe.category.slug)
-    .slice(0, 3);
+  const recipebookNavigation = buildRecipebookNavigationContext(recipes, {
+    currentRecipeSlug: recipe.slug,
+    relatedLimit: 3,
+  });
+  const recipeCategoryHref = buildRecipebookCategoryHref({
+    categorySlug: recipe.category.slug,
+  });
   const canonicalUrl = new URL(
     `/przepisnik/przepis/${recipe.slug}`,
     getMetadataBase(),
@@ -167,10 +211,36 @@ export default async function RecipePage({
           <div className="border-b border-browin-dark/10 p-4 md:p-8 lg:border">
             <RecipeListBackButton />
 
+            <nav
+              aria-label="Nawigacja przepisu"
+              className="mb-4 hidden min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/45 md:flex"
+            >
+              <Link
+                className="transition-colors hover:text-browin-red"
+                href="/przepisnik"
+              >
+                Przepiśnik
+              </Link>
+              <span className="text-browin-dark/25">/</span>
+              <Link
+                className="transition-colors hover:text-browin-red"
+                href={recipeCategoryHref}
+              >
+                {recipe.category.name}
+              </Link>
+              <span className="text-browin-dark/25">/</span>
+              <span
+                aria-current="page"
+                className="max-w-full truncate text-browin-dark/62"
+              >
+                {recipe.title}
+              </span>
+            </nav>
+
             <div className="flex flex-wrap gap-2">
               <Link
                 className="bg-browin-red px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-browin-white"
-                href={`/przepisnik?category=${recipe.category.slug}`}
+                href={recipeCategoryHref}
               >
                 {recipe.category.name}
               </Link>
@@ -234,18 +304,37 @@ export default async function RecipePage({
         ) : null}
       </div>
 
-      {relatedRecipes.length > 0 ? (
+      {recipebookNavigation.previousRecipe || recipebookNavigation.nextRecipe ? (
         <div className="container mx-auto px-4">
-          <div className="border-t border-browin-dark/10 pt-10">
+          <div className="grid gap-4 pt-8 md:grid-cols-2">
+            {recipebookNavigation.previousRecipe ? (
+              <RecipeStepLink
+                direction="previous"
+                recipe={recipebookNavigation.previousRecipe}
+              />
+            ) : null}
+            {recipebookNavigation.nextRecipe ? (
+              <RecipeStepLink
+                direction="next"
+                recipe={recipebookNavigation.nextRecipe}
+              />
+            ) : null}
+          </div>
+        </div>
+      ) : null}
+
+      {recipebookNavigation.relatedRecipes.length > 0 ? (
+        <div className="container mx-auto px-4">
+          <div className="pt-10">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">
               Więcej inspiracji
             </p>
             <h2 className="mt-2 text-2xl font-bold tracking-tight text-browin-dark md:text-3xl">
-              Z tej samej kategorii
+              Podobne przepisy
             </h2>
             <div className="mt-6 grid gap-5 md:grid-cols-3">
-              {relatedRecipes.map((related) => (
-                <RecipeCard compact key={related.id} recipe={toRecipeSummary(related)} />
+              {recipebookNavigation.relatedRecipes.map((related) => (
+                <RecipeCard compact key={related.id} recipe={related} />
               ))}
             </div>
           </div>
