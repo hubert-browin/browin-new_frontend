@@ -157,10 +157,6 @@ const getMobileBottomNavActiveItem = ({
     return "categories";
   }
 
-  if (pathname.startsWith("/przepisnik")) {
-    return "recipes";
-  }
-
   if (pathname === "/") {
     return "home";
   }
@@ -311,6 +307,7 @@ export function StoreChrome({
   );
   const [recipeReturnContext, setRecipeReturnContext] =
     useState<ProductBridgeContext | null>(null);
+  const [recipebookReturnHref, setRecipebookReturnHref] = useState("/przepisnik");
   const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
     useState(false);
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
@@ -384,6 +381,14 @@ export function StoreChrome({
   const showRecipebookCategoryRail =
     recipebookCategories.length > 0 && pathname === "/przepisnik";
   const visibleRecipeReturnContext = currentRecipeSlug ? recipeReturnContext : null;
+  const shouldReturnToRecipebookList =
+    isRecipeDetailPage && !visibleRecipeReturnContext;
+  const recipebookNavHref = shouldReturnToRecipebookList
+    ? recipebookReturnHref
+    : "/przepisnik";
+  const recipebookNavLabel = shouldReturnToRecipebookList
+    ? "Wróć do przepiśnika"
+    : "Przepiśnik";
 
   useEffect(() => {
     document.body.style.overflow =
@@ -440,6 +445,33 @@ export function StoreChrome({
 
     return () => window.cancelAnimationFrame(frame);
   }, [currentRouteHref, pathname]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      if (pathname === "/przepisnik") {
+        setRecipebookReturnHref(normalizeRecipebookListHref(currentRouteHref));
+        return;
+      }
+
+      if (!isRecipeDetailPage) {
+        setRecipebookReturnHref("/przepisnik");
+        return;
+      }
+
+      try {
+        setRecipebookReturnHref(
+          normalizeRecipebookListHref(
+            window.sessionStorage.getItem(RECIPEBOOK_LAST_LIST_HREF_STORAGE_KEY) ??
+              window.sessionStorage.getItem(RECIPEBOOK_LAST_HREF_STORAGE_KEY),
+          ),
+        );
+      } catch {
+        setRecipebookReturnHref("/przepisnik");
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [currentRouteHref, isRecipeDetailPage, pathname]);
 
   useEffect(() => {
     if (pathname !== "/przepisnik" || !isMobileViewport()) {
@@ -1259,18 +1291,20 @@ export function StoreChrome({
               {visibleRecipeReturnContext ? (
                 <DesktopRecipeProductReturnNav
                   context={visibleRecipeReturnContext}
-                  isRecipePage={isRecipePage}
                   onRecipebookClick={handleRecipebookNavClick}
                   onReturn={handleRecipeProductReturn}
+                  recipebookHref={recipebookNavHref}
+                  recipebookLabel={recipebookNavLabel}
                 />
               ) : (
                 <DesktopProductRecipeNav
                   context={productRecipeNavContext}
                   isOpen={isProductRecipePanelOpen}
-                  isRecipePage={isRecipePage}
                   onClose={closeProductRecipePanel}
                   onNavigate={handleRecipebookNavClick}
                   onToggle={handleProductRecipesDesktopNavClick}
+                  recipebookHref={recipebookNavHref}
+                  recipebookLabel={recipebookNavLabel}
                 />
               )}
             </div>

@@ -141,12 +141,15 @@ export function ProductCard({
         </div>
         <button
           aria-label={`Dodaj ${product.title} do koszyka`}
-          className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden border border-browin-dark/10 bg-browin-white text-browin-dark transition-[width,padding,justify-content,gap,background-color,border-color,color] duration-200 hover:border-browin-red hover:bg-browin-red hover:text-browin-white focus-visible:border-browin-red focus-visible:bg-browin-red focus-visible:text-browin-white md:h-10 md:w-10 md:group-hover:w-[6.9rem] md:group-hover:justify-start md:group-hover:gap-2 md:group-hover:border-browin-red md:group-hover:bg-browin-red md:group-hover:px-3 md:group-hover:text-browin-white md:hover:w-[6.9rem] md:hover:justify-start md:hover:gap-2 md:hover:px-3 md:focus-visible:w-[6.9rem] md:focus-visible:justify-start md:focus-visible:gap-2 md:focus-visible:px-3"
+          className="group/addcart flex h-9 min-w-[4.7rem] shrink-0 items-center justify-center gap-1.5 border border-browin-red bg-browin-red px-2.5 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark md:h-10 md:min-w-[5.2rem] md:gap-2 md:px-3"
           onClick={() => addItem(product.id, primaryVariant.id)}
           type="button"
         >
-          <ShoppingCart className="shrink-0" size={18} />
-          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 md:block md:group-hover:max-w-[3.5rem] md:group-hover:translate-x-0 md:group-hover:opacity-100 md:hover:max-w-[3.5rem] md:hover:translate-x-0 md:hover:opacity-100 md:focus-visible:max-w-[3.5rem] md:focus-visible:translate-x-0 md:focus-visible:opacity-100">
+          <ShoppingCart
+            className="shrink-0 transition-transform duration-200 group-hover/addcart:-rotate-3 group-hover/addcart:translate-x-0.5"
+            size={18}
+          />
+          <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]">
             Dodaj
           </span>
         </button>

@@ -18,17 +18,19 @@ import type { RecipeSummary } from "@/data/recipes";
 type DesktopProductRecipeNavProps = {
   context: ProductRecipeNavEntry | null;
   isOpen: boolean;
-  isRecipePage: boolean;
   onClose: () => void;
   onNavigate: () => void;
   onToggle: () => void;
+  recipebookHref: string;
+  recipebookLabel: string;
 };
 
 type DesktopRecipeProductReturnNavProps = {
   context: ProductBridgeContext;
-  isRecipePage: boolean;
   onRecipebookClick: () => void;
   onReturn: (context: ProductBridgeContext) => void;
+  recipebookHref: string;
+  recipebookLabel: string;
 };
 
 const MAX_PANEL_RECIPES = 6;
@@ -179,9 +181,10 @@ function DesktopProductRecipePanel({
 
 export function DesktopRecipeProductReturnNav({
   context,
-  isRecipePage,
   onRecipebookClick,
   onReturn,
+  recipebookHref,
+  recipebookLabel,
 }: DesktopRecipeProductReturnNavProps) {
   return (
     <div className="flex min-w-0 items-center gap-2">
@@ -212,17 +215,16 @@ export function DesktopRecipeProductReturnNav({
       </Link>
 
       <Link
-        aria-current={isRecipePage ? "page" : undefined}
         className="inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-semibold text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
-        href="/przepisnik"
+        href={recipebookHref}
         onClick={onRecipebookClick}
       >
         <RecipebookIcon
           className="shrink-0 text-browin-red"
           size={16}
-          weight={isRecipePage ? "fill" : "regular"}
+          weight="regular"
         />
-        <span className="hidden lg:inline">Przepiśnik</span>
+        <span className="hidden lg:inline">{recipebookLabel}</span>
       </Link>
     </div>
   );
@@ -231,10 +233,11 @@ export function DesktopRecipeProductReturnNav({
 export function DesktopProductRecipeNav({
   context,
   isOpen,
-  isRecipePage,
   onClose,
   onNavigate,
   onToggle,
+  recipebookHref,
+  recipebookLabel,
 }: DesktopProductRecipeNavProps) {
   const rootRef = useRef<HTMLDivElement | null>(null);
   const [contextSlug, setContextSlug] = useState<string | null>(null);
@@ -302,26 +305,21 @@ export function DesktopProductRecipeNav({
   if (!context || context.recipes.length === 0) {
     return (
       <Link
-        aria-current={isRecipePage ? "page" : undefined}
-        className={`group inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-semibold transition-colors ${
-          isRecipePage
-            ? "bg-browin-red/8 text-browin-red"
-            : "text-browin-dark/72 hover:bg-browin-dark/5 hover:text-browin-red"
-        }`}
-        href="/przepisnik"
+        className="group inline-flex items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-semibold text-browin-dark/72 transition-colors hover:bg-browin-dark/5 hover:text-browin-red"
+        href={recipebookHref}
         onClick={onNavigate}
       >
         <RecipebookIcon
           className="shrink-0 text-browin-red"
           size={16}
-          weight={isRecipePage ? "fill" : "regular"}
+          weight="regular"
         />
-        <span>Przepiśnik</span>
+        <span>{recipebookLabel}</span>
       </Link>
     );
   }
 
-  const isHighlighted = isRecipePage || isOpen;
+  const isHighlighted = isOpen;
 
   return (
     <div className="relative" ref={rootRef}>

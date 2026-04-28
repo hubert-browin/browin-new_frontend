@@ -285,6 +285,7 @@ function RecipeCompactProductsList({
                 event.stopPropagation();
                 onToggleProduct(entry.product.id);
               }}
+              onKeyDown={(event) => event.stopPropagation()}
               type="button"
             >
               <Check size={14} weight="bold" />

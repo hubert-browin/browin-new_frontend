@@ -216,14 +216,16 @@ export default async function RecipePage({
               className="mb-4 hidden min-w-0 flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.12em] text-browin-dark/45 md:flex"
             >
               <Link
-                className="transition-colors hover:text-browin-red"
+                aria-label="Wróć do listy przepisów"
+                className="rounded-md border border-transparent px-2 py-1 transition-colors hover:border-browin-red/20 hover:bg-browin-red/5 hover:text-browin-red focus-visible:border-browin-red focus-visible:bg-browin-red/5 focus-visible:text-browin-red"
                 href="/przepisnik"
               >
                 Przepiśnik
               </Link>
               <span className="text-browin-dark/25">/</span>
               <Link
-                className="transition-colors hover:text-browin-red"
+                aria-label={`Zobacz przepisy z kategorii ${recipe.category.name}`}
+                className="rounded-md border border-transparent px-2 py-1 transition-colors hover:border-browin-red/20 hover:bg-browin-red/5 hover:text-browin-red focus-visible:border-browin-red focus-visible:bg-browin-red/5 focus-visible:text-browin-red"
                 href={recipeCategoryHref}
               >
                 {recipe.category.name}
@@ -231,7 +233,7 @@ export default async function RecipePage({
               <span className="text-browin-dark/25">/</span>
               <span
                 aria-current="page"
-                className="max-w-full truncate text-browin-dark/62"
+                className="max-w-full truncate rounded-md bg-browin-dark/5 px-2 py-1 text-browin-dark/62"
               >
                 {recipe.title}
               </span>

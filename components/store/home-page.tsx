@@ -586,7 +586,7 @@ export function HomePage({
                           </p>
                         </div>
                         <button
-                          className="relative z-20 flex h-10 w-10 shrink-0 items-center justify-center overflow-hidden border border-browin-dark/10 bg-browin-white text-browin-dark transition-[width,padding,justify-content,gap,background-color,border-color,color] duration-200 hover:border-browin-red hover:bg-browin-red hover:text-browin-white focus-visible:border-browin-red focus-visible:bg-browin-red focus-visible:text-browin-white xl:h-12 xl:w-12 xl:group-hover:w-[7.4rem] xl:group-hover:justify-start xl:group-hover:gap-2 xl:group-hover:border-browin-red xl:group-hover:bg-browin-red xl:group-hover:px-3 xl:group-hover:text-browin-white xl:hover:w-[7.4rem] xl:hover:justify-start xl:hover:gap-2 xl:hover:px-3 xl:focus-visible:w-[7.4rem] xl:focus-visible:justify-start xl:focus-visible:gap-2 xl:focus-visible:px-3"
+                          className="group/addcart relative z-20 flex h-10 min-w-[4.9rem] shrink-0 items-center justify-center gap-1.5 border border-browin-red bg-browin-red px-2.5 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark xl:h-12 xl:min-w-[5.5rem] xl:gap-2 xl:px-3"
                           onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -594,8 +594,11 @@ export function HomePage({
                           }}
                           type="button"
                         >
-                          <ShoppingCart className="shrink-0" size={20} />
-                          <span className="hidden max-w-0 -translate-x-1 overflow-hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.14em] opacity-0 transition-[max-width,opacity,transform] duration-200 xl:block xl:group-hover:max-w-[3.8rem] xl:group-hover:translate-x-0 xl:group-hover:opacity-100 xl:hover:max-w-[3.8rem] xl:hover:translate-x-0 xl:hover:opacity-100 xl:focus-visible:max-w-[3.8rem] xl:focus-visible:translate-x-0 xl:focus-visible:opacity-100">
+                          <ShoppingCart
+                            className="shrink-0 transition-transform duration-200 group-hover/addcart:-rotate-3 group-hover/addcart:translate-x-0.5"
+                            size={20}
+                          />
+                          <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]">
                             Dodaj
                           </span>
                         </button>
