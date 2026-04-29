@@ -122,7 +122,7 @@ export function RecipebookFeed({
 
   return (
     <>
-      <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      <div className="mt-4 grid gap-5 md:mt-6 md:grid-cols-2 xl:grid-cols-3">
         {recipes.map((recipe, index) => (
           <RecipeCard
             key={recipe.id}

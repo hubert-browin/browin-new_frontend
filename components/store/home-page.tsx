@@ -408,7 +408,7 @@ export function HomePage({
                   </Link>
                   <Link
                     className="group flex items-center space-x-2 whitespace-nowrap text-[11px] font-semibold uppercase tracking-wider text-browin-dark transition-colors hover:text-browin-red xl:text-[12px]"
-                    href="/produkty?search=termometr"
+                    href="/kalkulatory"
                   >
                     <Calculator className="text-browin-red transition-transform group-hover:scale-110" size={18} />
                     <span>Kalkulatory</span>
@@ -586,7 +586,7 @@ export function HomePage({
                           </p>
                         </div>
                         <button
-                          className="group/addcart relative z-20 flex h-10 min-w-[4.9rem] shrink-0 items-center justify-center gap-1.5 border border-browin-red bg-browin-red px-2.5 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark xl:h-12 xl:min-w-[5.5rem] xl:gap-2 xl:px-3"
+                          className="group/addcart relative z-20 flex h-10 w-10 shrink-0 items-center justify-center border border-browin-red bg-browin-red px-0 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark md:w-auto md:min-w-[4.9rem] md:gap-1.5 md:px-2.5 xl:h-12 xl:min-w-[5.5rem] xl:gap-2 xl:px-3"
                           onClick={(event) => {
                             event.preventDefault();
                             event.stopPropagation();
@@ -598,7 +598,7 @@ export function HomePage({
                             className="shrink-0 transition-transform duration-200 group-hover/addcart:-rotate-3 group-hover/addcart:translate-x-0.5"
                             size={20}
                           />
-                          <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]">
+                          <span className="hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] md:inline">
                             Dodaj
                           </span>
                         </button>

@@ -141,7 +141,7 @@ export function ProductCard({
         </div>
         <button
           aria-label={`Dodaj ${product.title} do koszyka`}
-          className="group/addcart flex h-9 min-w-[4.7rem] shrink-0 items-center justify-center gap-1.5 border border-browin-red bg-browin-red px-2.5 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark md:h-10 md:min-w-[5.2rem] md:gap-2 md:px-3"
+          className="group/addcart flex h-9 w-9 shrink-0 items-center justify-center border border-browin-red bg-browin-red px-0 text-browin-white transition-colors duration-200 hover:border-browin-dark hover:bg-browin-dark focus-visible:border-browin-dark focus-visible:bg-browin-dark md:h-10 md:w-auto md:min-w-[5.2rem] md:gap-2 md:px-3"
           onClick={() => addItem(product.id, primaryVariant.id)}
           type="button"
         >
@@ -149,7 +149,7 @@ export function ProductCard({
             className="shrink-0 transition-transform duration-200 group-hover/addcart:-rotate-3 group-hover/addcart:translate-x-0.5"
             size={18}
           />
-          <span className="whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em]">
+          <span className="hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] md:inline">
             Dodaj
           </span>
         </button>

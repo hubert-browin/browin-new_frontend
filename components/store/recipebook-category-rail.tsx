@@ -208,7 +208,7 @@ export function RecipebookCategoryRail({
 
   return (
     <div
-      className="relative border-b border-browin-dark/8 bg-browin-white/96 backdrop-blur-md"
+      className="relative z-40 border-b border-browin-dark/8 bg-browin-white/96 backdrop-blur-md"
       ref={rootRef}
     >
       <div className="container mx-auto px-4 py-2 md:hidden">
@@ -240,7 +240,7 @@ export function RecipebookCategoryRail({
         </button>
 
         {isMobileMenuOpen ? (
-          <div className="absolute inset-x-4 top-[calc(100%-0.25rem)] z-50 max-h-[70dvh] overflow-y-auto border border-browin-dark/10 bg-browin-white p-2 shadow-[0_18px_34px_-22px_rgba(51,51,51,0.4)]">
+          <div className="absolute inset-x-4 top-[calc(100%-0.25rem)] z-[60] max-h-[70dvh] overflow-y-auto border border-browin-dark/10 bg-browin-white p-2 shadow-[0_18px_34px_-22px_rgba(51,51,51,0.4)]">
             <Link
               className={getMobileCategoryItemClass(activeItemKey === "all")}
               href={buildRecipebookCategoryHref({ searchQuery })}

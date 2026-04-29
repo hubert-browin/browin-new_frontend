@@ -18,6 +18,26 @@ const nextConfig: NextConfig = {
         destination: "/przepisnik",
         permanent: true,
       },
+      {
+        source: "/kalkulator-winiarski",
+        destination: "/kalkulatory?calculator=wine",
+        permanent: true,
+      },
+      {
+        source: "/kalkulator-nalewkowy",
+        destination: "/kalkulatory?calculator=tincture",
+        permanent: true,
+      },
+      {
+        source: "/kalkulator-serowarski",
+        destination: "/kalkulatory?calculator=cheese",
+        permanent: true,
+      },
+      {
+        source: "/kalkulator-wedliniarski",
+        destination: "/kalkulatory?calculator=meat",
+        permanent: true,
+      },
     ];
   },
   images: {

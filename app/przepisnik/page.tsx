@@ -34,8 +34,8 @@ function RecipebookHero({
   const [leadRecipe, ...supportingRecipes] = recipes;
 
   return (
-    <div className="border-b border-browin-dark/8 bg-browin-white">
-      <div className="container mx-auto px-4 py-6 md:py-8">
+    <div className="hidden border-b border-browin-dark/8 bg-browin-white md:block">
+      <div className="container mx-auto px-4 py-4 md:py-8">
         <div className="grid gap-5 lg:grid-cols-[minmax(0,0.86fr)_minmax(29rem,1fr)] lg:items-stretch">
           <div className="flex min-w-0 flex-col justify-center py-1">
             <p className="text-sm font-semibold uppercase tracking-[0.16em] text-browin-red">

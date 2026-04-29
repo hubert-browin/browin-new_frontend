@@ -80,6 +80,18 @@ type MobileSearchFormProps = {
 };
 
 type MobileBottomNavItem = "home" | "categories" | "recipes" | "cart" | null;
+type HomeLayoutVariant = "current" | "expandedDock" | "expandedDockSplit";
+
+const HOME_LAYOUT_VARIANT_STORAGE_KEY = "browin-home-layout-variant";
+
+const homeLayoutVariantOptions: ReadonlyArray<{
+  id: HomeLayoutVariant;
+  title: string;
+}> = [
+  { id: "current", title: "Aktualny homepage" },
+  { id: "expandedDock", title: "Dock, szeroki baner i dwa kafle pod spodem" },
+  { id: "expandedDockSplit", title: "Dock, baner po lewej i kafle po prawej" },
+];
 
 const topBarLinks = [
   { label: "Dostawa i płatność", href: "/checkout" },
@@ -94,7 +106,7 @@ const utilityQuickLinks = [
     label: "Przepiśnik",
   },
   {
-    href: "/produkty?search=termometr",
+    href: "/kalkulatory",
     icon: Calculator,
     label: "Kalkulatory",
   },
@@ -310,6 +322,9 @@ export function StoreChrome({
   const [recipebookReturnHref, setRecipebookReturnHref] = useState("/przepisnik");
   const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
     useState(false);
+  const [isHomeBreadcrumbVisible, setIsHomeBreadcrumbVisible] = useState(false);
+  const [homeLayoutVariant, setHomeLayoutVariant] =
+    useState<HomeLayoutVariant>("current");
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -329,7 +344,17 @@ export function StoreChrome({
   const canAutoHideMobileSearch =
     isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
   const showMobileCategoryStrip = !isProductPage && !isRecipePage;
-  const showDesktopNav = pathname !== "/";
+  const isHomePage = pathname === "/";
+  const isHomeDockLayout = isHomePage && homeLayoutVariant !== "current";
+  const isHomeExpandedDockLayout =
+    isHomePage && homeLayoutVariant === "expandedDock";
+  const isHomeSplitDockLayout =
+    isHomePage && homeLayoutVariant === "expandedDockSplit";
+  const showDesktopNav = pathname !== "/" || isHomeDockLayout;
+  const showDesktopBreadcrumbNav = isHomePage
+    ? isHomeDockLayout || isHomeBreadcrumbVisible
+    : showDesktopNav;
+  const showDesktopBreadcrumbShell = showDesktopNav || isHomePage;
   const routeBreadcrumbCategory =
     storeCategories.find((category) => pathname === `/kategoria/${category.slug}`) ??
     null;
@@ -352,7 +377,13 @@ export function StoreChrome({
     ? activeDockCategory.menuSections.slice(0, 2)
     : [];
   const contentShellClass = `min-h-screen transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
-    showDesktopNav ? "md:ml-20" : ""
+    showDesktopNav
+      ? isHomeDockLayout
+        ? "md:ml-20 lg:ml-72"
+        : "md:ml-20"
+      : ""
+  } ${isHomeExpandedDockLayout ? "home-layout-expanded-dock" : ""} ${
+    isHomeSplitDockLayout ? "home-layout-dock-split" : ""
   }`;
   const activeMobileBottomNavItem = getMobileBottomNavActiveItem({
     isCartOpen: isOpen,
@@ -389,6 +420,18 @@ export function StoreChrome({
   const recipebookNavLabel = shouldReturnToRecipebookList
     ? "Wróć do przepiśnika"
     : "Przepiśnik";
+  const desktopBreadcrumbClass = isHomeDockLayout
+    ? "sticky top-20 z-[70] hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]"
+    : isHomePage
+      ? `fixed inset-x-0 top-20 z-[70] hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md transition-[opacity,transform] duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem] ${
+          isHomeBreadcrumbVisible
+            ? "pointer-events-auto translate-y-0 opacity-100"
+          : "pointer-events-none -translate-y-2 opacity-0"
+      }`
+    : "sticky top-20 z-[70] hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]";
+  const desktopDockClass = `group/dock fixed left-0 top-0 z-[100] hidden h-screen overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:block ${
+    isHomeDockLayout ? "w-20 hover:w-72 lg:w-72" : "w-20 hover:w-72"
+  }`;
 
   useEffect(() => {
     document.body.style.overflow =
@@ -398,6 +441,28 @@ export function StoreChrome({
       document.body.style.overflow = "";
     };
   }, [isOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => {
+      try {
+        const storedVariant = window.localStorage.getItem(
+          HOME_LAYOUT_VARIANT_STORAGE_KEY,
+        );
+
+        if (
+          storedVariant === "current" ||
+          storedVariant === "expandedDock" ||
+          storedVariant === "expandedDockSplit"
+        ) {
+          setHomeLayoutVariant(storedVariant);
+        }
+      } catch {
+        // The homepage layout switch is a local dev helper only.
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -622,6 +687,66 @@ export function StoreChrome({
   }, [canAutoHideMobileSearch, pathname]);
 
   useEffect(() => {
+    if (!isHomePage) {
+      const resetFrame = window.requestAnimationFrame(() => {
+        setIsHomeBreadcrumbVisible(false);
+      });
+
+      return () => window.cancelAnimationFrame(resetFrame);
+    }
+
+    let frame = 0;
+
+    const evaluateHomeScroll = () => {
+      frame = 0;
+
+      const heroFrame = document.querySelector<HTMLElement>(".desktop-hero-frame");
+      const heroBottom = heroFrame
+        ? heroFrame.offsetTop + heroFrame.offsetHeight
+        : 420;
+      const threshold = Math.max(260, heroBottom - 96);
+
+      setIsHomeBreadcrumbVisible(window.scrollY > threshold);
+    };
+
+    const scheduleHomeScrollEvaluation = () => {
+      if (frame) {
+        return;
+      }
+
+      frame = window.requestAnimationFrame(evaluateHomeScroll);
+    };
+
+    const initialFrame = window.requestAnimationFrame(evaluateHomeScroll);
+
+    window.addEventListener("scroll", scheduleHomeScrollEvaluation, { passive: true });
+    window.addEventListener("resize", scheduleHomeScrollEvaluation);
+
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+
+      if (frame) {
+        window.cancelAnimationFrame(frame);
+      }
+
+      window.removeEventListener("scroll", scheduleHomeScrollEvaluation);
+      window.removeEventListener("resize", scheduleHomeScrollEvaluation);
+    };
+  }, [isHomePage]);
+
+  useEffect(() => {
+    if (showDesktopBreadcrumbNav) {
+      return;
+    }
+
+    const closeFrame = window.requestAnimationFrame(() => {
+      setBreadcrumbMenuOpen(false);
+    });
+
+    return () => window.cancelAnimationFrame(closeFrame);
+  }, [showDesktopBreadcrumbNav]);
+
+  useEffect(() => {
     if (!showDesktopNav || !activeDockCategoryId) {
       return;
     }
@@ -640,7 +765,7 @@ export function StoreChrome({
   }, [activeDockCategoryId, showDesktopNav]);
 
   useEffect(() => {
-    if (!showDesktopNav || !breadcrumbMenuOpen) {
+    if (!showDesktopBreadcrumbNav || !breadcrumbMenuOpen) {
       return;
     }
 
@@ -655,11 +780,11 @@ export function StoreChrome({
     return () => {
       document.removeEventListener("pointerdown", closeDesktopSubnavOnOutsideClick);
     };
-  }, [breadcrumbMenuOpen, showDesktopNav]);
+  }, [breadcrumbMenuOpen, showDesktopBreadcrumbNav]);
 
   useEffect(() => {
     if (
-      !showDesktopNav ||
+      !showDesktopBreadcrumbNav ||
       !breadcrumbMenuOpen ||
       breadcrumbMenuMode !== "topics" ||
       !activeBreadcrumbCategory
@@ -677,7 +802,7 @@ export function StoreChrome({
     breadcrumbMenuMode,
     breadcrumbMenuOpen,
     router,
-    showDesktopNav,
+    showDesktopBreadcrumbNav,
   ]);
 
   useEffect(() => {
@@ -882,11 +1007,23 @@ export function StoreChrome({
     }
   };
 
+  const updateHomeLayoutVariant = (variant: HomeLayoutVariant) => {
+    setHomeLayoutVariant(variant);
+    setActiveDockCategoryId(null);
+    setBreadcrumbMenuOpen(false);
+
+    try {
+      window.localStorage.setItem(HOME_LAYOUT_VARIANT_STORAGE_KEY, variant);
+    } catch {
+      // The switch can still work for the current session without storage.
+    }
+  };
+
   return (
     <div className="min-h-screen bg-browin-gray text-browin-dark">
       {showDesktopNav ? (
         <aside
-          className="group/dock fixed left-0 top-0 z-[100] hidden h-screen w-20 overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] hover:w-72 md:block"
+          className={desktopDockClass}
           id="desktop-category-dock"
           ref={dockRef}
         >
@@ -926,12 +1063,22 @@ export function StoreChrome({
                             weight={isActive ? "fill" : "regular"}
                           />
                         </span>
-                        <span className="max-w-0 overflow-hidden whitespace-nowrap text-[14px] font-semibold opacity-0 transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[13px]">
+                        <span
+                          className={`overflow-hidden whitespace-nowrap text-[14px] font-semibold transition-all duration-200 group-hover/dock:max-w-[11rem] group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[13px] ${
+                            isHomeDockLayout
+                              ? "max-w-0 opacity-0 lg:max-w-[11rem] lg:opacity-100"
+                              : "max-w-0 opacity-0"
+                          }`}
+                        >
                           {category.label}
                         </span>
                       </span>
                       <CaretRight
-                        className={`shrink-0 opacity-0 transition-opacity duration-200 group-hover/dock:opacity-100 ${
+                        className={`shrink-0 transition-opacity duration-200 group-hover/dock:opacity-100 ${
+                          isHomeDockLayout
+                            ? "opacity-0 lg:opacity-100"
+                            : "opacity-0"
+                        } ${
                           isActive ? "text-browin-red" : "text-browin-dark/30"
                         }`}
                         size={14}
@@ -942,7 +1089,13 @@ export function StoreChrome({
               </nav>
             </div>
 
-            <div className="pointer-events-none shrink-0 border-t border-browin-dark/8 bg-browin-white px-3 py-3 opacity-0 transition-opacity duration-200 group-hover/dock:pointer-events-auto group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-2">
+            <div
+              className={`shrink-0 border-t border-browin-dark/8 bg-browin-white px-3 py-3 transition-opacity duration-200 group-hover/dock:pointer-events-auto group-hover/dock:opacity-100 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-2 ${
+                isHomeDockLayout
+                  ? "pointer-events-none opacity-0 lg:pointer-events-auto lg:opacity-100"
+                  : "pointer-events-none opacity-0"
+              }`}
+            >
               <div className="space-y-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:space-y-1.5">
                 {dockUtilityLinks
                   .filter((item) => item.label === "Przepiśnik")
@@ -1199,8 +1352,8 @@ export function StoreChrome({
         </div>
       </header>
 
-      {showDesktopNav ? (
-        <div className="sticky top-20 z-[70] hidden border-b border-browin-dark/8 bg-browin-white/92 backdrop-blur-md md:block [@media_(min-width:1024px)_and_(max-height:900px)]:top-[4.5rem]">
+      {showDesktopBreadcrumbShell ? (
+        <div className={desktopBreadcrumbClass}>
           <div className="container relative mx-auto flex h-12 items-center px-4" ref={breadcrumbRef}>
             <div className="flex min-w-0 items-center gap-1 text-sm font-semibold">
               <button
@@ -1411,7 +1564,7 @@ export function StoreChrome({
       ) : null}
 
       {showRecipebookCategoryRail ? (
-        <div className="z-30 md:sticky md:top-32 [@media_(min-width:1024px)_and_(max-height:900px)]:top-[7.5rem]">
+        <div className="relative z-40 md:sticky md:top-32 md:z-30 [@media_(min-width:1024px)_and_(max-height:900px)]:top-[7.5rem]">
           <RecipebookCategoryRail
             activeCategorySlug={activeRecipebookCategorySlug}
             allActive={pathname === "/przepisnik" && !activeRecipebookCategorySlug}
@@ -1717,6 +1870,34 @@ export function StoreChrome({
           </span>
         </button>
       </div>
+
+      {isHomePage ? (
+        <div
+          aria-label="Przełącznik testowego układu homepage"
+          className="fixed bottom-5 right-5 z-[120] hidden items-center gap-1 rounded-full border border-browin-dark/10 bg-browin-white/65 p-1 text-[10px] font-semibold text-browin-dark/45 opacity-25 shadow-sm backdrop-blur-md transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 md:flex"
+        >
+          {homeLayoutVariantOptions.map(({ id, title }, index) => {
+            const isActive = homeLayoutVariant === id;
+
+            return (
+              <button
+                aria-pressed={isActive}
+                className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
+                  isActive
+                    ? "bg-browin-dark text-browin-white"
+                    : "text-browin-dark/55 hover:bg-browin-dark/8 hover:text-browin-dark"
+                }`}
+                key={id}
+                onClick={() => updateHomeLayoutVariant(id)}
+                title={title}
+                type="button"
+              >
+                {index + 1}
+              </button>
+            );
+          })}
+        </div>
+      ) : null}
 
       <MobileProductRecipePanel
         context={hasProductRecipeNavContext ? currentProductRecipeContext : null}
