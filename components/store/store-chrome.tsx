@@ -1104,13 +1104,13 @@ export function StoreChrome({
 
                     return (
                       <Link
-                        className="group/link flex min-w-0 items-center gap-2 rounded-md border border-browin-red bg-browin-red px-2.5 py-2 text-[11px] font-semibold text-browin-white transition-colors hover:bg-browin-red/90 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-1.5"
+                        className="group/link flex min-h-11 min-w-0 items-center gap-2.5 rounded-md border border-browin-red bg-browin-red px-3 py-2.5 text-[12px] font-bold text-browin-white shadow-sharp transition-colors hover:bg-browin-red/90 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:min-h-10 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:py-2 [@media_(min-width:1024px)_and_(max-width:1439px)_and_(max-height:860px)]:text-[11px]"
                         href={item.href}
                         key={item.label}
                       >
                         <Icon
                           className="shrink-0 text-browin-white transition-transform group-hover/link:scale-110"
-                          size={16}
+                          size={18}
                           weight="fill"
                         />
                         <span className="truncate">{item.label}</span>

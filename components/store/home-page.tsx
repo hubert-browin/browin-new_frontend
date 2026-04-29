@@ -16,8 +16,8 @@ import {
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import type { ReactNode } from "react";
-import { useEffect, useRef, useState } from "react";
+import type { FocusEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ProductCard } from "@/components/store/product-card";
 import { RecipebookIcon } from "@/components/store/recipebook-icon";
@@ -31,6 +31,7 @@ type HeroSlide = {
   id: string;
   image: string;
   eyebrow: string;
+  progressLabel: string;
   title: ReactNode;
   cta: string;
   href: string;
@@ -44,6 +45,7 @@ const heroSlides: HeroSlide[] = [
     id: "wedliniarstwo",
     image: "/assets/szynka.webp",
     eyebrow: "+50,000 pasjonatów craftu",
+    progressLabel: "Wędliny",
     title: (
       <>
         Prawdziwe arcydzieło.
@@ -61,6 +63,7 @@ const heroSlides: HeroSlide[] = [
     id: "winiarstwo",
     image: "/assets/baner-27.02-wielkanoc5.webp",
     eyebrow: "Sezon na wino",
+    progressLabel: "Wino",
     title: (
       <>
         Stwórz własny
@@ -77,6 +80,7 @@ const heroSlides: HeroSlide[] = [
     id: "serowarstwo",
     image: "/assets/zestaw.webp",
     eyebrow: "Warsztaty domowe",
+    progressLabel: "Sery",
     title: (
       <>
         Domowa serowarnia.
@@ -90,6 +94,9 @@ const heroSlides: HeroSlide[] = [
     align: "right" as const,
   },
 ] as const;
+
+const HERO_AUTOPLAY_INTERVAL_MS = 3500;
+const HERO_TOUCH_RESUME_DELAY_MS = 500;
 
 const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
@@ -113,9 +120,25 @@ export function HomePage({
     storeCategories[0]?.id ?? "wedliniarstwo",
   );
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [heroProgress, setHeroProgress] = useState(0);
+  const [isHeroPaused, setIsHeroPaused] = useState(false);
+  const [isHeroInView, setIsHeroInView] = useState(true);
+  const [isPageVisible, setIsPageVisible] = useState(true);
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [heroDragOffset, setHeroDragOffset] = useState(0);
+  const [isHeroMouseDragging, setIsHeroMouseDragging] = useState(false);
   const openDesktopMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
   const closeDesktopMenuTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heroSliderRef = useRef<HTMLDivElement | null>(null);
   const touchStartX = useRef(0);
+  const heroMouseStartX = useRef(0);
+  const isHeroMouseDraggingRef = useRef(false);
+  const suppressHeroClickRef = useRef(false);
+  const touchResumeTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const heroProgressRef = useRef(0);
+  const heroAnimationFrame = useRef<number | null>(null);
+  const isHeroAutoplayPaused =
+    isHeroPaused || !isHeroInView || !isPageVisible || prefersReducedMotion;
 
   const activeDesktopData =
     storeCategories.find((category) => category.id === activeDesktopCategory) ??
@@ -128,6 +151,17 @@ export function HomePage({
       ? `/produkt/${activePromo.productSlug}`
       : buildCategoryHref(activeDesktopData.slug));
 
+  const setSyncedHeroProgress = useCallback((nextProgress: number) => {
+    const clampedProgress = Math.min(1, Math.max(0, nextProgress));
+
+    heroProgressRef.current = clampedProgress;
+    setHeroProgress(clampedProgress);
+  }, []);
+
+  const resetHeroProgress = useCallback(() => {
+    setSyncedHeroProgress(0);
+  }, [setSyncedHeroProgress]);
+
   useEffect(() => {
     return () => {
       if (openDesktopMenuTimeout.current) {
@@ -137,8 +171,102 @@ export function HomePage({
       if (closeDesktopMenuTimeout.current) {
         clearTimeout(closeDesktopMenuTimeout.current);
       }
+
+      if (touchResumeTimeout.current) {
+        clearTimeout(touchResumeTimeout.current);
+      }
+
+      if (heroAnimationFrame.current) {
+        window.cancelAnimationFrame(heroAnimationFrame.current);
+      }
     };
   }, []);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const syncReducedMotionPreference = () => {
+      setPrefersReducedMotion(mediaQuery.matches);
+    };
+
+    syncReducedMotionPreference();
+    mediaQuery.addEventListener("change", syncReducedMotionPreference);
+
+    return () => {
+      mediaQuery.removeEventListener("change", syncReducedMotionPreference);
+    };
+  }, []);
+
+  useEffect(() => {
+    const heroSlider = heroSliderRef.current;
+
+    if (!heroSlider || !("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setIsHeroInView(entry.isIntersecting && entry.intersectionRatio >= 0.35);
+      },
+      { threshold: [0, 0.35, 0.65] },
+    );
+
+    observer.observe(heroSlider);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, []);
+
+  useEffect(() => {
+    const syncPageVisibility = () => {
+      setIsPageVisible(document.visibilityState === "visible");
+    };
+
+    syncPageVisibility();
+    document.addEventListener("visibilitychange", syncPageVisibility);
+
+    return () => {
+      document.removeEventListener("visibilitychange", syncPageVisibility);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (isHeroAutoplayPaused) {
+      return;
+    }
+
+    let previousTimestamp: number | null = null;
+
+    const tickHeroProgress = (timestamp: number) => {
+      if (previousTimestamp === null) {
+        previousTimestamp = timestamp;
+      }
+
+      const elapsed = timestamp - previousTimestamp;
+      previousTimestamp = timestamp;
+      const nextProgress =
+        heroProgressRef.current + elapsed / HERO_AUTOPLAY_INTERVAL_MS;
+
+      if (nextProgress >= 1) {
+        resetHeroProgress();
+        setCurrentSlide((previous) => (previous + 1) % heroSlides.length);
+        heroAnimationFrame.current = null;
+        return;
+      }
+
+      setSyncedHeroProgress(nextProgress);
+      heroAnimationFrame.current = window.requestAnimationFrame(tickHeroProgress);
+    };
+
+    heroAnimationFrame.current = window.requestAnimationFrame(tickHeroProgress);
+
+    return () => {
+      if (heroAnimationFrame.current) {
+        window.cancelAnimationFrame(heroAnimationFrame.current);
+        heroAnimationFrame.current = null;
+      }
+    };
+  }, [currentSlide, isHeroAutoplayPaused, resetHeroProgress, setSyncedHeroProgress]);
 
   const clearDesktopMenuIntent = () => {
     if (openDesktopMenuTimeout.current) {
@@ -205,22 +333,143 @@ export function HomePage({
     }
   };
 
-  const nextSlide = () => {
-    setCurrentSlide((previous) => (previous + 1) % heroSlides.length);
-  };
-
-  const prevSlide = () => {
-    setCurrentSlide((previous) => (previous - 1 + heroSlides.length) % heroSlides.length);
-  };
-
-  const handleSwipeEnd = (clientX: number) => {
-    const threshold = 50;
-    if (clientX < touchStartX.current - threshold) {
-      nextSlide();
+  const pauseHeroAutoplay = useCallback(() => {
+    if (touchResumeTimeout.current) {
+      clearTimeout(touchResumeTimeout.current);
+      touchResumeTimeout.current = null;
     }
 
-    if (clientX > touchStartX.current + threshold) {
+    setIsHeroPaused(true);
+  }, []);
+
+  const resumeHeroAutoplay = useCallback(() => {
+    if (touchResumeTimeout.current) {
+      clearTimeout(touchResumeTimeout.current);
+      touchResumeTimeout.current = null;
+    }
+
+    setIsHeroPaused(false);
+  }, []);
+
+  const scheduleHeroTouchResume = useCallback(() => {
+    if (touchResumeTimeout.current) {
+      clearTimeout(touchResumeTimeout.current);
+    }
+
+    touchResumeTimeout.current = setTimeout(() => {
+      setIsHeroPaused(false);
+      touchResumeTimeout.current = null;
+    }, HERO_TOUCH_RESUME_DELAY_MS);
+  }, []);
+
+  const goToSlide = useCallback((index: number) => {
+    setCurrentSlide(index);
+    resetHeroProgress();
+  }, [resetHeroProgress]);
+
+  const nextSlide = useCallback(() => {
+    setCurrentSlide((previous) => (previous + 1) % heroSlides.length);
+    resetHeroProgress();
+  }, [resetHeroProgress]);
+
+  const prevSlide = useCallback(() => {
+    setCurrentSlide((previous) => (previous - 1 + heroSlides.length) % heroSlides.length);
+    resetHeroProgress();
+  }, [resetHeroProgress]);
+
+  const moveHeroFromDrag = useCallback((startX: number, endX: number) => {
+    const threshold = 50;
+    const dragDistance = endX - startX;
+
+    if (dragDistance < -threshold) {
+      nextSlide();
+      return true;
+    }
+
+    if (dragDistance > threshold) {
       prevSlide();
+      return true;
+    }
+
+    return false;
+  }, [nextSlide, prevSlide]);
+
+  const handleSwipeEnd = useCallback((clientX: number) => {
+    moveHeroFromDrag(touchStartX.current, clientX);
+  }, [moveHeroFromDrag]);
+
+  const updateHeroMouseDrag = useCallback((clientX: number) => {
+    if (!isHeroMouseDraggingRef.current || !heroSliderRef.current) {
+      return;
+    }
+
+    const rawOffset = clientX - heroMouseStartX.current;
+    const maxOffset = heroSliderRef.current.clientWidth * 0.28;
+    setHeroDragOffset(Math.max(-maxOffset, Math.min(maxOffset, rawOffset)));
+  }, []);
+
+  const finishHeroMouseDrag = useCallback((clientX: number) => {
+    if (!isHeroMouseDraggingRef.current) {
+      return;
+    }
+
+    const movedDistance = Math.abs(clientX - heroMouseStartX.current);
+    isHeroMouseDraggingRef.current = false;
+    setIsHeroMouseDragging(false);
+    setHeroDragOffset(0);
+    moveHeroFromDrag(heroMouseStartX.current, clientX);
+
+    if (movedDistance > 8) {
+      suppressHeroClickRef.current = true;
+      window.setTimeout(() => {
+        suppressHeroClickRef.current = false;
+      }, 0);
+    }
+  }, [moveHeroFromDrag]);
+
+  useEffect(() => {
+    const handleWindowMouseMove = (event: MouseEvent) => {
+      updateHeroMouseDrag(event.clientX);
+    };
+
+    const handleWindowMouseUp = (event: MouseEvent) => {
+      finishHeroMouseDrag(event.clientX);
+    };
+
+    window.addEventListener("mousemove", handleWindowMouseMove);
+    window.addEventListener("mouseup", handleWindowMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleWindowMouseMove);
+      window.removeEventListener("mouseup", handleWindowMouseUp);
+    };
+  }, [finishHeroMouseDrag, updateHeroMouseDrag]);
+
+  const handleHeroMouseDown = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (event.button !== 0) {
+      return;
+    }
+
+    pauseHeroAutoplay();
+    heroMouseStartX.current = event.clientX;
+    isHeroMouseDraggingRef.current = true;
+    setIsHeroMouseDragging(true);
+    setHeroDragOffset(0);
+  };
+
+  const handleHeroClickCapture = (event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!suppressHeroClickRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressHeroClickRef.current = false;
+  };
+
+  const handleHeroBlur = (event: FocusEvent<HTMLDivElement>) => {
+    if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+      resumeHeroAutoplay();
     }
   };
 
@@ -432,124 +681,139 @@ export function HomePage({
               </div>
 
               <div className="hero-banner-grid grid flex-1 min-h-0 grid-cols-1 gap-4 sm:grid-cols-2 md:gap-6 lg:grid-cols-3">
-                <div className="hero-slider-card group relative h-[340px] overflow-hidden rounded-none border bg-browin-dark shadow-sm sm:h-auto lg:col-span-2">
+                <div
+                  className="hero-slider-card relative flex h-[340px] flex-col overflow-visible rounded-none bg-transparent sm:h-auto lg:col-span-2"
+                  onBlur={handleHeroBlur}
+                  onFocus={pauseHeroAutoplay}
+                  onMouseEnter={pauseHeroAutoplay}
+                  onMouseLeave={resumeHeroAutoplay}
+                  ref={heroSliderRef}
+                >
                   <div
-                    className="flex h-full w-full transition-transform duration-500 ease-in-out"
-                    id="hero-slider"
-                    onTouchEnd={(event) => handleSwipeEnd(event.changedTouches[0].screenX)}
-                    onTouchStart={(event) => {
-                      touchStartX.current = event.changedTouches[0].screenX;
-                    }}
-                    style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                    className={`hero-slider-viewport relative min-h-0 flex-1 overflow-hidden rounded-none border bg-browin-dark shadow-sm ${
+                      isHeroMouseDragging ? "is-dragging" : ""
+                    }`}
+                    onClickCapture={handleHeroClickCapture}
+                    onMouseDown={handleHeroMouseDown}
                   >
-                    {heroSlides.map((slide, index) => (
-                      <div className="group/slide relative h-full w-full shrink-0 cursor-pointer" key={slide.id}>
-                        <Image
-                          alt={slide.id}
-                          className="absolute inset-0 h-full w-full object-cover opacity-60 transition-transform duration-1000 group-hover/slide:scale-105"
-                          fill
-                          priority={index === 0}
-                          sizes="(max-width: 1023px) 100vw, 66vw"
-                          src={slide.image}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent" />
+                    <div
+                      className={`flex h-full w-full ${
+                        isHeroMouseDragging ? "transition-none" : "transition-transform duration-500 ease-in-out"
+                      }`}
+                      id="hero-slider"
+                      onTouchCancel={scheduleHeroTouchResume}
+                      onTouchEnd={(event) => {
+                        handleSwipeEnd(event.changedTouches[0].screenX);
+                        scheduleHeroTouchResume();
+                      }}
+                      onTouchStart={(event) => {
+                        pauseHeroAutoplay();
+                        touchStartX.current = event.changedTouches[0].screenX;
+                      }}
+                      style={{ transform: `translateX(calc(-${currentSlide * 100}% + ${heroDragOffset}px))` }}
+                    >
+                      {heroSlides.map((slide, index) => (
+                        <div className="relative h-full w-full shrink-0 cursor-pointer" key={slide.id}>
+                          <Image
+                            alt={slide.progressLabel}
+                            className="absolute inset-0 h-full w-full object-cover opacity-60"
+                            draggable={false}
+                            fill
+                            priority={index === 0}
+                            sizes="(max-width: 1023px) 100vw, 66vw"
+                            src={slide.image}
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent" />
 
-                        <div
-                          className={`absolute inset-0 flex flex-col justify-end p-5 pb-16 sm:p-6 sm:pb-[4.5rem] md:p-8 md:pb-20 xl:p-10 xl:pb-24 ${
-                            slide.align === "right" ? "items-end text-right" : "items-start text-left"
-                          }`}
-                        >
-                          {slide.withAvatars ? (
-                            <div className="mb-5 flex w-max items-center space-x-2 rounded-none border border-browin-white/20 bg-browin-white/10 px-4 py-1.5 backdrop-blur-sm">
-                              <div className="flex -space-x-2">
-                                {["/assets/produkt1.webp", "/assets/produkt2.webp", "/assets/produkt3.webp"].map((image) => (
-                                  <Image
-                                    alt=""
-                                    className="h-6 w-6 rounded-full border border-browin-dark object-cover"
-                                    height={24}
-                                    key={image}
-                                    src={image}
-                                    width={24}
-                                  />
-                                ))}
+                          <div
+                            className={`hero-slider-content absolute inset-0 flex flex-col justify-end p-5 pb-8 sm:p-6 md:p-8 md:pb-10 xl:p-10 xl:pb-12 ${
+                              slide.align === "right" ? "items-end text-right" : "items-start text-left"
+                            }`}
+                          >
+                            {slide.withAvatars ? (
+                              <div className="mb-5 flex w-max items-center space-x-2 rounded-none border border-browin-white/20 bg-browin-white/10 px-4 py-1.5 backdrop-blur-sm">
+                                <div className="flex -space-x-2">
+                                  {["/assets/produkt1.webp", "/assets/produkt2.webp", "/assets/produkt3.webp"].map((image) => (
+                                    <Image
+                                      alt=""
+                                      className="h-6 w-6 rounded-full border border-browin-dark object-cover"
+                                      height={24}
+                                      key={image}
+                                      src={image}
+                                      width={24}
+                                    />
+                                  ))}
+                                </div>
+                                <span className="text-[11px] font-semibold tracking-wide text-browin-white">
+                                  {slide.eyebrow}
+                                </span>
                               </div>
-                              <span className="text-[11px] font-semibold tracking-wide text-browin-white">
+                            ) : (
+                              <span
+                                className={`mb-4 w-max rounded-none px-3 py-1.5 text-[10px] font-semibold uppercase shadow-sharp ${
+                                  slide.emphasis === "light"
+                                    ? "bg-browin-red text-browin-white"
+                                    : "border border-browin-white/20 bg-browin-dark/50 text-browin-white backdrop-blur-sm"
+                                }`}
+                              >
                                 {slide.eyebrow}
                               </span>
-                            </div>
-                          ) : (
-                            <span
-                              className={`mb-4 w-max rounded-none px-3 py-1.5 text-[10px] font-semibold uppercase shadow-sharp ${
-                                slide.emphasis === "light"
-                                  ? "bg-browin-red text-browin-white"
-                                  : "border border-browin-white/20 bg-browin-dark/50 text-browin-white backdrop-blur-sm"
-                              }`}
+                            )}
+
+                            <h1 className="mb-4 max-w-[16rem] text-[1.95rem] font-bold leading-[1.08] text-browin-white drop-shadow-md sm:max-w-[18rem] sm:text-[2.35rem] md:max-w-[26rem] md:text-4xl xl:max-w-[30rem] xl:text-5xl">
+                              {slide.title}
+                            </h1>
+
+                            <Link
+                              className="hero-primary-cta inline-flex w-max items-center bg-browin-red px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-browin-white shadow-sharp md:px-8 md:py-3.5 md:text-sm"
+                              href={slide.href}
                             >
-                              {slide.eyebrow}
-                            </span>
-                          )}
-
-                          <h1 className="mb-4 max-w-[16rem] text-[1.95rem] font-bold leading-[1.08] text-browin-white drop-shadow-md sm:max-w-[18rem] sm:text-[2.35rem] md:max-w-[26rem] md:text-4xl xl:max-w-[30rem] xl:text-5xl">
-                            {slide.title}
-                          </h1>
-
-                          <Link
-                            className="hero-primary-cta inline-flex w-max items-center bg-browin-red px-5 py-3 text-[11px] font-bold uppercase tracking-wide text-browin-white shadow-sharp transition-colors hover:bg-browin-dark hover:text-browin-white md:px-8 md:py-3.5 md:text-sm"
-                            href={slide.href}
-                          >
-                            {slide.cta}
-                            <ArrowRight className="ml-3" size={18} />
-                          </Link>
+                              {slide.cta}
+                              <ArrowRight className="ml-3" size={18} />
+                            </Link>
+                          </div>
                         </div>
-                      </div>
-                    ))}
+                      ))}
+                    </div>
+
+                    <button
+                      aria-label="Poprzedni slajd hero"
+                      className="hero-slider-arrow hero-slider-arrow--previous absolute bottom-6 left-6 z-20 hidden h-11 w-11 items-center justify-center rounded-full border border-browin-white/20 bg-browin-white/92 text-browin-dark opacity-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:flex"
+                      onClick={prevSlide}
+                      type="button"
+                    >
+                      <CaretLeft size={18} />
+                    </button>
+
+                    <button
+                      aria-label="Następny slajd hero"
+                      className="hero-slider-arrow hero-slider-arrow--next absolute bottom-6 right-6 z-20 hidden h-11 w-11 items-center justify-center rounded-full border border-browin-white/20 bg-browin-white/92 text-browin-dark opacity-100 shadow-[0_8px_30px_rgb(0,0,0,0.12)] md:flex"
+                      onClick={nextSlide}
+                      type="button"
+                    >
+                      <CaretRight size={18} />
+                    </button>
                   </div>
 
-                  <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 space-x-2 md:hidden">
+                  <div className="hero-progress-rail" aria-label="Wybór slajdu hero">
                     {heroSlides.map((slide, index) => (
                       <button
-                        className={`slider-dot focus:outline-none transition-all duration-300 ${
-                          index === currentSlide
-                            ? "h-2 w-4 bg-browin-red"
-                            : "h-2 w-2 bg-browin-white/50 hover:bg-browin-white"
-                        }`}
+                        aria-label={`Pokaż slajd ${index + 1}: ${slide.progressLabel}`}
+                        aria-pressed={index === currentSlide}
+                        className={`hero-progress-segment ${index === currentSlide ? "is-active" : ""}`}
                         key={slide.id}
-                        onClick={() => setCurrentSlide(index)}
+                        onClick={() => goToSlide(index)}
                         type="button"
-                      />
+                      >
+                        <span
+                          aria-hidden="true"
+                          className="hero-progress-segment-fill"
+                          style={{ transform: `scaleX(${index === currentSlide ? heroProgress : 0})` }}
+                        />
+                        <span className="sr-only">{slide.progressLabel}</span>
+                      </button>
                     ))}
                   </div>
-
-                  <button
-                    className="absolute bottom-6 left-6 z-20 hidden h-11 w-11 items-center justify-center rounded-full border border-browin-white/20 bg-browin-white/92 text-browin-dark opacity-0 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:bg-browin-red hover:text-browin-white group-hover:opacity-100 md:flex"
-                    onClick={prevSlide}
-                    type="button"
-                  >
-                    <CaretLeft size={18} />
-                  </button>
-
-                  <div className="absolute bottom-6 left-1/2 z-20 hidden -translate-x-1/2 items-center justify-center space-x-2 md:flex">
-                    {heroSlides.map((slide, index) => (
-                      <button
-                        className={`slider-dot focus:outline-none transition-all duration-300 ${
-                          index === currentSlide
-                            ? "h-2 w-4 bg-browin-red"
-                            : "h-2 w-2 bg-browin-white/50 hover:bg-browin-white"
-                        }`}
-                        key={`desktop-${slide.id}`}
-                        onClick={() => setCurrentSlide(index)}
-                        type="button"
-                      />
-                    ))}
-                  </div>
-
-                  <button
-                    className="absolute bottom-6 right-6 z-20 hidden h-11 w-11 items-center justify-center rounded-full border border-browin-white/20 bg-browin-white/92 text-browin-dark opacity-0 shadow-[0_8px_30px_rgb(0,0,0,0.12)] transition-all duration-300 hover:bg-browin-red hover:text-browin-white group-hover:opacity-100 md:flex"
-                    onClick={nextSlide}
-                    type="button"
-                  >
-                    <CaretRight size={18} />
-                  </button>
                 </div>
 
                 <div className="hero-side-panels grid h-[400px] grid-cols-1 grid-rows-2 gap-4 md:gap-6 lg:col-span-1 lg:h-full">
