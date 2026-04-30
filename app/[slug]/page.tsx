@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { InfoPageView } from "@/components/store/info-page";
-import { getInfoPage, infoPages } from "@/data/info-pages";
+import { getInfoPageByPath, getTopLevelInfoSlugs } from "@/data/info-pages";
 
 export async function generateStaticParams() {
-  return infoPages.map((page) => ({ slug: page.slug }));
+  return getTopLevelInfoSlugs();
 }
 
 export async function generateMetadata({
@@ -14,7 +14,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const page = getInfoPage(slug);
+  const page = getInfoPageByPath(`/${slug}`);
 
   if (!page) {
     return { title: "Strona nie istnieje" };
@@ -27,13 +27,13 @@ export async function generateMetadata({
   };
 }
 
-export default async function InfoPage({
+export default async function TopLevelInfoPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const page = getInfoPage(slug);
+  const page = getInfoPageByPath(`/${slug}`);
 
   if (!page) {
     notFound();

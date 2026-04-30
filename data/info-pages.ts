@@ -1,186 +1,304 @@
-export type InfoSection = {
+import { infoPageHtml } from "./info-page-html";
+
+export type InfoFormType = "bug-report" | "complaint";
+
+export type InfoTocItem = {
   id: string;
-  heading: string;
-  paragraphs?: string[];
-  list?: string[];
+  label: string;
 };
 
 export type InfoPage = {
   slug: string;
+  path: `/${string}`;
   eyebrow: string;
   title: string;
   footerLabel: string;
   lead: string;
   updatedAt: string;
-  sections: InfoSection[];
+  sourceUrl: string;
+  contentHtml: string;
+  toc: InfoTocItem[];
+  heroImage?: string | null;
+  form?: InfoFormType;
 };
+
+const sourceBaseUrl = "https://browin.pl";
+
+const htmlFor = (slug: keyof typeof infoPageHtml) => infoPageHtml[slug].html;
+const tocFor = (slug: keyof typeof infoPageHtml) => [...infoPageHtml[slug].toc];
+const heroFor = (slug: keyof typeof infoPageHtml) => infoPageHtml[slug].heroImage;
 
 export const infoPages: InfoPage[] = [
   {
+    slug: "praca",
+    path: "/praca",
+    eyebrow: "Informacje",
+    title: "Praca",
+    footerLabel: "Praca",
+    lead: "Poznaj BROWIN jako pracodawcę: rodzinny charakter firmy, kulturę pracy i wartości zespołu.",
+    updatedAt: "2019-02-04",
+    sourceUrl: `${sourceBaseUrl}/praca`,
+    contentHtml: htmlFor("praca"),
+    toc: tocFor("praca"),
+    heroImage: heroFor("praca"),
+  },
+  {
+    slug: "wspolpraca",
+    path: "/wspolpraca",
+    eyebrow: "Informacje",
+    title: "Współpraca",
+    footerLabel: "Współpraca",
+    lead: "Zaproszenie do współpracy dla firm, sieci handlowych i punktów sprzedaży zainteresowanych ofertą BROWIN.",
+    updatedAt: "2018-12-06",
+    sourceUrl: `${sourceBaseUrl}/wspolpraca`,
+    contentHtml: htmlFor("wspolpraca"),
+    toc: tocFor("wspolpraca"),
+    heroImage: heroFor("wspolpraca"),
+  },
+  {
+    slug: "misja-wizja-wartosci",
+    path: "/misja-wizja-wartosci",
+    eyebrow: "Nasza firma",
+    title: "Misja, wizja, wartości",
+    footerLabel: "Misja, wizja, wartości",
+    lead: "Misja, wizja i wartości, które porządkują sposób działania firmy oraz codzienną współpracę zespołu BROWIN.",
+    updatedAt: "2021-01-27",
+    sourceUrl: `${sourceBaseUrl}/misja-wizja-wartosci`,
+    contentHtml: htmlFor("misja-wizja-wartosci"),
+    toc: tocFor("misja-wizja-wartosci"),
+    heroImage: heroFor("misja-wizja-wartosci"),
+  },
+  {
+    slug: "nasz-browin",
+    path: "/nasz-browin",
+    eyebrow: "Nasza firma",
+    title: "Nasz Browin",
+    footerLabel: "Nasz Browin",
+    lead: "Historia, symbolika i codzienność BROWIN: firmy tworzonej wokół domowego przetwórstwa, wiedzy i pasji.",
+    updatedAt: "2019-01-03",
+    sourceUrl: `${sourceBaseUrl}/nasz-browin`,
+    contentHtml: htmlFor("nasz-browin"),
+    toc: tocFor("nasz-browin"),
+    heroImage: heroFor("nasz-browin"),
+  },
+  {
+    slug: "certyfikaty",
+    path: "/certyfikaty",
+    eyebrow: "Nasza firma",
+    title: "Certyfikaty",
+    footerLabel: "Certyfikaty",
+    lead: "Aktualne certyfikaty i dokumenty jakościowe BROWIN dostępne do wglądu i pobrania.",
+    updatedAt: "2024-01-03",
+    sourceUrl: `${sourceBaseUrl}/certyfikaty`,
+    contentHtml: htmlFor("certyfikaty"),
+    toc: tocFor("certyfikaty"),
+    heroImage: heroFor("certyfikaty"),
+  },
+  {
+    slug: "od-pomyslu-do-produktu",
+    path: "/od-pomyslu-do-produktu",
+    eyebrow: "Nasza firma",
+    title: "Od pomysłu do produktu",
+    footerLabel: "Od pomysłu do produktu",
+    lead: "Jak BROWIN zamienia pomysły, potrzeby klientów i potencjał produkcyjny w gotowe produkty.",
+    updatedAt: "2019-01-07",
+    sourceUrl: `${sourceBaseUrl}/od-pomyslu-do-produktu`,
+    contentHtml: htmlFor("od-pomyslu-do-produktu"),
+    toc: tocFor("od-pomyslu-do-produktu"),
+    heroImage: heroFor("od-pomyslu-do-produktu"),
+  },
+  {
+    slug: "nasze-marki",
+    path: "/nasze-marki",
+    eyebrow: "Nasza firma",
+    title: "Nasze marki",
+    footerLabel: "Nasze Marki",
+    lead: "Informacje o markach należących do BROWIN oraz zasadach korzystania z materiałów firmowych.",
+    updatedAt: "2019-01-07",
+    sourceUrl: `${sourceBaseUrl}/nasze-marki`,
+    contentHtml: htmlFor("nasze-marki"),
+    toc: tocFor("nasze-marki"),
+    heroImage: heroFor("nasze-marki"),
+  },
+  {
+    slug: "projekty-unijne",
+    path: "/projekty-unijne",
+    eyebrow: "Nasza firma",
+    title: "Projekty unijne",
+    footerLabel: "Projekty unijne",
+    lead: "Informacje o projektach BROWIN realizowanych przy wsparciu funduszy Unii Europejskiej.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/projekty-unijne`,
+    contentHtml: htmlFor("projekty-unijne"),
+    toc: tocFor("projekty-unijne"),
+    heroImage: heroFor("projekty-unijne"),
+  },
+  {
+    slug: "zapytania-ofertowe",
+    path: "/zapytania-ofertowe",
+    eyebrow: "Nasza firma",
+    title: "Zapytania ofertowe",
+    footerLabel: "Zapytania ofertowe",
+    lead: "Aktualne i archiwalne zapytania ofertowe publikowane przez BROWIN.",
+    updatedAt: "2023-11-30",
+    sourceUrl: `${sourceBaseUrl}/zapytania-ofertowe`,
+    contentHtml: htmlFor("zapytania-ofertowe"),
+    toc: tocFor("zapytania-ofertowe"),
+    heroImage: heroFor("zapytania-ofertowe"),
+  },
+  {
+    slug: "wysylka-i-dostawa",
+    path: "/wysylka-i-dostawa",
+    eyebrow: "Zakupy",
+    title: "Wysyłka i dostawa",
+    footerLabel: "Wysyłka i dostawa",
+    lead: "Cenniki, formy dostawy, progi darmowej wysyłki oraz informacje o przesyłkach krajowych i zagranicznych.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/wysylka-i-dostawa`,
+    contentHtml: htmlFor("wysylka-i-dostawa"),
+    toc: tocFor("wysylka-i-dostawa"),
+    heroImage: heroFor("wysylka-i-dostawa"),
+  },
+  {
     slug: "regulamin",
-    eyebrow: "Informacje prawne",
-    title: "Regulamin sklepu internetowego BROWIN",
+    path: "/regulamin",
+    eyebrow: "Zakupy",
+    title: "Regulamin",
     footerLabel: "Regulamin",
-    lead:
-      "Niniejszy regulamin określa zasady korzystania ze sklepu internetowego BROWIN, składania zamówień, realizacji dostaw oraz prawa i obowiązki stron umowy sprzedaży.",
-    updatedAt: "2026-04-01",
-    sections: [
-      {
-        id: "postanowienia-ogolne",
-        heading: "§1. Postanowienia ogólne",
-        paragraphs: [
-          "Sklep internetowy BROWIN, dostępny pod adresem browin-demo.pl, prowadzony jest przez BROWIN Sp. z o.o. z siedzibą w Łodzi przy ul. Pryncypalnej 129/141, wpisaną do Krajowego Rejestru Sądowego pod numerem KRS 0000000000, NIP 000-00-00-000, REGON 000000000, kapitał zakładowy 1 000 000 zł.",
-          "Kontakt ze Sprzedawcą możliwy jest za pośrednictwem poczty elektronicznej (kontakt@browin-demo.pl) oraz telefonicznie w godzinach pracy biura. Aktualne dane kontaktowe znajdują się w stopce strony.",
-          "Regulamin skierowany jest zarówno do konsumentów, jak i przedsiębiorców korzystających ze Sklepu i określa zasady korzystania ze Sklepu Internetowego oraz zasady i tryb zawierania Umów Sprzedaży z Klientem na odległość.",
-        ],
-      },
-      {
-        id: "definicje",
-        heading: "§2. Definicje",
-        list: [
-          "Konsument – osoba fizyczna zawierająca ze Sprzedawcą umowę w ramach Sklepu, której przedmiot nie jest związany bezpośrednio z jej działalnością gospodarczą lub zawodową.",
-          "Klient – każdy podmiot dokonujący zakupów za pośrednictwem Sklepu.",
-          "Sprzedawca – BROWIN Sp. z o.o. z siedzibą w Łodzi.",
-          "Sklep – sklep internetowy prowadzony przez Sprzedawcę pod adresem browin-demo.pl.",
-          "Umowa zawarta na odległość – umowa zawarta z Klientem w ramach zorganizowanego systemu zawierania umów na odległość, bez jednoczesnej fizycznej obecności stron.",
-          "Zamówienie – oświadczenie woli Klienta składane za pomocą Formularza Zamówienia i zmierzające bezpośrednio do zawarcia Umowy Sprzedaży Produktu lub Produktów ze Sprzedawcą.",
-        ],
-      },
-      {
-        id: "warunki-korzystania",
-        heading: "§3. Warunki korzystania ze sklepu",
-        paragraphs: [
-          "Do korzystania ze Sklepu, w tym przeglądania asortymentu oraz składania zamówień, niezbędne jest urządzenie z dostępem do sieci Internet, aktywne konto poczty elektronicznej oraz przeglądarka internetowa w aktualnej wersji.",
-          "Klient zobowiązany jest do korzystania ze Sklepu w sposób zgodny z prawem i dobrymi obyczajami, mając na uwadze poszanowanie dóbr osobistych oraz praw autorskich i własności intelektualnej Sprzedawcy oraz osób trzecich.",
-          "Zakazane jest dostarczanie przez Klienta treści o charakterze bezprawnym, w tym w szczególności treści naruszających prawa osób trzecich lub dobre obyczaje.",
-        ],
-      },
-      {
-        id: "zawarcie-umowy",
-        heading: "§4. Zawarcie umowy sprzedaży",
-        paragraphs: [
-          "Zamówienia w Sklepie można składać przez całą dobę, siedem dni w tygodniu, z wyłączeniem okresów przerw technicznych.",
-          "W celu złożenia zamówienia należy dodać wybrane produkty do koszyka, przejść do formularza zamówienia, wypełnić dane niezbędne do realizacji oraz wybrać sposób dostawy i płatności.",
-          "Złożenie zamówienia następuje po kliknięciu przycisku „Zamawiam i płacę” i stanowi oświadczenie woli Klienta zawarcia ze Sprzedawcą umowy sprzedaży. Po złożeniu zamówienia Klient otrzymuje wiadomość e-mail z potwierdzeniem jego przyjęcia do realizacji.",
-          "Umowa sprzedaży zawierana jest w języku polskim, zgodnie z prawem polskim oraz zgodnie z niniejszym Regulaminem.",
-        ],
-      },
-      {
-        id: "platnosci",
-        heading: "§5. Ceny i metody płatności",
-        paragraphs: [
-          "Ceny produktów prezentowane w Sklepie są cenami brutto, wyrażonymi w złotych polskich i zawierają podatek VAT. Ceny nie obejmują kosztów dostawy, które podawane są odrębnie podczas składania zamówienia.",
-          "Klient może wybrać jedną z następujących metod płatności: przelew tradycyjny na rachunek bankowy Sprzedawcy, płatność online poprzez operatora płatności, BLIK, kartą płatniczą lub płatność za pobraniem przy odbiorze.",
-          "W przypadku wyboru przelewu tradycyjnego Klient zobowiązany jest do opłacenia zamówienia w terminie 5 dni roboczych od jego złożenia. Brak płatności w tym terminie skutkuje anulowaniem zamówienia.",
-        ],
-      },
-      {
-        id: "dostawa",
-        heading: "§6. Dostawa",
-        paragraphs: [
-          "Zamówienia realizowane są na terenie Rzeczypospolitej Polskiej oraz, po wcześniejszym uzgodnieniu, w wybranych krajach Unii Europejskiej. Szczegółowe informacje o kosztach i czasie dostawy dostępne są w trakcie składania zamówienia.",
-          "Przewidywany czas realizacji zamówienia wynosi od 1 do 3 dni roboczych, licząc od dnia zaksięgowania płatności lub – w przypadku płatności za pobraniem – od dnia potwierdzenia zamówienia.",
-          "Zamówienia o wartości przekraczającej próg darmowej dostawy podany w koszyku są dostarczane bezpłatnie wybraną przez Klienta metodą standardową.",
-        ],
-      },
-      {
-        id: "odstapienie",
-        heading: "§7. Prawo odstąpienia od umowy",
-        paragraphs: [
-          "Konsument, który zawarł umowę na odległość, może w terminie 14 dni kalendarzowych odstąpić od niej bez podawania przyczyny i bez ponoszenia kosztów, z wyjątkiem kosztów określonych w przepisach prawa.",
-          "Aby skorzystać z prawa odstąpienia, Konsument powinien złożyć oświadczenie o odstąpieniu od umowy, przesyłając je na adres poczty elektronicznej Sprzedawcy lub pocztą tradycyjną na adres siedziby Sprzedawcy.",
-          "Sprzedawca zwraca Konsumentowi wszystkie dokonane przez niego płatności, w tym koszty dostawy, niezwłocznie, nie później niż w terminie 14 dni od dnia otrzymania oświadczenia o odstąpieniu od umowy.",
-          "Prawo odstąpienia nie przysługuje w odniesieniu do produktów wykonanych według specyfikacji Konsumenta lub służących zaspokojeniu jego zindywidualizowanych potrzeb, a także produktów ulegających szybkiemu zepsuciu lub produktów w zapieczętowanym opakowaniu, których po otwarciu nie można zwrócić ze względu na ochronę zdrowia lub higieny.",
-        ],
-      },
-      {
-        id: "reklamacje",
-        heading: "§8. Reklamacje i rękojmia",
-        paragraphs: [
-          "Sprzedawca zobowiązany jest dostarczyć Klientowi produkt wolny od wad. W przypadku stwierdzenia wady fizycznej lub prawnej produktu Klient ma prawo złożyć reklamację na podstawie przepisów o rękojmi zawartych w Kodeksie cywilnym.",
-          "Reklamację można złożyć drogą elektroniczną na adres kontakt@browin-demo.pl lub pisemnie na adres siedziby Sprzedawcy, podając dane Klienta, numer zamówienia, opis wady oraz preferowany sposób rozpatrzenia reklamacji.",
-          "Sprzedawca ustosunkuje się do reklamacji Konsumenta w terminie 14 dni od dnia jej otrzymania. Brak odpowiedzi w tym terminie uznaje się za uznanie reklamacji.",
-        ],
-      },
-      {
-        id: "dane-osobowe",
-        heading: "§9. Dane osobowe",
-        paragraphs: [
-          "Administratorem danych osobowych Klientów jest Sprzedawca. Dane osobowe przetwarzane są w celu realizacji zamówień, obsługi reklamacji oraz – za odrębną zgodą – w celach marketingowych.",
-          "Szczegółowe informacje dotyczące przetwarzania danych osobowych, w tym przysługujących praw, znajdują się w Polityce prywatności dostępnej w sekcji informacyjnej Sklepu.",
-          "Klient ma prawo dostępu do swoich danych, ich sprostowania, usunięcia, ograniczenia przetwarzania, przenoszenia, a także prawo do wniesienia sprzeciwu oraz skargi do organu nadzorczego.",
-        ],
-      },
-      {
-        id: "postanowienia-koncowe",
-        heading: "§10. Postanowienia końcowe",
-        paragraphs: [
-          "W sprawach nieuregulowanych niniejszym Regulaminem zastosowanie mają powszechnie obowiązujące przepisy prawa polskiego, w szczególności Kodeksu cywilnego oraz ustawy o prawach konsumenta.",
-          "Sprzedawca zastrzega sobie prawo do zmiany Regulaminu z ważnych przyczyn, w tym zmiany przepisów prawa lub zmiany sposobu realizacji usług. Do zamówień złożonych przed wejściem w życie zmian stosuje się Regulamin w brzmieniu obowiązującym w chwili składania zamówienia.",
-          "Konsument ma możliwość skorzystania z pozasądowych sposobów rozpatrywania reklamacji i dochodzenia roszczeń, w tym z platformy ODR Komisji Europejskiej dostępnej pod adresem ec.europa.eu/consumers/odr.",
-          "Regulamin obowiązuje od dnia publikacji wskazanego w nagłówku.",
-        ],
-      },
-    ],
+    lead: "Regulamin sklepu internetowego BROWIN: zasady zakupów, płatności, dostaw, odstąpienia od umowy i reklamacji.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/regulamin`,
+    contentHtml: htmlFor("regulamin"),
+    toc: tocFor("regulamin"),
+    heroImage: heroFor("regulamin"),
   },
   {
     slug: "polityka-prywatnosci",
-    eyebrow: "Informacje prawne",
-    title: "Polityka prywatności",
+    path: "/polityka-prywatnosci",
+    eyebrow: "Zakupy",
+    title: "Polityka prywatności i plików cookies",
     footerLabel: "Polityka prywatności",
-    lead:
-      "Dowiedz się, jakie dane zbieramy, w jakim celu są przetwarzane oraz jakie prawa przysługują Ci jako naszemu Klientowi w związku z ich przetwarzaniem.",
-    updatedAt: "2026-04-01",
-    sections: [
-      {
-        id: "administrator",
-        heading: "§1. Administrator danych",
-        paragraphs: [
-          "Administratorem Twoich danych osobowych jest BROWIN Sp. z o.o. z siedzibą w Łodzi. Kontakt w sprawach związanych z ochroną danych: kontakt@browin-demo.pl.",
-        ],
-      },
-      {
-        id: "zakres-danych",
-        heading: "§2. Zakres przetwarzanych danych",
-        list: [
-          "dane identyfikacyjne: imię, nazwisko, nazwa firmy",
-          "dane kontaktowe: adres e-mail, numer telefonu, adres korespondencyjny",
-          "dane transakcyjne: historia zamówień, forma płatności, rachunek bankowy (przy zwrotach)",
-          "dane techniczne: adres IP, identyfikatory cookies, dane o sesji",
-        ],
-      },
-      {
-        id: "cele",
-        heading: "§3. Cele przetwarzania",
-        paragraphs: [
-          "Przetwarzamy dane w celu realizacji zamówień, obsługi reklamacji, wystawiania dokumentów księgowych oraz – jeżeli wyraziłeś zgodę – w celach marketingowych i analitycznych.",
-          "Podstawą prawną przetwarzania jest wykonanie umowy (art. 6 ust. 1 lit. b RODO), obowiązek prawny (art. 6 ust. 1 lit. c RODO) oraz – w przypadku marketingu – Twoja dobrowolna zgoda (art. 6 ust. 1 lit. a RODO).",
-        ],
-      },
-      {
-        id: "prawa",
-        heading: "§4. Twoje prawa",
-        list: [
-          "prawo dostępu do danych i otrzymania ich kopii",
-          "prawo do sprostowania i usunięcia danych",
-          "prawo ograniczenia przetwarzania",
-          "prawo do przenoszenia danych",
-          "prawo wniesienia sprzeciwu wobec przetwarzania",
-          "prawo do cofnięcia zgody w dowolnym momencie",
-          "prawo wniesienia skargi do Prezesa Urzędu Ochrony Danych Osobowych",
-        ],
-      },
-      {
-        id: "cookies",
-        heading: "§5. Pliki cookies",
-        paragraphs: [
-          "Sklep wykorzystuje pliki cookies w celu zapewnienia prawidłowego działania serwisu, zapamiętywania ustawień koszyka oraz analizy ruchu. Szczegółowe ustawienia możesz zmienić w panelu preferencji cookies lub w swojej przeglądarce.",
-        ],
-      },
-    ],
+    lead: "Zasady przetwarzania danych osobowych, korzystania z plików cookies oraz prawa użytkowników serwisu.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/polityka-prywatnosci`,
+    contentHtml: htmlFor("polityka-prywatnosci"),
+    toc: tocFor("polityka-prywatnosci"),
+    heroImage: heroFor("polityka-prywatnosci"),
+  },
+  {
+    slug: "porady-i-faq",
+    path: "/porady-i-faq",
+    eyebrow: "Zakupy",
+    title: "Porady i FAQ",
+    footerLabel: "Porady i FAQ",
+    lead: "Najczęściej zadawane pytania dotyczące winiarstwa, piwowarstwa, termometrów, higrometrów i procesu zakupowego.",
+    updatedAt: "2019-03-07",
+    sourceUrl: `${sourceBaseUrl}/porady-i-faq`,
+    contentHtml: htmlFor("porady-i-faq"),
+    toc: tocFor("porady-i-faq"),
+    heroImage: heroFor("porady-i-faq"),
+  },
+  {
+    slug: "reklamacje",
+    path: "/reklamacje",
+    eyebrow: "Dla klientów",
+    title: "Złóż reklamację",
+    footerLabel: "Zgłaszanie reklamacji",
+    lead: "Formularz zgłoszenia reklamacyjnego przygotowany w nowym sklepie. Na tym etapie zapis działa lokalnie bez wysyłki do systemu BROWIN.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/reklamacje`,
+    contentHtml: htmlFor("reklamacje"),
+    toc: tocFor("reklamacje"),
+    heroImage: heroFor("reklamacje"),
+    form: "complaint",
+  },
+  {
+    slug: "zglos-blad",
+    path: "/zglos-blad",
+    eyebrow: "Dla klientów",
+    title: "Zgłoś błąd",
+    footerLabel: "Zgłoś błąd",
+    lead: "Krótki formularz zgłoszenia błędu na stronie. Po integracji będzie można podpiąć go pod docelowy kanał obsługi.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/zglos-blad`,
+    contentHtml: htmlFor("zglos-blad"),
+    toc: tocFor("zglos-blad"),
+    heroImage: heroFor("zglos-blad"),
+    form: "bug-report",
+  },
+  {
+    slug: "odbior-zuzytego-sprzetu",
+    path: "/odbior-zuzytego-sprzetu",
+    eyebrow: "Dla klientów",
+    title: "Informacja o zużytym sprzęcie elektrycznym i elektronicznym",
+    footerLabel: "Odbiór zużytego sprzętu",
+    lead: "Informacja o zasadach oddawania zużytego sprzętu elektrycznego i elektronicznego.",
+    updatedAt: "2019-01-02",
+    sourceUrl: `${sourceBaseUrl}/odbior-zuzytego-sprzetu`,
+    contentHtml: htmlFor("odbior-zuzytego-sprzetu"),
+    toc: tocFor("odbior-zuzytego-sprzetu"),
+    heroImage: heroFor("odbior-zuzytego-sprzetu"),
+  },
+  {
+    slug: "tablica-oznaczen-opakowan",
+    path: "/tablica-oznaczen-opakowan",
+    eyebrow: "Dla klientów",
+    title: "Oznaczenia opakowań",
+    footerLabel: "Oznaczenia opakowań",
+    lead: "Tablica oznaczeń opakowań i link do dodatkowych informacji o opakowaniach.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/tablica-oznaczen-opakowan`,
+    contentHtml: htmlFor("tablica-oznaczen-opakowan"),
+    toc: tocFor("tablica-oznaczen-opakowan"),
+    heroImage: heroFor("tablica-oznaczen-opakowan"),
+  },
+  {
+    slug: "dane-firmy",
+    path: "/dane-firmy",
+    eyebrow: "Dla klientów",
+    title: "Dane firmy",
+    footerLabel: "Dane firmy",
+    lead: "Dane rejestrowe, adres, kontakt oraz mapa dojazdu do siedziby i salonu sprzedaży BROWIN w Łodzi.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/dane-firmy`,
+    contentHtml: htmlFor("dane-firmy"),
+    toc: tocFor("dane-firmy"),
+    heroImage: heroFor("dane-firmy"),
+  },
+  {
+    slug: "gpsr",
+    path: "/gpsr",
+    eyebrow: "Dla klientów",
+    title: "Ogólne bezpieczeństwo produktów (GPSR)",
+    footerLabel: "Ogólne bezpieczeństwo produktów (GPSR)",
+    lead: "Informacje dotyczące ogólnego bezpieczeństwa produktów i kontaktu w sprawach związanych z GPSR.",
+    updatedAt: "2026-04-30",
+    sourceUrl: `${sourceBaseUrl}/gpsr`,
+    contentHtml: htmlFor("gpsr"),
+    toc: tocFor("gpsr"),
+    heroImage: heroFor("gpsr"),
   },
 ];
 
+const normalizePath = (path: string) => {
+  const withoutQuery = path.split("?")[0]?.split("#")[0] ?? "/";
+  const prefixed = withoutQuery.startsWith("/") ? withoutQuery : `/${withoutQuery}`;
+
+  return prefixed.length > 1 ? prefixed.replace(/\/+$/, "") : prefixed;
+};
+
 const slugIndex = new Map(infoPages.map((page) => [page.slug, page]));
+const pathIndex = new Map(infoPages.map((page) => [normalizePath(page.path), page]));
 
 export const getInfoPage = (slug: string): InfoPage | undefined => slugIndex.get(slug);
+
+export const getInfoPageByPath = (path: string): InfoPage | undefined =>
+  pathIndex.get(normalizePath(path));
+
+export const getTopLevelInfoSlugs = () =>
+  infoPages
+    .map((page) => page.path.split("/").filter(Boolean))
+    .filter((segments) => segments.length === 1)
+    .map(([slug]) => ({ slug: slug ?? "" }));
+
+export const localInfoPaths = infoPages.map((page) => page.path);

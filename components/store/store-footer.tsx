@@ -5,7 +5,6 @@ import {
   EnvelopeSimple,
   FacebookLogo,
   Globe,
-  IdentificationBadge,
   InstagramLogo,
   LinkedinLogo,
   MapPin,
@@ -20,15 +19,7 @@ import Image from "next/image";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type FooterLink = {
-  label: string;
-  href: string;
-};
-
-type FooterColumn = {
-  title: string;
-  links: FooterLink[];
-};
+import { footerColumns, type FooterLink } from "@/data/footer-links";
 
 type FooterContactCard = {
   title: string;
@@ -47,71 +38,6 @@ type FooterMarketLink = FooterLink & {
 };
 
 const mapUrl = "https://goo.gl/maps/HpofxDH6iJveHaaa8";
-
-const footerColumns: FooterColumn[] = [
-  {
-    title: "Informacje",
-    links: [
-      { label: "Nowości", href: "https://browin.pl/sklep/nowosci" },
-      { label: "Koniec serii", href: "https://browin.pl/sklep/wyprzedaze" },
-      { label: "Usługa wędzenia", href: "https://browin.pl/blog/wedzenie-na-godziny" },
-      { label: "Praca", href: "https://browin.pl/praca" },
-      { label: "Współpraca", href: "https://browin.pl/wspolpraca" },
-      { label: "Zostań naszym partnerem", href: "https://browin.pl/blog/zostan-naszym-partnerem" },
-      {
-        label: "Katalog produktów Browin (pdf)",
-        href: "https://browin.pl/static/download/katalog_browin.pdf",
-      },
-    ],
-  },
-  {
-    title: "Nasza firma",
-    links: [
-      { label: "Misja, wizja, wartości", href: "https://browin.pl/misja-wizja-wartosci" },
-      { label: "Nasz Browin", href: "https://browin.pl/nasz-browin" },
-      { label: "Certyfikaty", href: "https://browin.pl/certyfikaty" },
-      { label: "Od pomysłu do produktu", href: "https://browin.pl/od-pomyslu-do-produktu" },
-      { label: "Nasze Marki", href: "https://browin.pl/nasze-marki" },
-      { label: "Usługi parku maszyn", href: "https://browin.pl/blog/uslugi-parku-maszyn" },
-      { label: "Projekty unijne", href: "https://browin.pl/projekty-unijne" },
-      { label: "Zapytania ofertowe", href: "https://browin.pl/zapytania-ofertowe" },
-    ],
-  },
-  {
-    title: "Zakupy",
-    links: [
-      { label: "Płatności", href: "https://browin.pl/blog/bezpieczne-formy-platnosci" },
-      {
-        label: "Płatności odroczone Twisto",
-        href: "https://browin.pl/blog/poznajmy-sie-jestem-twisto",
-      },
-      { label: "Wysyłka i dostawa", href: "https://browin.pl/wysylka-i-dostawa" },
-      { label: "Regulamin", href: "https://browin.pl/regulamin" },
-      { label: "Reklamacje i zwroty", href: "https://browin.pl/regulamin#reklamacje" },
-      { label: "Polityka prywatności", href: "https://browin.pl/polityka-prywatnosci" },
-      { label: "Porady i FAQ", href: "https://browin.pl/porady-i-faq" },
-    ],
-  },
-  {
-    title: "Dla klientów",
-    links: [
-      { label: "Zgłaszanie reklamacji", href: "https://browin.pl/reklamacje" },
-      { label: "Zgłoś błąd", href: "https://browin.pl/zglos-blad" },
-      { label: "Odbiór zużytego sprzętu", href: "https://browin.pl/odbior-zuzytego-sprzetu" },
-      {
-        label: "Oznaczenia opakowań",
-        href: "https://browin.pl/tablica-oznaczen-opakowan",
-      },
-      { label: "Dane firmy", href: "https://browin.pl/dane-firmy" },
-      { label: "Ogólne bezpieczeństwo produktów (GPSR)", href: "https://browin.pl/gpsr" },
-      { label: "Mapa dojazdu", href: "https://browin.pl/dane-firmy#plan" },
-      { label: "Kalkulator winiarski", href: "/kalkulator-winiarski" },
-      { label: "Kalkulator nalewek", href: "/kalkulator-nalewkowy" },
-      { label: "Kalkulator serowarski", href: "/kalkulator-serowarski" },
-      { label: "Kalkulator wędliniarski", href: "/kalkulator-wedliniarski" },
-    ],
-  },
-];
 
 const contactCards: FooterContactCard[] = [
   {
@@ -256,8 +182,8 @@ export function StoreFooter() {
   return (
     <footer className="store-footer mt-10 border-t border-browin-dark/10 bg-browin-white text-browin-dark">
       <div className="container mx-auto px-4 py-6 lg:py-7">
-        <div className="grid gap-4 border-b border-browin-dark/10 pb-5 lg:grid-cols-[minmax(14rem,0.5fr)_minmax(0,1fr)] lg:items-center">
-          <div className="max-w-xl">
+        <div className="grid gap-5 border-b border-browin-dark/10 pb-5 lg:grid-cols-[minmax(13rem,0.95fr)_repeat(4,minmax(0,1fr))]">
+          <div className="min-w-0">
             <Image
               alt="BROWIN"
               className="footer-brand-logo object-contain"
@@ -269,62 +195,27 @@ export function StoreFooter() {
               Producent akcesoriów do domowego winiarstwa, gorzelnictwa, wędliniarstwa,
               serowarstwa, piwowarstwa i przetwórstwa.
             </p>
-          </div>
 
-          <div className="grid gap-2 text-[11px] font-bold uppercase tracking-[0.1em] text-browin-dark/68 sm:grid-cols-3">
-            <a
-              className="flex min-h-10 items-center gap-2 border border-browin-dark/10 bg-browin-gray px-3 py-2 transition-colors hover:border-browin-red hover:bg-browin-white hover:text-browin-red"
-              href="tel:+48422323230"
-            >
-              <Phone className="text-browin-red" size={16} weight="fill" />
-              BOK: 42 23 23 230
-            </a>
-            <a
-              className="flex min-h-10 items-center gap-2 border border-browin-dark/10 bg-browin-gray px-3 py-2 transition-colors hover:border-browin-red hover:bg-browin-white hover:text-browin-red"
-              href="mailto:support@browin.pl"
-            >
-              <EnvelopeSimple className="text-browin-red" size={16} weight="fill" />
-              support@browin.pl
-            </a>
-            <span className="flex min-h-10 items-center gap-2 border border-browin-dark/10 bg-browin-gray px-3 py-2">
-              <Clock className="text-browin-red" size={16} weight="fill" />
-              Pn-Pt 8:00-16:00
-            </span>
-          </div>
-        </div>
-
-        <div className="grid gap-6 py-6 xl:grid-cols-[minmax(17rem,0.8fr)_minmax(0,1.9fr)]">
-          <div className="grid overflow-hidden border border-browin-dark/10 bg-browin-gray sm:grid-cols-3 xl:grid-cols-1">
-            {contactCards.map((card) => {
-              const Icon = card.icon;
-
-              return (
-                <address
-                  className="border-b border-browin-dark/10 p-3 text-xs font-semibold leading-relaxed text-browin-dark/66 not-italic last:border-b-0 sm:border-b-0 sm:border-r sm:last:border-r-0 xl:border-r-0 xl:border-b xl:last:border-b-0"
-                  key={card.title}
-                >
-                  <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark">
-                    <Icon className="text-browin-red" size={17} weight="fill" />
-                    {card.title}
-                  </div>
-                  {card.body}
-                  {card.actions ? (
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      {card.actions.map((action) => (
-                        <FooterTextLink
-                          className="inline-flex items-center gap-1.5 border border-browin-dark/12 bg-browin-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-browin-dark/62 transition-colors hover:border-browin-red hover:text-browin-red"
-                          href={action.href}
-                          key={`${card.title}-${action.href}`}
-                        >
-                          <MapPin size={13} weight="fill" />
-                          {action.label}
-                        </FooterTextLink>
-                      ))}
-                    </div>
-                  ) : null}
-                </address>
-              );
-            })}
+            <div className="mt-3 space-y-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-browin-dark/64">
+              <a
+                className="flex items-center gap-2 transition-colors hover:text-browin-red"
+                href="tel:+48422323230"
+              >
+                <Phone className="shrink-0 text-browin-red" size={15} weight="fill" />
+                BOK: 42 23 23 230
+              </a>
+              <a
+                className="flex items-center gap-2 transition-colors hover:text-browin-red"
+                href="mailto:support@browin.pl"
+              >
+                <EnvelopeSimple className="shrink-0 text-browin-red" size={15} weight="fill" />
+                support@browin.pl
+              </a>
+              <span className="flex items-center gap-2">
+                <Clock className="shrink-0 text-browin-red" size={15} weight="fill" />
+                Pn-Pt 8:00-16:00
+              </span>
+            </div>
           </div>
 
           <nav aria-label="Linki w stopce" className="grid gap-2 sm:hidden">
@@ -356,7 +247,7 @@ export function StoreFooter() {
 
           <nav
             aria-label="Linki w stopce"
-            className="hidden gap-x-5 gap-y-5 sm:grid sm:grid-cols-2 lg:grid-cols-4"
+            className="hidden gap-x-5 gap-y-5 sm:col-span-full sm:grid sm:grid-cols-2 lg:col-span-4 lg:grid-cols-4"
           >
             {footerColumns.map((column) => (
               <div key={column.title}>
@@ -380,6 +271,39 @@ export function StoreFooter() {
           </nav>
         </div>
 
+        <div className="grid gap-3 border-b border-browin-dark/10 py-5 sm:grid-cols-3">
+          {contactCards.map((card) => {
+            const Icon = card.icon;
+
+            return (
+              <address
+                className="border border-browin-dark/10 bg-browin-gray p-3 text-xs font-semibold leading-relaxed text-browin-dark/66 not-italic"
+                key={card.title}
+              >
+                <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark">
+                  <Icon className="text-browin-red" size={17} weight="fill" />
+                  {card.title}
+                </div>
+                {card.body}
+                {card.actions ? (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {card.actions.map((action) => (
+                      <FooterTextLink
+                        className="inline-flex items-center gap-1.5 border border-browin-dark/12 bg-browin-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-browin-dark/62 transition-colors hover:border-browin-red hover:text-browin-red"
+                        href={action.href}
+                        key={`${card.title}-${action.href}`}
+                      >
+                        <MapPin size={13} weight="fill" />
+                        {action.label}
+                      </FooterTextLink>
+                    ))}
+                  </div>
+                ) : null}
+              </address>
+            );
+          })}
+        </div>
+
         <div className="grid gap-4 border-t border-browin-dark/10 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.62fr)] lg:items-start">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
@@ -394,7 +318,7 @@ export function StoreFooter() {
                     <li key={social.href}>
                       <a
                         aria-label={`BROWIN ${social.label}`}
-                        className="flex h-8 w-8 items-center justify-center border border-browin-dark/10 bg-browin-gray text-browin-dark/55 transition-colors hover:border-browin-red hover:bg-browin-red hover:text-browin-white"
+                        className="flex h-7 w-7 items-center justify-center text-browin-dark/55 transition-colors hover:text-browin-red"
                         href={social.href}
                         rel="noopener"
                         target="_blank"
@@ -408,29 +332,21 @@ export function StoreFooter() {
             </div>
 
             <p className="flex items-center gap-2 text-[11px] font-semibold leading-relaxed text-browin-dark/45">
-              <IdentificationBadge className="shrink-0 text-browin-red" size={16} weight="fill" />
               &copy; {currentYear} BROWIN Sp. z o.o. Wszystkie prawa zastrzeżone.
             </p>
           </div>
 
-          <details className="group border border-browin-dark/10 bg-browin-gray">
-            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-left">
-              <span className="flex min-w-0 items-center gap-2">
-                <Globe className="shrink-0 text-browin-red" size={17} weight="fill" />
-                <span className="min-w-0">
-                  <span className="block text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark">
-                    Wybierz język
-                  </span>
-                  <span className="mt-0.5 block text-[11px] font-semibold text-browin-dark/50">
-                    Polski i pozostałe rynki BROWIN
-                  </span>
-                </span>
-              </span>
-              <span className="shrink-0 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/40 group-open:text-browin-red">
-                {marketLinks.length} wersje
-              </span>
+          <details className="group relative justify-self-end">
+            <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark transition-colors hover:text-browin-red">
+              <Globe className="shrink-0 text-browin-red" size={15} weight="fill" />
+              Polski
+              <CaretDown
+                className="shrink-0 text-browin-dark/35 transition-transform group-open:rotate-180 group-open:text-browin-red"
+                size={12}
+                weight="bold"
+              />
             </summary>
-            <ul className="grid max-h-56 grid-cols-2 gap-1 overflow-y-auto border-t border-browin-dark/10 p-2 text-[11px] sm:grid-cols-3">
+            <ul className="absolute bottom-full right-0 z-20 mb-2 grid max-h-56 min-w-[17rem] grid-cols-2 gap-1 overflow-y-auto border border-browin-dark/10 bg-browin-white p-2 text-[11px] shadow-sm sm:grid-cols-3">
               {marketLinks.map((market) => (
                 <li key={market.href}>
                   <a
@@ -455,14 +371,6 @@ export function StoreFooter() {
         </div>
       </div>
 
-      <div className="border-t border-browin-dark/10 bg-browin-gray pb-[calc(env(safe-area-inset-bottom,0px)+4.75rem)] md:pb-0">
-        <div className="container mx-auto flex flex-col gap-2 px-4 py-3 text-[10px] font-bold uppercase tracking-[0.13em] text-browin-dark/42 sm:flex-row sm:items-center sm:justify-between">
-          <span>BROWIN - domowe wyroby, sprawdzone receptury i akcesoria</span>
-          <a className="transition-colors hover:text-browin-red" href="https://browin.pl/dane-firmy">
-            Dane firmy
-          </a>
-        </div>
-      </div>
     </footer>
   );
 }

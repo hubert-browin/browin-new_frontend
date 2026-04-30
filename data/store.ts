@@ -656,7 +656,7 @@ export const footerColumns: FooterColumn[] = [
 ];
 
 export const supportInfo = {
-  phone: "+48 42 123 45 67",
-  email: "kontakt@browin-demo.pl",
-  hours: "Pon.-Pt. 8:00-16:00",
+  phone: "+48 42 23 23 230",
+  email: "support@browin.pl",
+  hours: "Pn-Pt 8:00-16:00",
 };
