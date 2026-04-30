@@ -293,6 +293,11 @@ export default async function RecipePage({
                 {recipe.footer}
               </p>
             ) : null}
+            <div
+              aria-hidden="true"
+              className="h-px"
+              id="recipe-product-picker-nudge-target"
+            />
           </div>
         </article>
 

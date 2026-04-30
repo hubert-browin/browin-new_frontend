@@ -143,6 +143,12 @@ textarea::placeholder {
   max-width: 9.125rem;
 }
 
+.footer-brand-logo {
+  height: clamp(1.55rem, 1.42rem + 0.32vw, 1.8rem) !important;
+  width: auto !important;
+  max-width: 7.5rem !important;
+}
+
 .hero-primary-cta {
   font-weight: 700 !important;
 }
@@ -523,6 +529,72 @@ button.search-ui-copy {
   }
 }
 
+@keyframes browin-recipe-panel-handle-nudge {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  18% {
+    transform: translate3d(0, -0.16rem, 0) scale(1.08);
+  }
+
+  38% {
+    transform: translate3d(0, 0.04rem, 0) scale(0.98);
+  }
+
+  58% {
+    transform: translate3d(0, -0.08rem, 0) scale(1.04);
+  }
+
+  78% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes browin-recipe-panel-handle-halo {
+  0%,
+  12% {
+    opacity: 0;
+    transform: scale(0.76);
+  }
+
+  30% {
+    opacity: 0.86;
+    transform: scale(0.98);
+  }
+
+  68% {
+    opacity: 0.34;
+    transform: scale(1.5);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.82);
+  }
+}
+
+@keyframes browin-recipe-panel-sheet-enter {
+  from {
+    transform: translate3d(0, 100%, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes browin-recipe-panel-sheet-exit {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
 @keyframes browin-desktop-recipe-nav-buzz {
   0%,
   100% {
@@ -668,6 +740,69 @@ button.search-ui-copy {
   will-change: opacity, transform;
 }
 
+.recipe-ingredient-panel-handle {
+  position: relative;
+  isolation: isolate;
+  z-index: 1;
+  overflow: visible;
+  transform-origin: center;
+}
+
+.recipe-ingredient-panel-handle.is-nudging {
+  animation: browin-recipe-panel-handle-nudge 1.18s cubic-bezier(0.16, 1, 0.3, 1) 0.85s 3 both;
+  will-change: transform;
+}
+
+.recipe-ingredient-panel-handle.is-nudging::after {
+  content: "";
+  pointer-events: none;
+  position: absolute;
+  inset: -0.34rem;
+  z-index: 0;
+  border: 1px solid rgb(148 41 64 / 0.34);
+  border-radius: 0.35rem;
+  box-shadow: 0 0 0.85rem rgb(148 41 64 / 0.16);
+  opacity: 0;
+  transform: scale(0.76);
+  transform-origin: center;
+  animation: browin-recipe-panel-handle-halo 1.18s cubic-bezier(0.16, 1, 0.3, 1) 0.85s 3 both;
+  will-change: opacity, transform;
+}
+
+.recipe-ingredient-panel-handle > svg {
+  position: relative;
+  z-index: 1;
+}
+
+.recipe-ingredient-panel-viewport {
+  pointer-events: none;
+}
+
+.recipe-ingredient-panel-sheet {
+  animation: browin-recipe-panel-sheet-enter 420ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  pointer-events: auto;
+  transform-origin: bottom center;
+  will-change: transform;
+}
+
+.recipe-ingredient-panel-sheet.is-closing {
+  animation-duration: 420ms;
+  animation-name: browin-recipe-panel-sheet-exit;
+  animation-timing-function: cubic-bezier(0.32, 0, 0.67, 0);
+  pointer-events: none;
+}
+
+.recipe-ingredient-panel-backdrop.is-closing {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.recipe-ingredient-panel-backdrop {
+  opacity: 1;
+  transition: opacity 420ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity;
+}
+
 .desktop-recipe-nav-ring {
   animation: browin-desktop-recipe-nav-ring-pulse 1.55s cubic-bezier(0.16, 1, 0.3, 1) 2.08s both;
   isolation: isolate;
@@ -731,8 +866,15 @@ button.search-ui-copy {
   .product-recipe-nav-buzz,
   .product-recipe-nav-buzz::after,
   .mobile-recipe-nav-buzz,
-  .mobile-recipe-nav-buzz::after {
+  .mobile-recipe-nav-buzz::after,
+  .recipe-ingredient-panel-handle.is-nudging,
+  .recipe-ingredient-panel-handle.is-nudging::after,
+  .recipe-ingredient-panel-sheet {
     animation: none;
+  }
+
+  .recipe-ingredient-panel-backdrop {
+    transition: none;
   }
 }
 

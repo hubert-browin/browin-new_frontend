@@ -80,18 +80,6 @@ type MobileSearchFormProps = {
 };
 
 type MobileBottomNavItem = "home" | "categories" | "recipes" | "cart" | null;
-type HomeLayoutVariant = "current" | "expandedDock" | "expandedDockSplit";
-
-const HOME_LAYOUT_VARIANT_STORAGE_KEY = "browin-home-layout-variant";
-
-const homeLayoutVariantOptions: ReadonlyArray<{
-  id: HomeLayoutVariant;
-  title: string;
-}> = [
-  { id: "current", title: "Aktualny homepage" },
-  { id: "expandedDock", title: "Dock, szeroki baner i dwa kafle pod spodem" },
-  { id: "expandedDockSplit", title: "Dock, baner po lewej i kafle po prawej" },
-];
 
 const topBarLinks = [
   { label: "Dostawa i płatność", href: "/checkout" },
@@ -323,8 +311,6 @@ export function StoreChrome({
   const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
     useState(false);
   const [isHomeBreadcrumbVisible, setIsHomeBreadcrumbVisible] = useState(false);
-  const [homeLayoutVariant, setHomeLayoutVariant] =
-    useState<HomeLayoutVariant>("current");
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -345,11 +331,9 @@ export function StoreChrome({
     isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
   const showMobileCategoryStrip = !isProductPage && !isRecipePage;
   const isHomePage = pathname === "/";
-  const isHomeDockLayout = isHomePage && homeLayoutVariant !== "current";
-  const isHomeExpandedDockLayout =
-    isHomePage && homeLayoutVariant === "expandedDock";
-  const isHomeSplitDockLayout =
-    isHomePage && homeLayoutVariant === "expandedDockSplit";
+  const isHomeExpandedDockLayout = isHomePage;
+  const isHomeSplitDockLayout = false;
+  const isHomeDockLayout = isHomeExpandedDockLayout || isHomeSplitDockLayout;
   const showDesktopNav = pathname !== "/" || isHomeDockLayout;
   const showDesktopBreadcrumbNav = isHomePage
     ? isHomeDockLayout || isHomeBreadcrumbVisible
@@ -441,28 +425,6 @@ export function StoreChrome({
       document.body.style.overflow = "";
     };
   }, [isOpen, mobileMenuOpen]);
-
-  useEffect(() => {
-    const frame = window.requestAnimationFrame(() => {
-      try {
-        const storedVariant = window.localStorage.getItem(
-          HOME_LAYOUT_VARIANT_STORAGE_KEY,
-        );
-
-        if (
-          storedVariant === "current" ||
-          storedVariant === "expandedDock" ||
-          storedVariant === "expandedDockSplit"
-        ) {
-          setHomeLayoutVariant(storedVariant);
-        }
-      } catch {
-        // The homepage layout switch is a local dev helper only.
-      }
-    });
-
-    return () => window.cancelAnimationFrame(frame);
-  }, []);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1004,18 +966,6 @@ export function StoreChrome({
     if (dockHoverIntentTimeout.current) {
       clearTimeout(dockHoverIntentTimeout.current);
       dockHoverIntentTimeout.current = null;
-    }
-  };
-
-  const updateHomeLayoutVariant = (variant: HomeLayoutVariant) => {
-    setHomeLayoutVariant(variant);
-    setActiveDockCategoryId(null);
-    setBreadcrumbMenuOpen(false);
-
-    try {
-      window.localStorage.setItem(HOME_LAYOUT_VARIANT_STORAGE_KEY, variant);
-    } catch {
-      // The switch can still work for the current session without storage.
     }
   };
 
@@ -1870,34 +1820,6 @@ export function StoreChrome({
           </span>
         </button>
       </div>
-
-      {isHomePage ? (
-        <div
-          aria-label="Przełącznik testowego układu homepage"
-          className="fixed bottom-5 right-5 z-[120] hidden items-center gap-1 rounded-full border border-browin-dark/10 bg-browin-white/65 p-1 text-[10px] font-semibold text-browin-dark/45 opacity-25 shadow-sm backdrop-blur-md transition-opacity duration-200 hover:opacity-100 focus-within:opacity-100 md:flex"
-        >
-          {homeLayoutVariantOptions.map(({ id, title }, index) => {
-            const isActive = homeLayoutVariant === id;
-
-            return (
-              <button
-                aria-pressed={isActive}
-                className={`flex h-7 w-7 items-center justify-center rounded-full text-[11px] font-bold transition-colors ${
-                  isActive
-                    ? "bg-browin-dark text-browin-white"
-                    : "text-browin-dark/55 hover:bg-browin-dark/8 hover:text-browin-dark"
-                }`}
-                key={id}
-                onClick={() => updateHomeLayoutVariant(id)}
-                title={title}
-                type="button"
-              >
-                {index + 1}
-              </button>
-            );
-          })}
-        </div>
-      ) : null}
 
       <MobileProductRecipePanel
         context={hasProductRecipeNavContext ? currentProductRecipeContext : null}

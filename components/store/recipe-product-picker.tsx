@@ -9,7 +9,7 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { useCart } from "@/components/store/cart-provider";
 import {
@@ -29,6 +29,11 @@ type RecipeProductPickerProps = {
   recipeSlug: string;
   recipeTitle: string;
 };
+
+const RECIPE_PANEL_NUDGE_TARGET_ID = "recipe-product-picker-nudge-target";
+const MOBILE_RECIPE_PANEL_INITIAL_NUDGE_DELAY_MS = 900;
+const MOBILE_RECIPE_PANEL_NUDGE_DURATION_MS = 5600;
+const MOBILE_RECIPE_PANEL_SHEET_ANIMATION_MS = 420;
 
 const getProductPrice = (entry: HydratedRecipeProduct) =>
   getPrimaryVariant(entry.product).price;
@@ -349,6 +354,15 @@ export function RecipeProductPicker({
   const { addItems } = useCart();
   const pathname = usePathname();
   const mobilePanelRef = useRef<HTMLElement | null>(null);
+  const mobileNudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const mobileInitialNudgeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const mobileNudgeFrameRef = useRef<number | null>(null);
+  const mobilePanelCloseTimerRef = useRef<ReturnType<typeof setTimeout> | null>(
+    null,
+  );
+  const hasRequestedInitialNudgeRef = useRef(false);
   const ingredientItemCount = useMemo(
     () => ingredients.filter((ingredient) => ingredient.kind !== "separator").length,
     [ingredients],
@@ -381,6 +395,12 @@ export function RecipeProductPicker({
   );
   const [selectedIds, setSelectedIds] = useState(defaultSelected);
   const [isMobileProductPanelOpen, setIsMobileProductPanelOpen] = useState(false);
+  const [isMobileProductPanelRendered, setIsMobileProductPanelRendered] =
+    useState(false);
+  const [isMobileProductPanelClosing, setIsMobileProductPanelClosing] =
+    useState(false);
+  const [isMobilePanelNudgeVisible, setIsMobilePanelNudgeVisible] =
+    useState(false);
   const selectedProducts = allProducts.filter((entry) => selectedIds.has(entry.product.id));
   const selectedTotal = selectedProducts.reduce((sum, entry) => sum + getProductPrice(entry), 0);
   const selectedProductCountLabel = getProductCountLabel(selectedProducts.length);
@@ -395,17 +415,202 @@ export function RecipeProductPicker({
   const panelTitle =
     allProducts.length > 0 ? "Lista składników i produkty" : "Lista składników";
 
+  const clearMobilePanelNudge = useCallback(() => {
+    if (mobileNudgeTimerRef.current) {
+      clearTimeout(mobileNudgeTimerRef.current);
+      mobileNudgeTimerRef.current = null;
+    }
+
+    if (mobileNudgeFrameRef.current) {
+      window.cancelAnimationFrame(mobileNudgeFrameRef.current);
+      mobileNudgeFrameRef.current = null;
+    }
+
+    setIsMobilePanelNudgeVisible(false);
+  }, []);
+
+  const openMobileProductPanel = useCallback(() => {
+    if (mobileInitialNudgeTimerRef.current) {
+      clearTimeout(mobileInitialNudgeTimerRef.current);
+      mobileInitialNudgeTimerRef.current = null;
+    }
+
+    if (mobilePanelCloseTimerRef.current) {
+      clearTimeout(mobilePanelCloseTimerRef.current);
+      mobilePanelCloseTimerRef.current = null;
+    }
+
+    clearMobilePanelNudge();
+    setIsMobileProductPanelRendered(true);
+    setIsMobileProductPanelClosing(false);
+    setIsMobileProductPanelOpen(true);
+  }, [clearMobilePanelNudge]);
+
+  const closeMobileProductPanel = useCallback(() => {
+    if (!isMobileProductPanelOpen && !isMobileProductPanelRendered) {
+      return;
+    }
+
+    if (mobilePanelCloseTimerRef.current) {
+      clearTimeout(mobilePanelCloseTimerRef.current);
+      mobilePanelCloseTimerRef.current = null;
+    }
+
+    setIsMobileProductPanelOpen(false);
+    setIsMobileProductPanelClosing(true);
+    mobilePanelCloseTimerRef.current = setTimeout(() => {
+      setIsMobileProductPanelRendered(false);
+      setIsMobileProductPanelClosing(false);
+      mobilePanelCloseTimerRef.current = null;
+    }, MOBILE_RECIPE_PANEL_SHEET_ANIMATION_MS);
+  }, [isMobileProductPanelOpen, isMobileProductPanelRendered]);
+
+  const triggerMobilePanelNudge = useCallback(() => {
+    if (mobileInitialNudgeTimerRef.current) {
+      clearTimeout(mobileInitialNudgeTimerRef.current);
+      mobileInitialNudgeTimerRef.current = null;
+    }
+
+    if (mobileNudgeTimerRef.current) {
+      clearTimeout(mobileNudgeTimerRef.current);
+      mobileNudgeTimerRef.current = null;
+    }
+
+    setIsMobilePanelNudgeVisible(false);
+    mobileNudgeFrameRef.current = window.requestAnimationFrame(() => {
+      mobileNudgeFrameRef.current = null;
+      setIsMobilePanelNudgeVisible(true);
+      mobileNudgeTimerRef.current = setTimeout(
+        clearMobilePanelNudge,
+        MOBILE_RECIPE_PANEL_NUDGE_DURATION_MS,
+      );
+    });
+  }, [clearMobilePanelNudge]);
+
   useEffect(() => {
     setSelectedIds(defaultSelected);
   }, [defaultSelected]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
+      if (mobilePanelCloseTimerRef.current) {
+        clearTimeout(mobilePanelCloseTimerRef.current);
+        mobilePanelCloseTimerRef.current = null;
+      }
+
       setIsMobileProductPanelOpen(false);
+      setIsMobileProductPanelRendered(false);
+      setIsMobileProductPanelClosing(false);
     });
 
     return () => window.cancelAnimationFrame(frame);
   }, [pathname]);
+
+  useEffect(() => {
+    hasRequestedInitialNudgeRef.current = false;
+  }, [pathname]);
+
+  useEffect(() => {
+    return () => {
+      if (mobileNudgeTimerRef.current) {
+        clearTimeout(mobileNudgeTimerRef.current);
+      }
+
+      if (mobileInitialNudgeTimerRef.current) {
+        clearTimeout(mobileInitialNudgeTimerRef.current);
+      }
+
+      if (mobileNudgeFrameRef.current) {
+        window.cancelAnimationFrame(mobileNudgeFrameRef.current);
+      }
+
+      if (mobilePanelCloseTimerRef.current) {
+        clearTimeout(mobilePanelCloseTimerRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (
+      !hasPanelContent ||
+      (isMobileProductPanelOpen || isMobileProductPanelRendered) ||
+      hasRequestedInitialNudgeRef.current ||
+      !window.matchMedia("(max-width: 767px)").matches
+    ) {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      clearMobilePanelNudge();
+      return;
+    }
+
+    hasRequestedInitialNudgeRef.current = true;
+    mobileInitialNudgeTimerRef.current = setTimeout(
+      triggerMobilePanelNudge,
+      MOBILE_RECIPE_PANEL_INITIAL_NUDGE_DELAY_MS,
+    );
+
+    return () => {
+      if (mobileInitialNudgeTimerRef.current) {
+        clearTimeout(mobileInitialNudgeTimerRef.current);
+        mobileInitialNudgeTimerRef.current = null;
+      }
+    };
+  }, [
+    clearMobilePanelNudge,
+    hasPanelContent,
+    isMobileProductPanelOpen,
+    isMobileProductPanelRendered,
+    pathname,
+    triggerMobilePanelNudge,
+  ]);
+
+  useEffect(() => {
+    if (
+      !hasPanelContent ||
+      (isMobileProductPanelOpen || isMobileProductPanelRendered) ||
+      !window.matchMedia("(max-width: 767px)").matches
+    ) {
+      return;
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      clearMobilePanelNudge();
+      return;
+    }
+
+    const target = document.getElementById(RECIPE_PANEL_NUDGE_TARGET_ID);
+
+    if (!target || !("IntersectionObserver" in window)) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          triggerMobilePanelNudge();
+        }
+      },
+      {
+        rootMargin: "0px 0px -24% 0px",
+        threshold: 0.1,
+      },
+    );
+
+    observer.observe(target);
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [
+    clearMobilePanelNudge,
+    hasPanelContent,
+    isMobileProductPanelOpen,
+    isMobileProductPanelRendered,
+    pathname,
+    triggerMobilePanelNudge,
+  ]);
 
   useEffect(() => {
     if (!isMobileProductPanelOpen) {
@@ -414,7 +619,7 @@ export function RecipeProductPicker({
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
-        setIsMobileProductPanelOpen(false);
+        closeMobileProductPanel();
       }
     };
 
@@ -423,7 +628,7 @@ export function RecipeProductPicker({
       const target = event.target;
 
       if (panel && target instanceof Node && !panel.contains(target)) {
-        setIsMobileProductPanelOpen(false);
+        closeMobileProductPanel();
       }
     };
 
@@ -434,7 +639,7 @@ export function RecipeProductPicker({
       window.removeEventListener("keydown", handleKeyDown);
       document.removeEventListener("pointerdown", handlePointerDown);
     };
-  }, [isMobileProductPanelOpen]);
+  }, [closeMobileProductPanel, isMobileProductPanelOpen]);
 
   const toggleProduct = (productId: string) => {
     setSelectedIds((current) => {
@@ -477,6 +682,15 @@ export function RecipeProductPicker({
     } catch {
       // Session storage is an enhancement only.
     }
+  };
+
+  const toggleMobileProductPanel = () => {
+    if (isMobileProductPanelOpen) {
+      closeMobileProductPanel();
+      return;
+    }
+
+    openMobileProductPanel();
   };
 
   return (
@@ -555,14 +769,14 @@ export function RecipeProductPicker({
 
       {hasPanelContent ? (
         <div
-          className="fixed inset-x-0 z-[45] border-t border-browin-dark/10 bg-browin-white md:hidden"
+          className="fixed inset-x-0 z-[55] h-[var(--mobile-recipe-cta-height)] border-t border-browin-dark/10 bg-browin-white md:hidden"
           style={{ bottom: "var(--mobile-bottom-nav-height)" }}
         >
           <button
             aria-expanded={isMobileProductPanelOpen}
-            aria-label={`Pokaż ${panelTitle.toLowerCase()}`}
-            className="mx-auto grid min-h-[3.6rem] w-full max-w-[34rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 text-left"
-            onClick={() => setIsMobileProductPanelOpen(true)}
+            aria-label={`${isMobileProductPanelOpen ? "Ukryj" : "Pokaż"} ${panelTitle.toLowerCase()}`}
+            className="mx-auto grid h-full w-full max-w-[34rem] grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-2 text-left"
+            onClick={toggleMobileProductPanel}
             type="button"
           >
             <div className="min-w-0">
@@ -573,103 +787,125 @@ export function RecipeProductPicker({
                 {mobileSummaryLabel}
               </p>
             </div>
-            <span className="flex h-9 w-9 items-center justify-center border border-browin-red bg-browin-red text-browin-white">
-              <CaretUp size={18} weight="bold" />
+            <span
+              className={`recipe-ingredient-panel-handle flex h-9 w-9 items-center justify-center border border-browin-red bg-browin-red text-browin-white ${
+                isMobilePanelNudgeVisible ? "is-nudging" : ""
+              }`}
+            >
+              {isMobileProductPanelOpen ? (
+                <CaretDown size={18} weight="bold" />
+              ) : (
+                <CaretUp size={18} weight="bold" />
+              )}
             </span>
           </button>
         </div>
       ) : null}
 
-      {isMobileProductPanelOpen && hasPanelContent ? (
+      {isMobileProductPanelRendered && hasPanelContent ? (
         <>
           <button
             aria-label="Zamknij potrzebne produkty"
-            className="fixed inset-x-0 top-0 z-[58] bg-browin-dark/24 text-left md:hidden"
-            onClick={() => setIsMobileProductPanelOpen(false)}
-            style={{ bottom: "var(--mobile-bottom-nav-height)" }}
+            className={`recipe-ingredient-panel-backdrop fixed inset-x-0 top-0 z-[58] bg-browin-dark/24 text-left md:hidden ${
+              isMobileProductPanelClosing ? "is-closing" : ""
+            }`}
+            onClick={closeMobileProductPanel}
+            style={{
+              bottom:
+                "calc(var(--mobile-bottom-nav-height) + var(--mobile-recipe-cta-height))",
+            }}
             type="button"
           />
 
-          <section
-            aria-label={panelTitle}
-            className="fixed inset-x-0 z-[65] flex max-h-[78dvh] flex-col overflow-hidden rounded-t-sm border-t border-browin-dark/10 bg-browin-white md:hidden"
-            ref={mobilePanelRef}
-            role="dialog"
-            style={{ bottom: "var(--mobile-bottom-nav-height)" }}
+          <div
+            className="recipe-ingredient-panel-viewport fixed inset-x-0 top-0 z-[65] overflow-hidden md:hidden"
+            style={{
+              bottom:
+                "calc(var(--mobile-bottom-nav-height) + var(--mobile-recipe-cta-height))",
+            }}
           >
-            <div className="flex items-center justify-between gap-3 border-b border-browin-dark/10 px-4 py-3">
-              <div>
-                <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red">
-                  {panelTitle}
-                </p>
-                <p className="mt-0.5 text-sm font-bold text-browin-dark">
-                  {mobileSummaryLabel}
-                </p>
-              </div>
-              <button
-                aria-label="Zamknij potrzebne produkty"
-                className="flex h-9 w-9 shrink-0 items-center justify-center border border-browin-dark/10 text-browin-dark/62 transition-colors hover:border-browin-red hover:text-browin-red"
-                onClick={() => setIsMobileProductPanelOpen(false)}
-                type="button"
-              >
-                <CaretDown size={18} weight="bold" />
-              </button>
-            </div>
-
-            <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
-              <div className="grid gap-5">
-                {ingredientItemCount > 0 ? (
-                  <div className="border border-browin-dark/10 bg-browin-gray/50 p-4">
-                    <p className="text-sm font-bold text-browin-dark">
-                      Składniki bazowe
-                    </p>
-                    <div className="mt-3">
-                      <RecipeIngredientSection
-                        availableIngredientProductById={availableIngredientProductById}
-                        ingredients={ingredients}
-                        onProductLinkClick={() => {
-                          persistRecipeContext();
-                          setIsMobileProductPanelOpen(false);
-                        }}
-                      />
-                    </div>
-                  </div>
-                ) : null}
-
-                <RecipeProductGroupsList
-                  groups={productDisplayGroups}
-                  onProductLinkClick={() => {
-                    persistRecipeContext();
-                    setIsMobileProductPanelOpen(false);
-                  }}
-                  onToggleProduct={toggleProduct}
-                  selectedIds={selectedIds}
-                />
-              </div>
-            </div>
-
-            {allProducts.length > 0 ? (
-              <div className="border-t border-browin-dark/10 bg-browin-white px-4 py-3">
-                <div className="mb-3 flex items-center justify-between gap-4">
-                  <p className="text-sm font-bold text-browin-dark">
-                    Wybrane: {selectedProductCountLabel}
+            <section
+              aria-label={panelTitle}
+              className={`recipe-ingredient-panel-sheet absolute inset-x-0 bottom-0 flex max-h-[min(78dvh,100%)] flex-col overflow-hidden rounded-t-sm border-t border-browin-dark/10 bg-browin-white ${
+                isMobileProductPanelClosing ? "is-closing" : ""
+              }`}
+              ref={mobilePanelRef}
+              role="dialog"
+            >
+              <div className="flex items-center justify-between gap-3 border-b border-browin-dark/10 px-4 py-3">
+                <div>
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red">
+                    {panelTitle}
                   </p>
-                  <p className="text-lg font-bold tracking-tight text-browin-dark">
-                    {formatCurrency(selectedTotal)}
+                  <p className="mt-0.5 text-sm font-bold text-browin-dark">
+                    {mobileSummaryLabel}
                   </p>
                 </div>
                 <button
-                  className="checkout-cta inline-flex min-h-12 w-full items-center justify-center gap-2 bg-browin-red px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-white transition-colors hover:bg-browin-dark disabled:cursor-not-allowed disabled:bg-browin-dark/35"
-                  disabled={selectedProducts.length === 0}
-                  onClick={() => addSelectedProducts()}
+                  aria-label="Zamknij potrzebne produkty"
+                  className="flex h-9 w-9 shrink-0 items-center justify-center border border-browin-dark/10 text-browin-dark/62 transition-colors hover:border-browin-red hover:text-browin-red"
+                  onClick={closeMobileProductPanel}
                   type="button"
                 >
-                  <ShoppingCart size={18} weight="fill" />
-                  Dodaj do koszyka
+                  <CaretDown size={18} weight="bold" />
                 </button>
               </div>
-            ) : null}
-          </section>
+
+              <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
+                <div className="grid gap-5">
+                  {ingredientItemCount > 0 ? (
+                    <div className="border border-browin-dark/10 bg-browin-gray/50 p-4">
+                      <p className="text-sm font-bold text-browin-dark">
+                        Składniki bazowe
+                      </p>
+                      <div className="mt-3">
+                        <RecipeIngredientSection
+                          availableIngredientProductById={availableIngredientProductById}
+                          ingredients={ingredients}
+                          onProductLinkClick={() => {
+                            persistRecipeContext();
+                            closeMobileProductPanel();
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+
+                  <RecipeProductGroupsList
+                    groups={productDisplayGroups}
+                    onProductLinkClick={() => {
+                      persistRecipeContext();
+                      closeMobileProductPanel();
+                    }}
+                    onToggleProduct={toggleProduct}
+                    selectedIds={selectedIds}
+                  />
+                </div>
+              </div>
+
+              {allProducts.length > 0 ? (
+                <div className="border-t border-browin-dark/10 bg-browin-white px-4 py-3">
+                  <div className="mb-3 flex items-center justify-between gap-4">
+                    <p className="text-sm font-bold text-browin-dark">
+                      Wybrane: {selectedProductCountLabel}
+                    </p>
+                    <p className="text-lg font-bold tracking-tight text-browin-dark">
+                      {formatCurrency(selectedTotal)}
+                    </p>
+                  </div>
+                  <button
+                    className="checkout-cta inline-flex min-h-12 w-full items-center justify-center gap-2 bg-browin-red px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-white transition-colors hover:bg-browin-dark disabled:cursor-not-allowed disabled:bg-browin-dark/35"
+                    disabled={selectedProducts.length === 0}
+                    onClick={() => addSelectedProducts()}
+                    type="button"
+                  >
+                    <ShoppingCart size={18} weight="fill" />
+                    Dodaj do koszyka
+                  </button>
+                </div>
+              ) : null}
+            </section>
+          </div>
         </>
       ) : null}
     </>
