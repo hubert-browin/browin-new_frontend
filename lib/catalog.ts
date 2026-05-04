@@ -76,6 +76,12 @@ export const getDiscountPercent = (variant: ProductVariant) => {
   return Math.round(((variant.compareAtPrice - variant.price) / variant.compareAtPrice) * 100);
 };
 
+export const getProductDiscountPercent = (product: Product) =>
+  product.variants.reduce(
+    (maxDiscount, variant) => Math.max(maxDiscount, getDiscountPercent(variant)),
+    0,
+  );
+
 export const getCategoryBySlug = (slug: string) =>
   categories.find((category) => category.slug === slug);
 
@@ -227,6 +233,140 @@ export const getFeaturedProducts = (source: Product[], limit = 8) =>
 
 export const getNewestProducts = (source: Product[], limit = 8) =>
   sortProducts(source, "newest").slice(0, limit);
+
+const getProductDedupeKey = (product: Product) => product.baseProductId || product.id;
+
+const fillHomepageProducts = ({
+  excludedProducts = [],
+  fallbackProducts,
+  limit,
+  primaryProducts,
+}: {
+  excludedProducts?: Product[];
+  fallbackProducts: Product[];
+  limit: number;
+  primaryProducts: Product[];
+}) => {
+  const seen = new Set(excludedProducts.map(getProductDedupeKey));
+  const selected: Product[] = [];
+
+  for (const product of [...primaryProducts, ...fallbackProducts]) {
+    const dedupeKey = getProductDedupeKey(product);
+
+    if (seen.has(dedupeKey)) {
+      continue;
+    }
+
+    seen.add(dedupeKey);
+    selected.push(product);
+
+    if (selected.length >= limit) {
+      break;
+    }
+  }
+
+  return selected;
+};
+
+export const getHomepageNewestProducts = (source: Product[], limit = 12) =>
+  fillHomepageProducts({
+    fallbackProducts: sortProducts(source, "newest"),
+    limit,
+    primaryProducts: sortProducts(
+      source.filter((product) => product.status === "nowosc"),
+      "newest",
+    ),
+  });
+
+export const getHomepageBestsellerProducts = (source: Product[], limit = 12) =>
+  fillHomepageProducts({
+    fallbackProducts: sortProducts(source, "featured"),
+    limit,
+    primaryProducts: [...source].sort((left, right) => {
+      const leftBadgeScore = left.badge === "Bestseller" ? 1 : 0;
+      const rightBadgeScore = right.badge === "Bestseller" ? 1 : 0;
+
+      return (
+        rightBadgeScore - leftBadgeScore ||
+        right.soldLast30Days - left.soldLast30Days ||
+        right.popularityScore - left.popularityScore ||
+        right.rating - left.rating ||
+        right.reviews - left.reviews
+      );
+    }),
+  });
+
+export const getHomepageDealProducts = (source: Product[], limit = 12) =>
+  fillHomepageProducts({
+    fallbackProducts: sortProducts(source, "featured"),
+    limit,
+    primaryProducts: source
+      .filter(
+        (product) =>
+          product.status === "wyprzedaz" || getProductDiscountPercent(product) > 0,
+      )
+      .sort((left, right) => {
+        const discountDiff =
+          getProductDiscountPercent(right) - getProductDiscountPercent(left);
+
+        return (
+          discountDiff ||
+          right.popularityScore - left.popularityScore ||
+          right.soldLast30Days - left.soldLast30Days
+        );
+      }),
+  });
+
+const isBundleProduct = (product: Product) => {
+  if (product.bundleItems.length > 0) {
+    return true;
+  }
+
+  const bundleHaystack = normalizeText(
+    [
+      product.title,
+      product.subtitle,
+      product.line,
+      ...product.tags,
+      ...product.taxonomy.flatMap((taxonomy) => [
+        taxonomy.categoryName,
+        taxonomy.subcategoryName ?? "",
+      ]),
+    ].join(" "),
+  );
+
+  return (
+    bundleHaystack.includes("zestaw") ||
+    bundleHaystack.includes("starter") ||
+    bundleHaystack.includes("mikrobrowar")
+  );
+};
+
+export const getHomepageBundleProducts = (source: Product[], limit = 12) =>
+  fillHomepageProducts({
+    fallbackProducts: sortProducts(source, "featured"),
+    limit,
+    primaryProducts: source
+      .filter(isBundleProduct)
+      .sort(
+        (left, right) =>
+          right.bundleItems.length - left.bundleItems.length ||
+          right.popularityScore - left.popularityScore ||
+          right.soldLast30Days - left.soldLast30Days,
+      ),
+  });
+
+export const getHomepageForYouProducts = (
+  source: Product[],
+  limit = 12,
+  excludedProducts: Product[] = [],
+) =>
+  fillHomepageProducts({
+    excludedProducts,
+    fallbackProducts: sortProducts(source, "newest"),
+    limit,
+    primaryProducts: sortProducts(source, "popular"),
+  });
 
 export const getHomepageShowcaseProducts = (source: Product[], limit = 16) =>
   [...source]

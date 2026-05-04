@@ -10,13 +10,22 @@ import {
   Fire,
   Gift,
   Handshake,
+  Package,
   ShoppingCart,
   Sliders,
+  Sparkle,
+  Star,
+  Timer,
   Wine,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
-import type { FocusEvent, MouseEvent as ReactMouseEvent, ReactNode } from "react";
+import type {
+  FocusEvent,
+  MouseEvent as ReactMouseEvent,
+  ReactNode,
+  WheelEvent as ReactWheelEvent,
+} from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { ProductCard } from "@/components/store/product-card";
@@ -24,8 +33,9 @@ import { RecipebookIcon } from "@/components/store/recipebook-icon";
 import { StoreIcon } from "@/components/store/icon-map";
 import { useCart } from "@/components/store/cart-provider";
 import type { Product } from "@/data/products";
+import type { RecipeSummary } from "@/data/recipes";
 import type { CategoryId, StoreCategory } from "@/data/store";
-import { formatCurrency, getPrimaryVariant } from "@/lib/catalog";
+import { formatCurrency, getDiscountPercent, getPrimaryVariant } from "@/lib/catalog";
 
 type HeroSlide = {
   id: string;
@@ -102,15 +112,686 @@ const buildCategoryHref = (slug: string, query?: string) =>
   query ? `/kategoria/${slug}?search=${encodeURIComponent(query)}` : `/kategoria/${slug}`;
 
 type HomePageProps = {
-  featuredProducts: Product[];
+  bestsellerProducts: Product[];
+  dealProducts: Product[];
+  forYouProducts: Product[];
+  newestProducts: Product[];
   weeklyHit: Product | null;
   offerDay: Product | null;
+  recipeInspirations: RecipeSummary[];
+  recipeInspirationsTotalCount: number;
   storeCategories: StoreCategory[];
 };
 
+type MarketplaceRailProps = {
+  children: ReactNode;
+  description?: string;
+  eyebrow: string;
+  href: string;
+  id: string;
+  title: string;
+};
+
+type HomeProductRailProps = Omit<MarketplaceRailProps, "children"> & {
+  products: Product[];
+  renderProduct: (product: Product, index: number) => ReactNode;
+};
+
+type SeasonTimerParts = {
+  days: string;
+  hours: string;
+  minutes: string;
+  seconds: string;
+};
+
+const getScrollBehavior = (): ScrollBehavior =>
+  window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth";
+
+const getUpcomingSundayDeadline = () => {
+  const now = new Date();
+  const deadline = new Date(now);
+  const daysUntilSunday = (7 - now.getDay()) % 7;
+
+  deadline.setDate(now.getDate() + daysUntilSunday);
+  deadline.setHours(23, 59, 59, 999);
+
+  if (deadline.getTime() <= now.getTime()) {
+    deadline.setDate(deadline.getDate() + 7);
+  }
+
+  return deadline;
+};
+
+const padTimerPart = (value: number) => value.toString().padStart(2, "0");
+
+const getSeasonTimerParts = (): SeasonTimerParts => {
+  const now = new Date();
+  const deadline = getUpcomingSundayDeadline();
+  const remainingMs = Math.max(0, deadline.getTime() - now.getTime());
+  const totalSeconds = Math.floor(remainingMs / 1000);
+  const days = Math.floor(totalSeconds / 86400);
+  const hours = Math.floor((totalSeconds % 86400) / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  return {
+    days: padTimerPart(days),
+    hours: padTimerPart(hours),
+    minutes: padTimerPart(minutes),
+    seconds: padTimerPart(seconds),
+  };
+};
+
+const getDealProgressValue = (stock: number) => {
+  if (stock <= 0) {
+    return 100;
+  }
+
+  return Math.min(92, Math.max(18, 100 - stock * 3.6));
+};
+
+function MarketplaceRail({
+  children,
+  description,
+  eyebrow,
+  href,
+  id,
+  title,
+}: MarketplaceRailProps) {
+  const railRef = useRef<HTMLDivElement | null>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+
+  const updateScrollState = useCallback(() => {
+    const rail = railRef.current;
+
+    if (!rail) {
+      setCanScrollLeft(false);
+      setCanScrollRight(false);
+      return;
+    }
+
+    const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+
+    setCanScrollLeft(rail.scrollLeft > 4);
+    setCanScrollRight(rail.scrollLeft < maxScrollLeft - 4);
+  }, []);
+
+  useEffect(() => {
+    const rail = railRef.current;
+    const frame = window.requestAnimationFrame(updateScrollState);
+
+    if (!rail) {
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const resizeObserver =
+      "ResizeObserver" in window ? new ResizeObserver(updateScrollState) : null;
+
+    resizeObserver?.observe(rail);
+    window.addEventListener("resize", updateScrollState);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateScrollState);
+    };
+  }, [children, updateScrollState]);
+
+  const scrollRail = (direction: "left" | "right") => {
+    const rail = railRef.current;
+
+    if (!rail) {
+      return;
+    }
+
+    rail.scrollBy({
+      behavior: getScrollBehavior(),
+      left: direction === "left" ? -rail.clientWidth * 0.86 : rail.clientWidth * 0.86,
+    });
+  };
+
+  const handleWheel = (event: ReactWheelEvent<HTMLDivElement>) => {
+    const rail = railRef.current;
+
+    if (!rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) {
+      return;
+    }
+
+    rail.scrollLeft += event.deltaY;
+    event.preventDefault();
+  };
+
+  return (
+    <section aria-labelledby={id} className="home-marketplace-section py-7 md:py-9">
+      <div className="container mx-auto px-4">
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3 md:mb-5">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red md:text-[11px]">
+              {eyebrow}
+            </p>
+            <h2
+              className="mt-1 text-[1.35rem] font-bold leading-tight text-browin-dark md:text-3xl"
+              id={id}
+            >
+              {title}
+            </h2>
+            {description ? (
+              <p className="mt-1 max-w-2xl text-xs leading-relaxed text-browin-dark/62 md:text-sm">
+                {description}
+              </p>
+            ) : null}
+          </div>
+
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Link
+              className="mr-1 hidden items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark/70 transition-colors hover:text-browin-red sm:flex"
+              href={href}
+            >
+              Zobacz wszystkie
+              <ArrowRight size={15} weight="bold" />
+            </Link>
+            <button
+              aria-label={`Przewiń ${title} w lewo`}
+              className="flex h-10 w-10 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red disabled:pointer-events-none disabled:opacity-30"
+              disabled={!canScrollLeft}
+              onClick={() => scrollRail("left")}
+              type="button"
+            >
+              <CaretLeft size={17} weight="bold" />
+            </button>
+            <button
+              aria-label={`Przewiń ${title} w prawo`}
+              className="flex h-10 w-10 items-center justify-center border border-browin-dark/10 bg-browin-white text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red disabled:pointer-events-none disabled:opacity-30"
+              disabled={!canScrollRight}
+              onClick={() => scrollRail("right")}
+              type="button"
+            >
+              <CaretRight size={17} weight="bold" />
+            </button>
+          </div>
+        </div>
+
+        <div
+          className="home-product-rail no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 scroll-smooth sm:mx-0 sm:px-0 md:gap-4 xl:gap-5"
+          onScroll={updateScrollState}
+          onWheel={handleWheel}
+          ref={railRef}
+        >
+          {children}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function HomeProductRail({
+  products,
+  renderProduct,
+  ...railProps
+}: HomeProductRailProps) {
+  if (products.length === 0) {
+    return null;
+  }
+
+  return (
+    <MarketplaceRail {...railProps}>
+      {products.map((product, index) => (
+        <div className="home-product-rail-card flex shrink-0 snap-start" key={product.id}>
+          {renderProduct(product, index)}
+        </div>
+      ))}
+    </MarketplaceRail>
+  );
+}
+
+function RatingMeta({ product }: { product: Product }) {
+  const roundedRating = Math.round(product.rating);
+
+  return (
+    <span className="inline-flex min-w-0 items-center gap-1 text-[10px] text-browin-dark/58 md:text-[11px]">
+      <span className="flex shrink-0 items-center gap-0.5" aria-hidden="true">
+        {Array.from({ length: 5 }, (_, index) => (
+          <Star
+            className={index < roundedRating ? "text-browin-red" : "text-browin-dark/18"}
+            key={index}
+            size={11}
+            weight="fill"
+          />
+        ))}
+      </span>
+      <span className="font-semibold text-browin-dark/76">{product.rating.toFixed(1)}</span>
+      <span className="truncate">{product.reviews.toLocaleString("pl-PL")} opinii</span>
+    </span>
+  );
+}
+
+function CategoryIconGrid({ storeCategories }: { storeCategories: StoreCategory[] }) {
+  if (storeCategories.length === 0) {
+    return null;
+  }
+
+  return (
+    <section aria-labelledby="homepage-categories" className="home-marketplace-section py-7 md:py-9">
+      <div className="container mx-auto px-4">
+        <div className="mb-4 md:mb-5">
+          <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red md:text-[11px]">
+            Kategorie
+          </p>
+          <h2
+            className="mt-1 text-[1.35rem] font-bold leading-tight text-browin-dark md:text-3xl"
+            id="homepage-categories"
+          >
+            Przeglądaj kategorie
+          </h2>
+        </div>
+
+        <div className="grid translate-x-1 grid-cols-4 gap-x-3 gap-y-5 sm:grid-cols-8 md:gap-x-4 lg:gap-x-6">
+          {storeCategories.map((category) => (
+            <Link
+              className="group flex min-h-[6.35rem] min-w-0 flex-col items-start justify-start text-center sm:min-h-[7rem] md:min-h-[7.65rem]"
+              href={`/kategoria/${category.slug}`}
+              key={category.id}
+            >
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-none border border-browin-dark/10 bg-browin-dark/5 text-browin-red transition-colors group-hover:bg-browin-red group-hover:text-browin-white sm:h-16 sm:w-16 md:h-[4.35rem] md:w-[4.35rem] lg:h-[4.75rem] lg:w-[4.75rem]">
+                <StoreIcon
+                  className="h-6 w-6 sm:h-7 sm:w-7 md:h-8 md:w-8"
+                  icon={category.icon}
+                  weight="fill"
+                />
+              </div>
+              <span
+                className={`mt-2.5 flex min-h-[2rem] w-14 items-start justify-center text-center text-[10px] font-bold uppercase leading-tight tracking-wide text-browin-dark sm:w-16 sm:text-[10px] md:mt-3 md:w-[4.35rem] md:text-[11px] lg:w-[4.75rem] lg:text-xs ${
+                  category.id === "domiogrod" ? "w-[5.25rem] -translate-x-3 whitespace-nowrap sm:w-[5.5rem] md:w-[5.9rem] lg:w-[6.4rem]" : ""
+                }`}
+              >
+                {category.shortLabel}
+              </span>
+            </Link>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function SeasonalPromoBanner() {
+  const [timerParts, setTimerParts] = useState<SeasonTimerParts | null>(null);
+
+  useEffect(() => {
+    const syncTimer = () => setTimerParts(getSeasonTimerParts());
+
+    syncTimer();
+    const interval = window.setInterval(syncTimer, 1000);
+
+    return () => window.clearInterval(interval);
+  }, []);
+
+  const timer = timerParts ?? {
+    days: "--",
+    hours: "--",
+    minutes: "--",
+    seconds: "--",
+  };
+
+  return (
+    <section className="home-marketplace-section py-7 md:py-9">
+      <div className="container mx-auto px-4">
+        <div className="relative overflow-hidden border border-browin-dark/10 bg-browin-dark text-browin-white">
+          <Image
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-82"
+            fill
+            priority={false}
+            sizes="100vw"
+            src="/assets/szynka.webp"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-browin-dark/82 via-browin-dark/20 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-r from-browin-dark/58 via-browin-dark/18 to-browin-red/10" />
+          <div className="relative z-10 grid gap-4 p-4 sm:p-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-center md:gap-6 md:p-8 lg:min-h-[24rem] lg:p-10">
+            <div className="max-w-2xl">
+              <span className="inline-flex items-center gap-2 bg-browin-red px-2.5 py-1.5 text-[9px] font-bold uppercase tracking-[0.14em] text-browin-white md:px-3 md:text-[10px] md:tracking-[0.16em]">
+                <Timer size={14} weight="fill" />
+                Przygotuj się do sezonu
+              </span>
+              <h2 className="mt-3 max-w-[18rem] text-xl font-bold leading-tight md:mt-4 md:max-w-xl md:text-4xl">
+                Przetwory, fermentacja i domowe zapasy w jednym koszyku.
+              </h2>
+              <p className="mt-3 hidden max-w-xl text-sm leading-relaxed text-browin-white/76 sm:block">
+                Skompletuj słoiki, dodatki, pojemniki i akcesoria, zanim sezon nabierze tempa.
+              </p>
+              <Link
+                className="mt-4 inline-flex w-max items-center gap-2 bg-browin-red px-4 py-2.5 text-[10px] font-bold uppercase tracking-[0.12em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark hover:text-browin-white md:mt-5 md:gap-3 md:px-6 md:py-3 md:text-[11px] md:tracking-[0.14em]"
+                href={buildCategoryHref("domiogrod", "przetwory")}
+              >
+                Zobacz sezon
+                <ArrowRight size={16} weight="bold" />
+              </Link>
+            </div>
+
+            <div className="w-full border border-browin-white/16 bg-browin-dark/36 p-3 backdrop-blur-sm sm:p-4 md:w-[21rem] md:p-6">
+              <div className="mb-3 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-white/76 md:mb-4 md:text-[11px] md:tracking-[0.16em]">
+                <ClockCountdown size={17} weight="fill" />
+                Weekendowa oferta
+              </div>
+              <div className="grid grid-cols-4 gap-1.5 md:gap-2.5">
+                {[
+                  ["Dni", timer.days],
+                  ["Godz.", timer.hours],
+                  ["Min.", timer.minutes],
+                  ["Sek.", timer.seconds],
+                ].map(([label, value]) => (
+                  <div
+                    className="border border-browin-white/14 bg-browin-dark/40 px-1.5 py-2 text-center md:px-2 md:py-3"
+                    key={label}
+                  >
+                    <span className="block text-xl font-bold leading-none md:text-3xl">
+                      {value}
+                    </span>
+                    <span className="mt-1 block text-[7px] font-bold uppercase tracking-[0.1em] text-browin-white/62 md:mt-1.5 md:text-[9px] md:tracking-[0.12em]">
+                      {label}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-3 flex items-center gap-2 text-xs font-semibold text-browin-white/74 md:mt-5 md:text-sm">
+                <Package className="shrink-0 text-browin-red" size={18} weight="fill" />
+                Do niedzieli 23:59
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+const dedupeRecipeSummaries = (recipes: RecipeSummary[]) => {
+  const seen = new Set<string>();
+  const dedupedRecipes: RecipeSummary[] = [];
+
+  for (const recipe of recipes) {
+    if (seen.has(recipe.id)) {
+      continue;
+    }
+
+    seen.add(recipe.id);
+    dedupedRecipes.push(recipe);
+  }
+
+  return dedupedRecipes;
+};
+
+function RecipebookInspirationSection({
+  initialRecipes,
+  totalCount,
+}: {
+  initialRecipes: RecipeSummary[];
+  totalCount: number;
+}) {
+  const [recipes, setRecipes] = useState(() => dedupeRecipeSummaries(initialRecipes));
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasLoadError, setHasLoadError] = useState(false);
+  const [canScrollRecipesLeft, setCanScrollRecipesLeft] = useState(false);
+  const [canScrollRecipesRight, setCanScrollRecipesRight] = useState(false);
+  const recipeRailRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreTriggerRef = useRef<HTMLDivElement | null>(null);
+  const hasMoreRecipes = recipes.length < totalCount;
+
+  const updateRecipeRailState = useCallback(() => {
+    const rail = recipeRailRef.current;
+
+    if (!rail) {
+      setCanScrollRecipesLeft(false);
+      setCanScrollRecipesRight(false);
+      return;
+    }
+
+    const maxScrollLeft = rail.scrollWidth - rail.clientWidth;
+
+    setCanScrollRecipesLeft(rail.scrollLeft > 4);
+    setCanScrollRecipesRight(
+      rail.scrollLeft < maxScrollLeft - 4 || hasMoreRecipes || isLoadingMore,
+    );
+  }, [hasMoreRecipes, isLoadingMore]);
+
+  useEffect(() => {
+    setRecipes(dedupeRecipeSummaries(initialRecipes));
+    setIsLoadingMore(false);
+    setHasLoadError(false);
+  }, [initialRecipes, totalCount]);
+
+  const loadMoreRecipes = useCallback(async () => {
+    if (isLoadingMore || !hasMoreRecipes) {
+      return;
+    }
+
+    setIsLoadingMore(true);
+    setHasLoadError(false);
+
+    try {
+      const searchParams = new URLSearchParams({
+        limit: "6",
+        offset: String(recipes.length),
+      });
+      const response = await fetch(`/api/recipes?${searchParams.toString()}`, {
+        cache: "no-store",
+      });
+
+      if (!response.ok) {
+        throw new Error(`Nie udało się pobrać przepisów: ${response.status}`);
+      }
+
+      const payload = (await response.json()) as {
+        recipes?: RecipeSummary[];
+        totalCount?: number;
+      };
+
+      setRecipes((currentRecipes) =>
+        dedupeRecipeSummaries([...currentRecipes, ...(payload.recipes ?? [])]),
+      );
+    } catch {
+      setHasLoadError(true);
+    } finally {
+      setIsLoadingMore(false);
+    }
+  }, [hasMoreRecipes, isLoadingMore, recipes.length]);
+
+  useEffect(() => {
+    const root = recipeRailRef.current;
+    const trigger = loadMoreTriggerRef.current;
+
+    if (!root || !trigger || !hasMoreRecipes || isLoadingMore || hasLoadError) {
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry?.isIntersecting) {
+          return;
+        }
+
+        observer.unobserve(trigger);
+        void loadMoreRecipes();
+      },
+      {
+        root,
+        rootMargin: "0px 180px",
+      },
+    );
+
+    observer.observe(trigger);
+
+    return () => observer.disconnect();
+  }, [hasLoadError, hasMoreRecipes, isLoadingMore, loadMoreRecipes, recipes.length]);
+
+  useEffect(() => {
+    const rail = recipeRailRef.current;
+    const frame = window.requestAnimationFrame(updateRecipeRailState);
+
+    if (!rail) {
+      return () => window.cancelAnimationFrame(frame);
+    }
+
+    const resizeObserver =
+      "ResizeObserver" in window ? new ResizeObserver(updateRecipeRailState) : null;
+
+    resizeObserver?.observe(rail);
+    window.addEventListener("resize", updateRecipeRailState);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      resizeObserver?.disconnect();
+      window.removeEventListener("resize", updateRecipeRailState);
+    };
+  }, [recipes.length, updateRecipeRailState]);
+
+  const scrollRecipeRail = (direction: "left" | "right") => {
+    const rail = recipeRailRef.current;
+
+    if (!rail) {
+      return;
+    }
+
+    rail.scrollBy({
+      behavior: getScrollBehavior(),
+      left: direction === "left" ? -rail.clientWidth * 0.82 : rail.clientWidth * 0.82,
+    });
+  };
+
+  if (recipes.length === 0) {
+    return null;
+  }
+
+  return (
+    <section aria-labelledby="homepage-recipebook" className="home-marketplace-section py-7 md:py-9">
+      <div className="container mx-auto px-4">
+        <div className="border border-browin-dark/8 bg-browin-white p-4 shadow-[0_14px_34px_rgba(51,51,51,0.04)] md:p-5 lg:p-6">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,0.72fr)_minmax(0,1fr)] lg:items-stretch">
+            <div className="flex min-w-0 flex-col justify-center py-1">
+              <p className="inline-flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red md:text-[11px]">
+                <RecipebookIcon size={15} weight="fill" />
+                Przepiśnik BROWIN
+              </p>
+              <h2
+                className="mt-2 max-w-xl text-2xl font-bold leading-tight tracking-tight text-browin-dark md:text-3xl"
+                id="homepage-recipebook"
+              >
+                Inspiracje, które robią z zakupów gotowy plan.
+              </h2>
+              <p className="mt-3 max-w-xl text-sm leading-relaxed text-browin-dark/66">
+                Przepisy pokazują, co zrobić z produktami BROWIN krok po kroku:
+                od pomysłu, przez proporcje, po domowy efekt na stole.
+              </p>
+              <Link
+                className="mt-5 inline-flex w-max items-center gap-3 bg-browin-red px-5 py-3 text-[11px] font-bold uppercase tracking-[0.14em] text-browin-white shadow-sharp transition-colors hover:bg-browin-dark hover:text-browin-white"
+                href="/przepisnik"
+              >
+                Otwórz Przepiśnik
+                <ArrowRight size={17} weight="bold" />
+              </Link>
+            </div>
+
+            <div className="relative min-w-0 overflow-hidden">
+              <div className="mb-3 flex items-center justify-between gap-3">
+                <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark/58">
+                  Najnowsze przepisy
+                </span>
+                <div className="flex shrink-0 items-center gap-1.5">
+                  <button
+                    aria-label="Przewiń przepisy w lewo"
+                    className="flex h-9 w-9 items-center justify-center bg-browin-white text-browin-dark/58 transition-colors hover:text-browin-red disabled:pointer-events-none disabled:opacity-30"
+                    disabled={!canScrollRecipesLeft}
+                    onClick={() => scrollRecipeRail("left")}
+                    type="button"
+                  >
+                    <CaretLeft size={15} weight="bold" />
+                  </button>
+                  <button
+                    aria-label="Przewiń przepisy w prawo"
+                    className="flex h-9 w-9 items-center justify-center bg-browin-white text-browin-dark/58 transition-colors hover:text-browin-red disabled:pointer-events-none disabled:opacity-30"
+                    disabled={!canScrollRecipesRight}
+                    onClick={() => scrollRecipeRail("right")}
+                    type="button"
+                  >
+                    <CaretRight size={15} weight="bold" />
+                  </button>
+                </div>
+              </div>
+              <div
+                className="no-scrollbar -mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-1 scroll-smooth"
+                onScroll={updateRecipeRailState}
+                ref={recipeRailRef}
+              >
+                {recipes.map((recipe) => (
+                  <Link
+                    className="group flex w-[14.5rem] shrink-0 snap-start flex-col overflow-hidden bg-browin-white transition-transform hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red sm:w-[16rem] md:w-[17rem]"
+                    href={`/przepisnik/przepis/${recipe.slug}`}
+                    key={recipe.id}
+                  >
+                    <span className="relative aspect-[16/10] overflow-hidden bg-browin-dark">
+                      <Image
+                        alt={recipe.title}
+                        className="object-cover opacity-95 transition-transform duration-500 group-hover:scale-[1.04]"
+                        fill
+                        sizes="272px"
+                        src={recipe.heroImage}
+                      />
+                    </span>
+                    <span className="flex min-h-[8.5rem] min-w-0 flex-col p-3 md:p-4">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.13em] text-browin-red">
+                        {recipe.category.name}
+                      </span>
+                      <span className="mt-1 line-clamp-2 text-base font-bold leading-snug text-browin-dark transition-colors group-hover:text-browin-red">
+                        {recipe.title}
+                      </span>
+                      <span className="mt-2 line-clamp-2 text-xs leading-relaxed text-browin-dark/58">
+                        {recipe.excerpt}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+
+                {hasMoreRecipes ? (
+                  <div
+                    className="flex w-[10rem] shrink-0 snap-start items-center justify-center bg-browin-white px-4 py-3 text-center text-xs font-semibold text-browin-dark/58"
+                    ref={loadMoreTriggerRef}
+                  >
+                    {hasLoadError ? (
+                      <button
+                        className="font-bold text-browin-red transition-colors hover:text-browin-dark"
+                        onClick={() => void loadMoreRecipes()}
+                        type="button"
+                      >
+                        Spróbuj ponownie
+                      </button>
+                    ) : isLoadingMore ? (
+                      "Ładowanie inspiracji..."
+                    ) : (
+                      <span aria-hidden="true" className="h-1.5 w-10 bg-browin-red/70" />
+                    )}
+                  </div>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
 export function HomePage({
-  featuredProducts,
+  bestsellerProducts,
+  dealProducts,
+  forYouProducts,
+  newestProducts,
   offerDay,
+  recipeInspirations,
+  recipeInspirationsTotalCount,
   storeCategories,
   weeklyHit,
 }: HomePageProps) {
@@ -941,21 +1622,126 @@ export function HomePage({
         </div>
       </section>
 
-      <section className="home-featured-section relative z-20 border-t border-b border-browin-dark/5 bg-browin-gray py-8 md:py-12">
-        <div className="container mx-auto px-4">
-          <div className="product-grid grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-6 xl:grid-cols-4">
-            {featuredProducts.map((product, index) => (
+      <div className="home-marketplace relative z-20 border-t border-b border-browin-dark/5 bg-browin-gray pb-8 pt-2 md:pb-12">
+        <HomeProductRail
+          description="Świeże produkty z katalogu BROWIN, gotowe do szybkiego dodania do koszyka."
+          eyebrow="Nowości"
+          href="/sklep/nowosci"
+          id="homepage-newest"
+          products={newestProducts}
+          renderProduct={(product, index) => (
+            <ProductCard
+              actionLabel="Dodaj"
+              badgeLabel="Nowość"
+              badgeTone="red"
+              imageQuality={92}
+              metaSlot={
+                <span className="inline-flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-browin-dark/55 md:text-[11px]">
+                  <Sparkle className="shrink-0 text-browin-red" size={12} weight="fill" />
+                  <span className="truncate">Nowe w ofercie</span>
+                </span>
+              }
+              priority={index < 2}
+              product={product}
+              squareImage
+              titleLines={3}
+            />
+          )}
+          title="Nowości"
+        />
+
+        <HomeProductRail
+          description="Najmocniejsze pozycje sprzedażowe z wyraźnym social proof i ocenami."
+          eyebrow="Hity sprzedażowe"
+          href="/produkty?sort=popular"
+          id="homepage-bestsellers"
+          products={bestsellerProducts}
+          renderProduct={(product) => (
+            <ProductCard
+              actionLabel="Dodaj"
+              badgeLabel="BESTSELLER"
+              badgeTone="dark"
+              imageQuality={92}
+              metaSlot={<RatingMeta product={product} />}
+              product={product}
+              squareImage
+              titleLines={3}
+            />
+          )}
+          title="Hity sprzedażowe"
+        />
+
+        <CategoryIconGrid storeCategories={storeCategories} />
+
+        <SeasonalPromoBanner />
+
+        <HomeProductRail
+          description="Promocyjne ceny, rabaty i szybki sygnał dostępności jak w topowych marketplace'ach."
+          eyebrow="Strefa okazji"
+          href="/sklep/wyprzedaze"
+          id="homepage-deals"
+          products={dealProducts}
+          renderProduct={(product) => {
+            const variant = getPrimaryVariant(product);
+            const discount = getDiscountPercent(variant);
+            const stock = variant.stock;
+
+            return (
               <ProductCard
-                key={product.id}
+                actionLabel="Dodaj"
+                badgeLabel={discount > 0 ? `-${discount}%` : "OKAZJA"}
+                badgeTone="red"
                 imageQuality={92}
-                priority={index < 4}
+                metaSlot={
+                  <span className="inline-flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-browin-dark/55 md:text-[11px]">
+                    <Gift className="shrink-0 text-browin-red" size={12} weight="fill" />
+                    <span className="truncate">Cena promocyjna</span>
+                  </span>
+                }
                 product={product}
+                progress={{
+                  detail: stock > 0 ? `${stock} szt.` : "0 szt.",
+                  label: "Zostało",
+                  value: getDealProgressValue(stock),
+                }}
                 squareImage
+                titleLines={3}
               />
-            ))}
-          </div>
-        </div>
-      </section>
+            );
+          }}
+          title="Promocje"
+        />
+
+        <RecipebookInspirationSection
+          initialRecipes={recipeInspirations}
+          totalCount={recipeInspirationsTotalCount}
+        />
+
+        <HomeProductRail
+          description="Niepersonalizowany placeholder rekomendacji oparty o popularne wybory z aktualnego feedu."
+          eyebrow="Dla Ciebie"
+          href="/produkty"
+          id="homepage-for-you"
+          products={forYouProducts}
+          renderProduct={(product) => (
+            <ProductCard
+              actionLabel="Dodaj"
+              badgeLabel={null}
+              imageQuality={92}
+              metaSlot={
+                <span className="inline-flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.12em] text-browin-dark/55 md:text-[11px]">
+                  <Sparkle className="shrink-0 text-browin-red" size={12} weight="fill" />
+                  <span className="truncate">Polecane z katalogu</span>
+                </span>
+              }
+              product={product}
+              squareImage
+              titleLines={3}
+            />
+          )}
+          title="Dla Ciebie"
+        />
+      </div>
     </>
   );
 }

@@ -3,6 +3,7 @@
 import { Heart, ShoppingCart, Star } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import { useCart } from "@/components/store/cart-provider";
 import { useFavorites } from "@/components/store/favorites-provider";
@@ -17,6 +18,15 @@ type ProductCardProps = {
   imageQuality?: number;
   recipeCount?: number;
   titleLines?: 2 | 3;
+  actionLabel?: string;
+  badgeLabel?: string | null;
+  badgeTone?: "dark" | "red";
+  metaSlot?: ReactNode;
+  progress?: {
+    detail?: string;
+    label: string;
+    value: number;
+  };
 };
 
 export function ProductCard({
@@ -26,6 +36,11 @@ export function ProductCard({
   imageQuality,
   recipeCount = 0,
   titleLines = 2,
+  actionLabel = "Dodaj",
+  badgeLabel,
+  badgeTone,
+  metaSlot,
+  progress,
 }: ProductCardProps) {
   const { addItem } = useCart();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -35,16 +50,31 @@ export function ProductCard({
   const reviewsLabel = product.reviews.toLocaleString("pl-PL");
   const discount = getDiscountPercent(primaryVariant);
   const hasReviews = product.reviews > 0 && product.rating > 0;
-  const statusLabel =
+  const defaultStatusLabel =
     product.status === "nowosc"
       ? "Nowość"
       : product.status === "wyprzedaz" && discount > 0
         ? `-${discount}%`
         : null;
+  const statusLabel = badgeLabel === undefined ? defaultStatusLabel : badgeLabel;
   const statusClass =
-    product.status === "nowosc"
+    badgeTone === "red" || (!badgeTone && product.status === "nowosc")
       ? "bg-browin-red text-browin-white"
       : "bg-browin-dark text-browin-white";
+  const progressValue = progress
+    ? Math.min(100, Math.max(0, progress.value))
+    : 0;
+  const defaultMeta = hasReviews ? (
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1 overflow-hidden text-[10px] text-browin-dark/58 md:text-[11px]">
+      <Star className="shrink-0 text-browin-red" size={12} weight="fill" />
+      <span className="shrink-0 font-semibold text-browin-dark/76">{product.rating.toFixed(1)}</span>
+      <span className="truncate">{reviewsLabel} opinii</span>
+    </span>
+  ) : (
+    <span className="inline-flex min-w-0 max-w-full items-center gap-1 overflow-hidden text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/52 md:text-[11px]">
+      <span className="truncate">{product.line}</span>
+    </span>
+  );
 
   return (
     <article className="product-card group flex h-full flex-col rounded-none border border-browin-dark/8 bg-browin-white p-3 shadow-[0_10px_26px_rgba(51,51,51,0.05)] transition-colors duration-200 hover:border-browin-red focus-within:border-browin-red md:p-4">
@@ -95,16 +125,13 @@ export function ProductCard({
         </Link>
 
         <div className="mt-2 flex items-center justify-between gap-3 md:mt-auto">
-          {hasReviews ? (
-            <span className="inline-flex min-w-0 items-center gap-1 text-[10px] text-browin-dark/58 md:text-[11px]">
-              <Star className="text-browin-red" size={12} weight="fill" />
-              <span className="font-semibold text-browin-dark/76">{product.rating.toFixed(1)}</span>
-              <span>{reviewsLabel} opinii</span>
-            </span>
+          {metaSlot ? (
+            <>
+              <div className="min-w-0 flex-1 md:hidden">{defaultMeta}</div>
+              <div className="hidden min-w-0 flex-1 overflow-hidden md:block">{metaSlot}</div>
+            </>
           ) : (
-            <span className="inline-flex min-w-0 items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-browin-dark/52 md:text-[11px]">
-              {product.line}
-            </span>
+            <div className="min-w-0 flex-1">{defaultMeta}</div>
           )}
           <button
             aria-label={
@@ -135,7 +162,7 @@ export function ProductCard({
               </p>
             ) : null}
           </div>
-          <div className="font-bold text-[1.28rem] tracking-tight text-browin-dark md:text-[1.45rem]">
+          <div className="font-bold text-[1.12rem] tracking-tight text-browin-dark min-[390px]:text-[1.28rem] md:text-[1.45rem]">
             {formatCurrency(primaryVariant.price)}
           </div>
         </div>
@@ -150,10 +177,27 @@ export function ProductCard({
             size={18}
           />
           <span className="hidden whitespace-nowrap text-[10px] font-semibold uppercase tracking-[0.12em] md:inline">
-            Dodaj
+            {actionLabel}
           </span>
         </button>
       </div>
+
+      {progress ? (
+        <div className="mt-3">
+          <div className="mb-1.5 flex items-center justify-between gap-2 text-[9px] font-semibold uppercase tracking-[0.1em] text-browin-dark/55">
+            <span className="truncate">{progress.label}</span>
+            {progress.detail ? (
+              <span className="shrink-0 text-browin-red">{progress.detail}</span>
+            ) : null}
+          </div>
+          <div className="h-1.5 overflow-hidden rounded-none bg-browin-dark/10">
+            <div
+              className="h-full rounded-none bg-browin-red"
+              style={{ width: `${progressValue}%` }}
+            />
+          </div>
+        </div>
+      ) : null}
     </article>
   );
 }

@@ -526,6 +526,10 @@ button.search-ui-copy {
 .hero-banner-grid,
 .hero-slider-card,
 .hero-side-panels,
+.home-marketplace,
+.home-marketplace-section,
+.home-product-rail,
+.home-product-rail-card,
 .value-grid,
 .product-grid,
 .product-card {
@@ -663,6 +667,45 @@ button.search-ui-copy {
   overflow: hidden;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 3;
+}
+
+.home-product-rail {
+  scroll-padding-inline: 1rem;
+}
+
+.home-product-rail-card {
+  flex-basis: calc((100% - 1rem) / 2);
+  min-width: 10rem;
+}
+
+@media (min-width: 480px) {
+  .home-product-rail-card {
+    flex-basis: calc((100% - 1rem) / 2.05);
+  }
+}
+
+@media (min-width: 640px) {
+  .home-product-rail-card {
+    flex-basis: calc((100% - 1.5rem) / 3.15);
+  }
+}
+
+@media (min-width: 768px) {
+  .home-product-rail-card {
+    flex-basis: calc((100% - 3rem) / 4);
+  }
+}
+
+@media (min-width: 1024px) {
+  .home-product-rail-card {
+    flex-basis: calc((100% - 4rem) / 5);
+  }
+}
+
+@media (min-width: 1280px) {
+  .home-product-rail-card {
+    flex-basis: calc((100% - 5rem) / 5);
+  }
 }
 
 @media (min-width: 1024px) {
