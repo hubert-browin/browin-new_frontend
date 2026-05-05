@@ -319,6 +319,7 @@ export function StoreChrome({
   const currentRouteHref = buildCurrentRouteHref(pathname, routeSearch);
   const searchSeed =
     pathname === "/szukaj" ? routeSearchParams.get("search") ?? "" : "";
+  const isCheckoutPage = pathname === "/checkout";
   const isProductPage = pathname.startsWith("/produkt/");
   const isRecipePage =
     pathname.startsWith("/przepisnik") || pathname.startsWith("/przepisy");
@@ -328,17 +329,18 @@ export function StoreChrome({
     ? getRecipeSlugFromPathname(pathname)
     : null;
   const canAutoHideMobileSearch =
-    isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
-  const showMobileCategoryStrip = !isProductPage && !isRecipePage;
+    isCheckoutPage || isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
+  const showMobileCategoryStrip = !isCheckoutPage && !isProductPage && !isRecipePage;
   const isHomePage = pathname === "/";
   const isHomeExpandedDockLayout = isHomePage;
   const isHomeSplitDockLayout = false;
   const isHomeDockLayout = isHomeExpandedDockLayout || isHomeSplitDockLayout;
-  const showDesktopNav = pathname !== "/" || isHomeDockLayout;
+  const showDesktopNav = !isCheckoutPage && (pathname !== "/" || isHomeDockLayout);
   const showDesktopBreadcrumbNav = isHomePage
     ? isHomeDockLayout || isHomeBreadcrumbVisible
     : showDesktopNav;
-  const showDesktopBreadcrumbShell = showDesktopNav || isHomePage;
+  const showDesktopBreadcrumbShell =
+    !isCheckoutPage && (showDesktopNav || isHomePage);
   const routeBreadcrumbCategory =
     storeCategories.find((category) => pathname === `/kategoria/${category.slug}`) ??
     null;
@@ -387,10 +389,11 @@ export function StoreChrome({
   const isRecipesBottomNavHighlighted =
     isRecipesBottomNavActive || isProductRecipePanelOpen;
   const shouldHideMobileSearch =
-    canAutoHideMobileSearch &&
-    isMobileContextSearchHidden &&
-    !mobileMenuOpen &&
-    !isOpen;
+    isCheckoutPage ||
+    (canAutoHideMobileSearch &&
+      isMobileContextSearchHidden &&
+      !mobileMenuOpen &&
+      !isOpen);
   const activeMobileCategory =
     storeCategories.find((category) => category.id === activeMobileCategoryId) ?? null;
   const showRecipebookCategoryRail =
@@ -425,6 +428,27 @@ export function StoreChrome({
       document.body.style.overflow = "";
     };
   }, [isOpen, mobileMenuOpen]);
+
+  useEffect(() => {
+    if (!isCheckoutPage) {
+      return;
+    }
+
+    const scrollToCheckoutTop = () => {
+      window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    };
+
+    scrollToCheckoutTop();
+    const frame = window.requestAnimationFrame(scrollToCheckoutTop);
+    const timeout = window.setTimeout(scrollToCheckoutTop, 120);
+
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timeout);
+    };
+  }, [isCheckoutPage, pathname]);
 
   useEffect(() => {
     const frame = window.requestAnimationFrame(() => {
@@ -1134,6 +1158,7 @@ export function StoreChrome({
       ) : null}
 
       <div className={contentShellClass}>
+      {!isCheckoutPage ? (
       <div className="desktop-topbar hidden bg-browin-red py-2 text-[11px] text-browin-white md:block">
         <div className="container mx-auto flex items-center justify-between px-4">
           <div className="flex flex-wrap items-center gap-6 font-semibold">
@@ -1164,7 +1189,44 @@ export function StoreChrome({
           </div>
         </div>
       </div>
+      ) : null}
 
+      {isCheckoutPage ? (
+      <header className="sticky top-0 z-50 border-b border-browin-dark/10 bg-browin-white shadow-none">
+        <div className="container mx-auto hidden min-h-[4.75rem] items-center justify-between gap-5 px-4 md:flex">
+          <Link className="z-10 flex-shrink-0" href="/">
+            <Image
+              alt="BROWIN"
+              className="brand-logo object-contain"
+              height={55}
+              priority
+              src="/assets/logo_BROWIN.svg"
+              width={224}
+            />
+          </Link>
+
+          <Link
+            className="inline-flex min-h-11 items-center justify-center border border-browin-dark/12 bg-browin-white px-4 text-xs font-bold uppercase tracking-[0.14em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
+            href="/koszyk"
+          >
+            Edytuj koszyk
+          </Link>
+        </div>
+
+        <div className="flex min-h-[3.625rem] items-center bg-browin-white px-3 md:hidden">
+          <Link className="min-w-0 flex-shrink" href="/">
+            <Image
+              alt="BROWIN"
+              className="brand-logo-mobile object-contain"
+              height={35}
+              priority
+              src="/assets/logo_BROWIN.svg"
+              width={162}
+            />
+          </Link>
+        </div>
+      </header>
+      ) : (
       <header className="glass-header sticky top-0 z-50 border-b border-browin-border shadow-none transition-all duration-300">
         <div className="desktop-header-shell container relative mx-auto hidden items-center justify-between gap-5 px-4 py-3 md:flex">
           <Link className="z-10 flex-shrink-0" href="/">
@@ -1301,6 +1363,7 @@ export function StoreChrome({
           <MobileSearchForm onSubmit={handleSearchSubmit} searchSeed={searchSeed} />
         </div>
       </header>
+      )}
 
       {showDesktopBreadcrumbShell ? (
         <div className={desktopBreadcrumbClass}>
@@ -1544,7 +1607,7 @@ export function StoreChrome({
 
       <main>{children}</main>
 
-      <StoreFooter />
+      {!isCheckoutPage ? <StoreFooter /> : null}
       </div>
 
       <div
@@ -1738,6 +1801,7 @@ export function StoreChrome({
         </div>
       </div>
 
+      {!isCheckoutPage ? (
       <div className="store-mobile-bottom-nav pb-safe fixed bottom-0 left-0 z-50 flex w-full items-center justify-between border-t border-browin-dark/10 bg-browin-white px-8 py-2 text-browin-dark/60 shadow-none md:hidden">
         <Link
           aria-current={isHomeBottomNavActive ? "page" : undefined}
@@ -1820,6 +1884,7 @@ export function StoreChrome({
           </span>
         </button>
       </div>
+      ) : null}
 
       <MobileProductRecipePanel
         context={hasProductRecipeNavContext ? currentProductRecipeContext : null}

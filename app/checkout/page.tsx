@@ -1,5 +1,5 @@
-import { CheckoutPlaceholder } from "@/components/store/checkout-placeholder";
+import { CheckoutFlow } from "@/components/store/checkout-flow";
 
 export default function Page() {
-  return <CheckoutPlaceholder />;
+  return <CheckoutFlow />;
 }
