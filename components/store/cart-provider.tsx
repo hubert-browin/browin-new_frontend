@@ -33,7 +33,12 @@ type CartContextValue = {
   shippingProgress: number;
   openCart: () => void;
   closeCart: () => void;
-  addItem: (productId: string, variantId?: string, quantity?: number) => void;
+  addItem: (
+    productId: string,
+    variantId?: string,
+    quantity?: number,
+    options?: { openCart?: boolean },
+  ) => void;
   addItems: (items: CartLineInput[]) => void;
   updateQuantity: (productId: string, variantId: string, quantity: number) => void;
   removeItem: (productId: string, variantId: string) => void;
@@ -123,7 +128,12 @@ export function CartProvider({
   const openCart = () => setIsOpen(true);
   const closeCart = () => setIsOpen(false);
 
-  const addItem = (productId: string, variantId?: string, quantity = 1) => {
+  const addItem = (
+    productId: string,
+    variantId?: string,
+    quantity = 1,
+    options: { openCart?: boolean } = {},
+  ) => {
     const product = products.find((candidate) => candidate.id === productId);
 
     if (!product) {
@@ -147,7 +157,9 @@ export function CartProvider({
           : line,
       );
     });
-    setIsOpen(true);
+    if (options.openCart ?? true) {
+      setIsOpen(true);
+    }
   };
 
   const addItems = (items: CartLineInput[]) => {

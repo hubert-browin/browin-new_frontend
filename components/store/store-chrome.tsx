@@ -362,7 +362,7 @@ export function StoreChrome({
   const activeDockSections = activeDockCategory
     ? activeDockCategory.menuSections.slice(0, 2)
     : [];
-  const contentShellClass = `min-h-screen transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+  const contentShellClass = `${isCheckoutPage ? "" : "min-h-screen"} transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
     showDesktopNav
       ? isHomeDockLayout
         ? "md:ml-20 lg:ml-72"
@@ -434,6 +434,11 @@ export function StoreChrome({
       return;
     }
 
+    const previousBodyPaddingBottom = document.body.style.paddingBottom;
+    const previousBodyMinHeight = document.body.style.minHeight;
+    document.body.style.paddingBottom = "0px";
+    document.body.style.minHeight = "0px";
+
     const scrollToCheckoutTop = () => {
       window.scrollTo({ top: 0, left: 0, behavior: "auto" });
       document.documentElement.scrollTop = 0;
@@ -445,6 +450,8 @@ export function StoreChrome({
     const timeout = window.setTimeout(scrollToCheckoutTop, 120);
 
     return () => {
+      document.body.style.paddingBottom = previousBodyPaddingBottom;
+      document.body.style.minHeight = previousBodyMinHeight;
       window.cancelAnimationFrame(frame);
       window.clearTimeout(timeout);
     };
@@ -994,7 +1001,11 @@ export function StoreChrome({
   };
 
   return (
-    <div className="min-h-screen bg-browin-gray text-browin-dark">
+    <div
+      className={`bg-browin-gray text-browin-dark ${
+        isCheckoutPage ? "" : "min-h-screen"
+      }`}
+    >
       {showDesktopNav ? (
         <aside
           className={desktopDockClass}
@@ -1192,7 +1203,7 @@ export function StoreChrome({
       ) : null}
 
       {isCheckoutPage ? (
-      <header className="sticky top-0 z-50 border-b border-browin-dark/10 bg-browin-white shadow-none">
+      <header className="sticky top-0 z-50 hidden border-b border-browin-dark/10 bg-browin-white shadow-none md:block">
         <div className="container mx-auto hidden min-h-[4.75rem] items-center justify-between gap-5 px-4 md:flex">
           <Link className="z-10 flex-shrink-0" href="/">
             <Image
@@ -1210,19 +1221,6 @@ export function StoreChrome({
             href="/koszyk"
           >
             Edytuj koszyk
-          </Link>
-        </div>
-
-        <div className="flex min-h-[3.625rem] items-center bg-browin-white px-3 md:hidden">
-          <Link className="min-w-0 flex-shrink" href="/">
-            <Image
-              alt="BROWIN"
-              className="brand-logo-mobile object-contain"
-              height={35}
-              priority
-              src="/assets/logo_BROWIN.svg"
-              width={162}
-            />
           </Link>
         </div>
       </header>

@@ -82,7 +82,7 @@ export function CartDrawer({
               {items.map(({ product, quantity, variant }) => (
                 <article className="flex gap-4 group" key={`${product.id}-${variant.id}`}>
                   <Link
-                    className="relative h-20 w-20 flex-shrink-0 border border-browin-dark/10 bg-browin-white p-1"
+                    className="relative h-20 w-20 flex-shrink-0 overflow-hidden border border-browin-dark/10 bg-browin-white"
                     href={`/produkt/${product.slug}`}
                     onClick={closeCart}
                   >

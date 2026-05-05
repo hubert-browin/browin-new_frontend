@@ -81,7 +81,7 @@ export function CartPage({ recommendations, recipeCommerceEntries = [] }: CartPa
                   >
                     <div className="flex flex-col gap-4 md:flex-row">
                       <Link
-                        className="relative block h-36 overflow-hidden border border-browin-dark/10 bg-browin-white p-2 md:h-28 md:w-28"
+                        className="relative block h-36 overflow-hidden border border-browin-dark/10 bg-browin-white md:h-28 md:w-28"
                         href={`/produkt/${product.slug}`}
                       >
                         <Image
