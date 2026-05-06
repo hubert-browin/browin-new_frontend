@@ -45,7 +45,13 @@ import {
   type PaymentMethodId,
 } from "@/lib/checkout";
 
-type CheckoutStep = "cart" | "delivery" | "data" | "payment" | "success";
+type CheckoutStep =
+  | "cart"
+  | "contact"
+  | "delivery"
+  | "data"
+  | "payment"
+  | "success";
 type CartItem = ReturnType<typeof useCart>["items"][number];
 type RemovedCheckoutLine = Pick<CartItem, "product" | "quantity" | "variant"> & {
   expiresAt: number;
@@ -54,7 +60,18 @@ type RemovedCheckoutLine = Pick<CartItem, "product" | "quantity" | "variant"> & 
   undoId: string;
 };
 type CheckoutField = keyof CheckoutForm | "blikCode" | "discount";
-type DeliveryMethod = (typeof deliveryMethods)[number];
+type DeliveryMethod = {
+  eta: string;
+  hint: string;
+  id: DeliveryMethodId;
+  logoAlt: string;
+  logoSrc: string;
+  name: string;
+  pointLabel?: string;
+  previousPrice?: number;
+  price: number;
+  requiresPoint?: boolean;
+};
 
 type CheckoutForm = {
   billingCity: string;
@@ -141,17 +158,79 @@ const defaultForm: CheckoutForm = {
   wantsInvoice: false,
 };
 
+const deliveryCountries = [
+  "Austria",
+  "Belgia",
+  "Bułgaria",
+  "Czechy",
+  "Niemcy",
+  "Dania",
+  "Estonia",
+  "Hiszpania",
+  "Finlandia",
+  "Francja",
+  "Wielka Brytania",
+  "Grecja",
+  "Chorwacja",
+  "Węgry",
+  "Irlandia",
+  "Włochy",
+  "Litwa",
+  "Luksemburg",
+  "Łotwa",
+  "Holandia",
+  "Polska",
+  "Portugalia",
+  "Rumunia",
+  "Szwecja",
+  "Słowenia",
+  "Słowacja",
+] as const;
+
+type DeliveryCountry = (typeof deliveryCountries)[number];
+
+const deliveryCountryCodes: Record<DeliveryCountry, string> = {
+  Austria: "at",
+  Belgia: "be",
+  Bułgaria: "bg",
+  Czechy: "cz",
+  Niemcy: "de",
+  Dania: "dk",
+  Estonia: "ee",
+  Hiszpania: "es",
+  Finlandia: "fi",
+  Francja: "fr",
+  "Wielka Brytania": "gb",
+  Grecja: "gr",
+  Chorwacja: "hr",
+  Węgry: "hu",
+  Irlandia: "ie",
+  Włochy: "it",
+  Litwa: "lt",
+  Luksemburg: "lu",
+  Łotwa: "lv",
+  Holandia: "nl",
+  Polska: "pl",
+  Portugalia: "pt",
+  Rumunia: "ro",
+  Szwecja: "se",
+  Słowenia: "si",
+  Słowacja: "sk",
+};
+
 const checkoutSteps = [
-  { id: "cart", label: "Koszyk" },
+  { id: "contact", label: "Kontakt" },
   { id: "delivery", label: "Dostawa" },
+  { id: "data", label: "Dane" },
   { id: "payment", label: "Płatność" },
 ] as const satisfies ReadonlyArray<{
-  id: Exclude<CheckoutStep, "data" | "success">;
+  id: Exclude<CheckoutStep, "cart" | "success">;
   label: string;
 }>;
 
 const mobileCheckoutStages = [
   { id: "cart", label: "Zamówienie" },
+  { id: "contact", label: "Kontakt" },
   { id: "delivery", label: "Dostawa" },
   { id: "data", label: "Dane" },
   { id: "payment", label: "Płatność" },
@@ -162,6 +241,7 @@ const mobileCheckoutStages = [
 
 const checkoutStepIds = [
   "cart",
+  "contact",
   "delivery",
   "data",
   "payment",
@@ -172,6 +252,18 @@ type DesktopCheckoutStep = (typeof checkoutSteps)[number]["id"];
 
 const stepIndex = (step: DesktopCheckoutStep) =>
   checkoutSteps.findIndex((candidate) => candidate.id === step);
+
+const getDesktopCheckoutStep = (step: CheckoutStep): DesktopCheckoutStep => {
+  if (step === "cart" || step === "contact") {
+    return "contact";
+  }
+
+  if (step === "success") {
+    return "payment";
+  }
+
+  return step;
+};
 
 const classNames = (...classes: Array<string | false | null | undefined>) =>
   classes.filter(Boolean).join(" ");
@@ -202,6 +294,36 @@ const isPaymentMethodId = (value: unknown): value is PaymentMethodId =>
 const isCheckoutStep = (value: unknown): value is CheckoutStep =>
   checkoutStepIds.includes(value as CheckoutStep);
 
+const isDeliveryCountry = (value: string): value is DeliveryCountry =>
+  deliveryCountries.includes(value as DeliveryCountry);
+
+const normalizeCountrySearch = (value: string) =>
+  value
+    .toLocaleLowerCase("pl-PL")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/ł/g, "l");
+
+const getDeliveryMethodsForCountry = (country: string) => {
+  const normalizedCountry = country.trim().toLowerCase();
+
+  if (!normalizedCountry) {
+    return deliveryMethods;
+  }
+
+  return deliveryMethods;
+};
+
+const getPaymentMethodsForCountry = (country: string) => {
+  const normalizedCountry = country.trim().toLowerCase();
+
+  if (!normalizedCountry) {
+    return paymentMethods;
+  }
+
+  return paymentMethods;
+};
+
 function MethodLogo({
   alt,
   className = "",
@@ -228,6 +350,49 @@ function MethodLogo({
         src={src}
         unoptimized={src.endsWith(".svg")}
       />
+    </span>
+  );
+}
+
+function DeliveryPrice({
+  align = "left",
+  compact = false,
+  cost,
+  method,
+}: {
+  align?: "left" | "right";
+  compact?: boolean;
+  cost: number;
+  method: DeliveryMethod;
+}) {
+  if (cost === 0) {
+    return (
+      <span
+        className={classNames(
+          "block font-bold text-browin-red",
+          compact ? "text-[11px]" : "text-[12px]",
+          align === "right" && "text-right",
+        )}
+      >
+        {method.price === 0 ? formatCurrency(0) : "Gratis"}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={classNames(
+        "block font-bold leading-tight text-browin-red",
+        compact ? "text-[11px]" : "text-[12px]",
+        align === "right" && "text-right",
+      )}
+    >
+      {method.previousPrice && cost === method.price ? (
+        <span className="mb-0.5 block text-[10px] font-bold text-browin-dark/45 line-through">
+          {formatCurrency(method.previousPrice)}
+        </span>
+      ) : null}
+      {formatCurrency(cost)}
     </span>
   );
 }
@@ -326,6 +491,180 @@ function CompactField({
       ) : hint ? (
         <p className="mt-1 text-[10px] leading-snug text-browin-dark/52" id={`${id}-hint`}>
           {hint}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+function CountryFlag({ country }: { country: DeliveryCountry }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="block h-4 w-6 overflow-hidden bg-contain bg-center bg-no-repeat"
+      style={{
+        backgroundImage: `url(https://flagcdn.com/${deliveryCountryCodes[country]}.svg)`,
+      }}
+    />
+  );
+}
+
+function CountrySelect({
+  error,
+  id,
+  label,
+  name,
+  onChange,
+  value,
+}: {
+  error?: string;
+  id: string;
+  label: string;
+  name: string;
+  onChange: (value: DeliveryCountry) => void;
+  value: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState("");
+  const searchRef = useRef<HTMLInputElement>(null);
+  const descriptionId = error ? `${id}-error` : undefined;
+  const selectedCountry = value.trim();
+  const selectedValue: DeliveryCountry | "" = isDeliveryCountry(selectedCountry)
+    ? selectedCountry
+    : "";
+  const normalizedQuery = normalizeCountrySearch(query.trim());
+  const filteredCountries = normalizedQuery
+    ? deliveryCountries.filter((country) =>
+        normalizeCountrySearch(country).includes(normalizedQuery),
+      )
+    : deliveryCountries;
+
+  useEffect(() => {
+    if (open) {
+      searchRef.current?.focus();
+    }
+  }, [open]);
+
+  const closeDropdown = () => {
+    setOpen(false);
+    setQuery("");
+  };
+
+  return (
+    <div
+      className="relative"
+      onBlur={(event) => {
+        const nextFocus =
+          event.relatedTarget instanceof Node ? event.relatedTarget : null;
+
+        if (!event.currentTarget.contains(nextFocus)) {
+          closeDropdown();
+        }
+      }}
+    >
+      <label
+        className="block text-[10px] font-bold uppercase tracking-[0.1em] text-browin-dark/58"
+        htmlFor={id}
+      >
+        {label}
+      </label>
+      <div className="relative mt-1">
+        <input name={name} type="hidden" value={selectedValue} />
+        <button
+          aria-controls={`${id}-listbox`}
+          aria-describedby={descriptionId}
+          aria-expanded={open}
+          aria-haspopup="listbox"
+          className={classNames(
+            "grid min-h-10 w-full grid-cols-[1.75rem_minmax(0,1fr)_auto] items-center gap-2 border bg-browin-white px-2.5 py-2 text-left text-[13px] font-bold text-browin-dark outline-none transition-colors focus:border-browin-red focus:ring-2 focus:ring-browin-red/12",
+            error ? "border-browin-red bg-browin-red/5" : "border-browin-dark/12",
+          )}
+          id={id}
+          onClick={() => setOpen((current) => !current)}
+          onKeyDown={(event) => {
+            if (event.key === "ArrowDown" || event.key === "Enter" || event.key === " ") {
+              event.preventDefault();
+              setOpen(true);
+            }
+          }}
+          type="button"
+        >
+          {selectedValue ? (
+            <CountryFlag country={selectedValue} />
+          ) : (
+            <span aria-hidden="true" className="block h-5 w-7 opacity-0" />
+          )}
+          <span className={classNames("truncate", !selectedValue && "text-browin-dark/42")}>
+            {selectedValue || "Wybierz kraj dostawy"}
+          </span>
+          <CaretDown
+            aria-hidden="true"
+            className={classNames(
+              "text-browin-dark/48 transition-transform",
+              open && "rotate-180",
+            )}
+            size={16}
+            weight="bold"
+          />
+        </button>
+        {open ? (
+          <div className="absolute left-0 right-0 z-40 mt-1 border border-browin-dark/12 bg-browin-white shadow-sharp">
+            <div className="border-b border-browin-dark/10 p-2">
+              <input
+                aria-label="Szukaj kraju dostawy"
+                className="min-h-10 w-full border border-browin-dark/12 bg-browin-gray px-2.5 py-2 text-[13px] font-bold text-browin-dark outline-none transition-colors placeholder:text-browin-dark/38 focus:border-browin-red focus:ring-2 focus:ring-browin-red/12"
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Szukaj kraju"
+                ref={searchRef}
+                value={query}
+              />
+            </div>
+            <div
+              className="checkout-scrollbar max-h-60 overflow-y-auto py-1"
+              id={`${id}-listbox`}
+              role="listbox"
+            >
+              {filteredCountries.length ? (
+                filteredCountries.map((country) => {
+                  const selected = country === selectedValue;
+
+                  return (
+                    <button
+                      aria-selected={selected}
+                      className={classNames(
+                        "grid min-h-10 w-full grid-cols-[1.75rem_minmax(0,1fr)_1.25rem] items-center gap-2 px-3 text-left text-[13px] font-bold transition-colors hover:bg-browin-red/5 hover:text-browin-red focus-visible:bg-browin-red/5 focus-visible:text-browin-red focus-visible:outline-none",
+                        selected ? "text-browin-red" : "text-browin-dark",
+                      )}
+                      key={country}
+                      onClick={() => {
+                        onChange(country);
+                        closeDropdown();
+                      }}
+                      role="option"
+                      type="button"
+                    >
+                      <CountryFlag country={country} />
+                      <span className="truncate">{country}</span>
+                      {selected ? <Check size={15} weight="bold" /> : null}
+                    </button>
+                  );
+                })
+              ) : (
+                <p className="px-3 py-3 text-[12px] font-bold text-browin-dark/52">
+                  Brak kraju na liście dostaw.
+                </p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </div>
+      {error ? (
+        <p
+          className="mt-1 flex items-start gap-1 text-[10px] font-bold leading-snug text-browin-red"
+          id={`${id}-error`}
+        >
+          <WarningCircle className="mt-0.5 shrink-0" size={12} weight="fill" />
+          {error}
         </p>
       ) : null}
     </div>
@@ -458,7 +797,9 @@ function OrderSummary({
   subtotal: number;
   total: number;
 }) {
-  const selectedDelivery = deliveryMethods.find((method) => method.id === deliveryMethodId);
+  const selectedDelivery: DeliveryMethod | undefined = deliveryMethods.find(
+    (method) => method.id === deliveryMethodId,
+  );
 
   return (
     <div>
@@ -582,9 +923,19 @@ export function CheckoutFlow() {
   const summaryTotal = order?.total ?? total;
   const mobileErrorMessage = Object.values(errors)[0] ?? null;
   const lastRemovedLine = removedLines.at(-1) ?? null;
+  const selectedCountry = form.country.trim();
+  const countryForMethods = isDeliveryCountry(selectedCountry)
+    ? selectedCountry
+    : defaultForm.country;
+  const availableDeliveryMethods = getDeliveryMethodsForCountry(countryForMethods);
+  const availablePaymentMethods = getPaymentMethodsForCountry(countryForMethods);
 
-  const selectedDelivery = deliveryMethods.find((method) => method.id === deliveryMethodId);
-  const selectedPayment = paymentMethods.find((method) => method.id === paymentMethodId);
+  const selectedDelivery: DeliveryMethod | undefined = availableDeliveryMethods.find(
+    (method) => method.id === deliveryMethodId,
+  );
+  const selectedPayment = availablePaymentMethods.find(
+    (method) => method.id === paymentMethodId,
+  );
   const selectedDeliveryRequiresPoint = Boolean(selectedDelivery?.requiresPoint);
 
   useEffect(() => {
@@ -1069,9 +1420,33 @@ export function CheckoutFlow() {
     setDiscountError(null);
   };
 
+  const getContactErrors = () => {
+    const nextErrors: Partial<Record<CheckoutField, string>> = {};
+
+    if (!isValidEmail(form.email)) {
+      nextErrors.email = "Podaj poprawny adres e-mail.";
+    }
+
+    const country = form.country.trim();
+
+    if (!country) {
+      nextErrors.country = "Wybierz kraj dostawy.";
+    } else if (!isDeliveryCountry(country)) {
+      nextErrors.country = "Wybierz kraj z listy obsługiwanych dostaw.";
+    }
+
+    if (!form.termsAccepted) {
+      nextErrors.termsAccepted = "Akceptacja regulaminu i polityki prywatności jest wymagana.";
+    }
+
+    return nextErrors;
+  };
+
   const getDeliveryMethodErrors = () => {
     const nextErrors: Partial<Record<CheckoutField, string>> = {};
-    const delivery = deliveryMethods.find((method) => method.id === deliveryMethodId);
+    const delivery: DeliveryMethod | undefined = availableDeliveryMethods.find(
+      (method) => method.id === deliveryMethodId,
+    );
 
     if (delivery?.requiresPoint && !form.inpostPoint.trim()) {
       nextErrors.inpostPoint = `Wybierz ${delivery.pointLabel ?? "punkt odbioru"}.`;
@@ -1083,7 +1458,6 @@ export function CheckoutFlow() {
   const getDeliveryDataErrors = () => {
     const nextErrors: Partial<Record<CheckoutField, string>> = {};
 
-    if (!isValidEmail(form.email)) nextErrors.email = "Podaj poprawny adres e-mail.";
     if (!isValidPolishPhone(form.phone)) {
       nextErrors.phone = "Podaj 9-cyfrowy numer telefonu, np. 501 222 333.";
     }
@@ -1095,7 +1469,6 @@ export function CheckoutFlow() {
       nextErrors.postalCode = "Podaj kod w formacie 00-000.";
     }
     if (!form.city.trim()) nextErrors.city = "Podaj miasto.";
-    if (!form.country.trim()) nextErrors.country = "Podaj kraj dostawy.";
 
     if (form.wantsInvoice) {
       if (!form.companyName.trim()) nextErrors.companyName = "Podaj nazwę firmy.";
@@ -1128,6 +1501,9 @@ export function CheckoutFlow() {
     }
     return Object.keys(nextErrors).length === 0;
   };
+
+  const validateContact = ({ focusMobile = false } = {}) =>
+    validateErrors(getContactErrors(), { focusMobile });
 
   const validateDeliveryMethod = ({ focusMobile = false } = {}) =>
     validateErrors(getDeliveryMethodErrors(), { focusMobile });
@@ -1198,16 +1574,51 @@ export function CheckoutFlow() {
     });
   };
 
-  const handleDesktopExpressSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleDesktopWizardSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    const nextErrors = {
-      ...getDeliveryMethodErrors(),
-      ...getDeliveryDataErrors(),
-      ...getPaymentErrors(),
-    };
+    if (!items.length || isSubmitting) {
+      return;
+    }
 
-    if (!validateErrors(nextErrors)) {
+    const desktopStep = getDesktopCheckoutStep(currentStep);
+
+    if (desktopStep === "contact") {
+      if (validateContact()) {
+        setCurrentStep("delivery");
+      }
+      return;
+    }
+
+    if (desktopStep === "delivery") {
+      if (validateDeliveryMethod()) {
+        setCurrentStep("data");
+      }
+      return;
+    }
+
+    if (desktopStep === "data") {
+      if (validateDeliveryData()) {
+        setCurrentStep("payment");
+      }
+      return;
+    }
+
+    const contactErrors = getContactErrors();
+    if (!validateErrors(contactErrors)) {
+      setCurrentStep("contact");
+      return;
+    }
+
+    const deliveryMethodErrors = getDeliveryMethodErrors();
+    if (!validateErrors(deliveryMethodErrors)) {
+      setCurrentStep("delivery");
+      return;
+    }
+
+    const deliveryDataErrors = getDeliveryDataErrors();
+    if (!validateErrors(deliveryDataErrors)) {
+      setCurrentStep("data");
       return;
     }
 
@@ -1237,10 +1648,17 @@ export function CheckoutFlow() {
   );
 
   const renderProgress = () => {
-    const desktopCurrentStep: CheckoutStep =
-      currentStep === "data" ? "delivery" : currentStep;
+    const desktopCurrentStep = getDesktopCheckoutStep(currentStep);
     const activeIndex =
-      desktopCurrentStep === "success" ? checkoutSteps.length : stepIndex(desktopCurrentStep);
+      currentStep === "success" ? checkoutSteps.length : stepIndex(desktopCurrentStep);
+    const clampedActiveIndex = Math.max(
+      0,
+      Math.min(activeIndex, checkoutSteps.length - 1),
+    );
+    const activeStep = checkoutSteps[clampedActiveIndex];
+    const desktopProgressWidth = `${
+      ((clampedActiveIndex + 1) / checkoutSteps.length) * 100
+    }%`;
 
     if (currentStep === "success") {
       return (
@@ -1271,10 +1689,24 @@ export function CheckoutFlow() {
     }
 
     return (
-      <nav aria-label="Etapy checkoutu" className="mb-6 border border-browin-dark/10 bg-browin-white p-3 shadow-sm">
-        <ol className="grid grid-cols-3 gap-2">
+      <nav
+        aria-label="Etapy checkoutu"
+        className="mb-3 border border-browin-dark/10 bg-browin-white px-4 py-3 shadow-sm"
+      >
+        <div className="mb-3 min-w-0">
+          <div className="min-w-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
+              Checkout
+            </p>
+            <p className="mt-0.5 truncate text-sm font-bold text-browin-dark">
+              Etap {activeIndex + 1} z {checkoutSteps.length}: {activeStep.label}
+            </p>
+          </div>
+        </div>
+
+        <ol className="grid grid-cols-4 gap-1.5">
           {checkoutSteps.map((step, index) => {
-            const isActive = step.id === currentStep;
+            const isActive = step.id === desktopCurrentStep;
             const isComplete = index < activeIndex;
             const canNavigate = index < activeIndex;
 
@@ -1283,27 +1715,44 @@ export function CheckoutFlow() {
                 <button
                   aria-current={isActive ? "step" : undefined}
                   className={classNames(
-                    "flex min-h-14 w-full flex-col items-start justify-center border px-2.5 py-2 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red md:px-4",
+                    "grid w-full grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-2 px-1 py-1 text-left transition-colors disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red",
                     isActive
-                      ? "border-browin-red bg-browin-red text-browin-white"
+                      ? "text-browin-red"
                       : isComplete
-                        ? "border-browin-red/35 bg-browin-red/5 text-browin-dark"
-                        : "border-browin-dark/10 bg-browin-gray text-browin-dark/48",
-                    canNavigate && "hover:border-browin-red hover:text-browin-red",
+                        ? "text-browin-dark"
+                        : "text-browin-dark/42",
+                    canNavigate && "hover:text-browin-red",
                   )}
-                  disabled={!canNavigate}
+                  disabled={!canNavigate && !isActive}
                   onClick={() => setCurrentStep(step.id)}
                   type="button"
                 >
-                  <span className="text-[10px] font-bold uppercase tracking-[0.14em]">
-                    {String(index + 1).padStart(2, "0")}
+                  <span
+                    className={classNames(
+                      "flex h-7 w-7 items-center justify-center text-[11px] font-bold",
+                      isActive
+                        ? "bg-browin-red text-browin-white"
+                        : isComplete
+                          ? "bg-browin-red/10 text-browin-red"
+                          : "bg-browin-gray text-browin-dark/42",
+                    )}
+                  >
+                    {isComplete ? <Check size={14} weight="bold" /> : index + 1}
                   </span>
-                  <span className="mt-1 text-[11px] font-bold md:text-sm">{step.label}</span>
+                  <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.08em] md:text-xs">
+                    {step.label}
+                  </span>
                 </button>
               </li>
             );
           })}
         </ol>
+        <div className="mt-3 h-1 bg-browin-dark/10" aria-hidden="true">
+          <span
+            className="block h-full bg-browin-red transition-[width]"
+            style={{ width: desktopProgressWidth }}
+          />
+        </div>
       </nav>
     );
   };
@@ -1687,113 +2136,39 @@ export function CheckoutFlow() {
           <div className="xl:mt-auto">
             <FreeShippingMeter compact discountedSubtotal={discountedSubtotal} />
           </div>
+
+          <div className="grid gap-1 border-t border-browin-dark/10 pt-2 text-[12px]">
+            <div className="flex items-center justify-between gap-3 text-browin-dark/62">
+              <span>Produkty</span>
+              <span>{formatCurrency(subtotal)}</span>
+            </div>
+            {discount ? (
+              <div className="flex items-center justify-between gap-3 text-browin-red">
+                <span>Rabat</span>
+                <span>-{formatCurrency(discount.amount)}</span>
+              </div>
+            ) : null}
+            <div className="flex items-center justify-between gap-3 text-browin-dark/62">
+              <span>Dostawa</span>
+              <span>{deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-3 border-t border-browin-dark/10 pt-1.5 text-lg font-bold text-browin-dark">
+              <span>Razem</span>
+              <span>{formatCurrency(total)}</span>
+            </div>
+          </div>
         </div>
       ),
     });
   };
 
-  const renderDesktopDeliveryPanel = () =>
+  const renderDesktopContactPanel = () =>
     renderDesktopSection({
-      eyebrow: "Dostawa",
-      title: "Metoda dostawy",
-      action: selectedDelivery ? (
-        <span className="shrink-0 text-[12px] font-bold text-browin-red">
-          {deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}
-        </span>
-      ) : null,
+      eyebrow: "Kontakt",
+      title: "Kontakt i kraj dostawy",
       children: (
         <div className="grid gap-3">
-          <div className="grid gap-2 lg:grid-cols-3">
-            {deliveryMethods.map((method) => {
-              const DeliveryIcon = getDeliveryIcon(method.id);
-              const checked = deliveryMethodId === method.id;
-              const methodCost = calculateDeliveryCost({
-                deliveryMethodId: method.id,
-                discountedSubtotal,
-              });
-
-              return (
-                <label
-                  className={classNames(
-                    "grid min-h-[5rem] cursor-pointer grid-cols-[2.25rem_minmax(0,1fr)] gap-2.5 border bg-browin-white p-3 transition-colors hover:border-browin-red/45",
-                    checked ? "border-browin-red" : "border-browin-dark/10",
-                  )}
-                  htmlFor={`desktop-delivery-${method.id}`}
-                  key={method.id}
-                >
-                  <input
-                    checked={checked}
-                    className="sr-only"
-                    id={`desktop-delivery-${method.id}`}
-                    name="desktop-delivery-method"
-                    onChange={() => selectDeliveryMethod(method.id)}
-                    type="radio"
-                  />
-                  <span
-                    className={classNames(
-                      "flex h-9 w-9 items-center justify-center border",
-                      "border-browin-dark/10 bg-browin-gray text-browin-red",
-                    )}
-                    aria-hidden="true"
-                  >
-                    <DeliveryIcon size={19} />
-                  </span>
-                  <span className="min-w-0">
-                    <span className="block min-w-0 text-[12px] font-bold leading-tight text-browin-dark">
-                      {method.name}
-                    </span>
-                    <span className="mt-1 block text-[11px] font-bold text-browin-red">
-                      {methodCost === 0 ? "Gratis" : formatCurrency(methodCost)}
-                    </span>
-                  </span>
-                </label>
-              );
-            })}
-          </div>
-
-          {deliveryMethodId === "inpost" ? (
-            <div
-              className={classNames(
-                "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border p-2.5",
-                errors.inpostPoint
-                  ? "border-browin-red bg-browin-red/5"
-                  : "border-browin-dark/10 bg-browin-white",
-              )}
-            >
-              <div className="min-w-0">
-                <p className="truncate text-[12px] font-bold text-browin-dark">
-                  {form.inpostPoint || "Wybierz Paczkomat"}
-                </p>
-                <p className="mt-0.5 text-[10px] leading-snug text-browin-dark/52">
-                  Najbliższy punkt odbioru dla przesyłki InPost.
-                </p>
-                {errors.inpostPoint ? (
-                  <p className="mt-1 text-[10px] font-bold text-browin-red">
-                    {errors.inpostPoint}
-                  </p>
-                ) : null}
-              </div>
-              <button
-                className="min-h-9 border border-browin-red bg-browin-white px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white"
-                id="desktop-inpost-point-button"
-                onClick={() => updateFormField("inpostPoint", "LOD01A • ul. Piotrkowska 120")}
-                type="button"
-              >
-                Wybierz
-              </button>
-            </div>
-          ) : null}
-        </div>
-      ),
-    });
-
-  const renderDesktopDataPanel = () =>
-    renderDesktopSection({
-      eyebrow: "Dane",
-      title: "Kontakt i adres",
-      children: (
-        <div className="grid gap-3">
-          <div className="grid gap-2 lg:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             <CompactField
               autoComplete="email"
               autoCapitalize="none"
@@ -1809,6 +2184,175 @@ export function CheckoutFlow() {
               type="email"
               value={form.email}
             />
+            <CountrySelect
+              error={errors.country}
+              id="desktop-country"
+              label="Kraj dostawy"
+              name="desktop-country-name"
+              onChange={(country) => updateFormField("country", country)}
+              value={form.country}
+            />
+          </div>
+
+          <label
+            className={classNames(
+              "grid cursor-pointer grid-cols-[1.35rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug",
+              errors.termsAccepted
+                ? "border-browin-red bg-browin-red/5"
+                : "border-browin-dark/10",
+            )}
+            htmlFor="desktop-contact-terms"
+          >
+            <input
+              aria-invalid={Boolean(errors.termsAccepted)}
+              checked={form.termsAccepted}
+              className="mt-0.5 h-4 w-4 accent-browin-red"
+              id="desktop-contact-terms"
+              onChange={(event) =>
+                updateFormField("termsAccepted", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span>
+              Akceptuję{" "}
+              <Link
+                className="font-bold text-browin-red underline underline-offset-2"
+                href="/regulamin"
+              >
+                regulamin
+              </Link>{" "}
+              oraz{" "}
+              <Link
+                className="font-bold text-browin-red underline underline-offset-2"
+                href="/polityka-prywatnosci"
+              >
+                politykę prywatności sklepu
+              </Link>
+              .
+              {errors.termsAccepted ? (
+                <span className="mt-1 block text-[10px] font-bold text-browin-red">
+                  {errors.termsAccepted}
+                </span>
+              ) : null}
+            </span>
+          </label>
+        </div>
+      ),
+    });
+
+  const renderDesktopDeliveryPanel = () =>
+    renderDesktopSection({
+      eyebrow: "Dostawa",
+      title: "Metoda dostawy",
+      action: selectedDelivery ? (
+        <span className="shrink-0 text-[12px] font-bold text-browin-red">
+          {deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}
+        </span>
+      ) : null,
+      children: (
+        <div className="grid gap-3">
+          <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+            {availableDeliveryMethods.map((method) => {
+              const checked = deliveryMethodId === method.id;
+              const methodCost = calculateDeliveryCost({
+                deliveryMethodId: method.id,
+                discountedSubtotal,
+              });
+
+              return (
+                <label
+                  className={classNames(
+                    "grid min-h-[6.35rem] cursor-pointer content-between gap-2 border bg-browin-white p-2.5 transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
+                    checked ? "border-browin-red bg-browin-red/5" : "border-browin-dark/10",
+                  )}
+                  htmlFor={`desktop-delivery-${method.id}`}
+                  key={method.id}
+                  title={method.hint}
+                >
+                  <input
+                    checked={checked}
+                    className="sr-only"
+                    id={`desktop-delivery-${method.id}`}
+                    name="desktop-delivery-method"
+                    onChange={() => selectDeliveryMethod(method.id)}
+                    type="radio"
+                  />
+                  <span className="flex items-start justify-between gap-2">
+                    <MethodLogo
+                      alt={method.logoAlt}
+                      className="h-8 w-16 p-1"
+                      sizes="64px"
+                      src={method.logoSrc}
+                    />
+                    {checked ? (
+                      <span
+                        aria-hidden="true"
+                        className="flex h-5 w-5 shrink-0 items-center justify-center bg-browin-red text-browin-white"
+                      >
+                        <Check size={12} weight="bold" />
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="min-w-0">
+                    <span className="line-clamp-2 min-w-0 text-[11px] font-bold leading-tight text-browin-dark">
+                      {method.name}
+                    </span>
+                    <DeliveryPrice compact cost={methodCost} method={method} />
+                  </span>
+                </label>
+              );
+            })}
+          </div>
+
+          {selectedDeliveryRequiresPoint && selectedDelivery ? (
+            <div
+              className={classNames(
+                "grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 border p-2.5",
+                errors.inpostPoint
+                  ? "border-browin-red bg-browin-red/5"
+                  : "border-browin-dark/10 bg-browin-white",
+              )}
+            >
+              <div className="min-w-0">
+                <p className="truncate text-[12px] font-bold text-browin-dark">
+                  {form.inpostPoint ||
+                    `Wybierz ${selectedDelivery.pointLabel ?? "punkt odbioru"}`}
+                </p>
+                <p className="mt-0.5 text-[10px] leading-snug text-browin-dark/52">
+                  {selectedDelivery.name}: wskaż punkt odbioru dla tej metody dostawy.
+                </p>
+                {errors.inpostPoint ? (
+                  <p className="mt-1 text-[10px] font-bold text-browin-red">
+                    {errors.inpostPoint}
+                  </p>
+                ) : null}
+              </div>
+              <button
+                className="min-h-9 border border-browin-red bg-browin-white px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white"
+                id="desktop-inpost-point-button"
+                onClick={() =>
+                  updateFormField(
+                    "inpostPoint",
+                    `${selectedDelivery.name} • LOD01A • ul. Piotrkowska 120`,
+                  )
+                }
+                type="button"
+              >
+                Wybierz
+              </button>
+            </div>
+          ) : null}
+        </div>
+      ),
+    });
+
+  const renderDesktopDataPanel = () =>
+    renderDesktopSection({
+      eyebrow: "Dane",
+      title: "Telefon i adres",
+      children: (
+        <div className="grid gap-3">
+          <div className="grid gap-2 lg:grid-cols-2">
             <CompactField
               autoComplete="tel"
               enterKeyHint="next"
@@ -1991,9 +2535,9 @@ export function CheckoutFlow() {
 
   const renderDesktopPaymentPanel = () => {
     const visiblePaymentMethods = desktopPaymentMoreOpen
-      ? paymentMethods
-      : paymentMethods.slice(0, 3);
-    const hiddenPaymentMethods = paymentMethods.slice(3);
+      ? availablePaymentMethods
+      : availablePaymentMethods.slice(0, 4);
+    const hiddenPaymentMethods = availablePaymentMethods.slice(4);
     const hiddenPaymentMethodCount = hiddenPaymentMethods.length;
     const hiddenPaymentSelected = hiddenPaymentMethods.some(
       (method) => method.id === paymentMethodId,
@@ -2005,27 +2549,19 @@ export function CheckoutFlow() {
       title: "Finalizacja",
       children: (
         <div className="checkout-scrollbar grid gap-3 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto xl:pr-1">
-          <div
-            className={classNames(
-              "grid gap-2",
-              desktopPaymentMoreOpen ? "grid-cols-4" : "grid-cols-2",
-            )}
-          >
+          <div className="grid grid-cols-2 gap-2">
             {visiblePaymentMethods.map((method) => {
-              const PaymentIcon = getPaymentIcon(method.id);
               const checked = paymentMethodId === method.id;
 
               return (
                 <label
                   className={classNames(
-                    "grid cursor-pointer content-between border bg-browin-white transition-colors hover:border-browin-red/45",
-                    desktopPaymentMoreOpen
-                      ? "min-h-[4rem] p-2"
-                      : "min-h-[4.75rem] p-3",
+                    "grid min-h-[4.75rem] cursor-pointer content-start gap-1.5 border bg-browin-white px-2.5 pb-1.5 pt-2.5 transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
                     checked ? "border-browin-red bg-browin-red/5" : "border-browin-dark/10",
                   )}
                   htmlFor={`desktop-payment-${method.id}`}
                   key={method.id}
+                  title={method.detail}
                 >
                   <input
                     checked={checked}
@@ -2036,25 +2572,22 @@ export function CheckoutFlow() {
                     type="radio"
                   />
                   <span className="flex items-center justify-between gap-2">
-                    <PaymentIcon
-                      className="text-browin-red"
-                      size={desktopPaymentMoreOpen ? 15 : 18}
-                      weight={checked ? "fill" : "regular"}
+                    <MethodLogo
+                      alt={method.logoAlt}
+                      className="h-7 w-16 p-1"
+                      sizes="64px"
+                      src={method.logoSrc}
                     />
                     {checked ? (
                       <Check
                         className="text-browin-red"
-                        size={desktopPaymentMoreOpen ? 12 : 14}
+                        size={14}
+                        weight="bold"
                       />
                     ) : null}
                   </span>
-                  <span
-                    className={classNames(
-                      "mt-2 font-bold leading-tight text-browin-dark",
-                      desktopPaymentMoreOpen ? "text-[10px]" : "text-[12px]",
-                    )}
-                  >
-                    {method.id === "blik" ? "BLIK" : method.name}
+                  <span className="line-clamp-2 text-[10px] font-bold leading-tight text-browin-dark">
+                    {method.shortName}
                   </span>
                 </label>
               );
@@ -2064,7 +2597,7 @@ export function CheckoutFlow() {
               <button
                 aria-expanded={desktopPaymentMoreOpen}
                 className={classNames(
-                  "grid min-h-[4.75rem] w-full content-center border p-3 text-center transition-colors hover:border-browin-red/45",
+                  "grid min-h-[4.25rem] w-full content-center border p-3 text-center transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
                   hiddenPaymentSelected
                     ? "border-browin-red bg-browin-red/5"
                     : "border-browin-dark/10 bg-browin-gray",
@@ -2082,7 +2615,18 @@ export function CheckoutFlow() {
             ) : null}
           </div>
 
-          {paymentMethodId === "blik" ? (
+          {selectedPayment ? (
+            <div className="border border-browin-dark/10 bg-browin-gray p-2.5">
+              <p className="text-[11px] font-bold leading-tight text-browin-dark">
+                {selectedPayment.name}
+              </p>
+              <p className="mt-1 text-[10px] leading-snug text-browin-dark/58">
+                {selectedPayment.detail}
+              </p>
+            </div>
+          ) : null}
+
+          {paymentMethodId === "IMOJE_BLIK" ? (
             <CompactField
               autoComplete="one-time-code"
               enterKeyHint="done"
@@ -2126,7 +2670,14 @@ export function CheckoutFlow() {
               <Link className="font-bold text-browin-red underline underline-offset-2" href="/regulamin">
                 regulamin
               </Link>{" "}
-              i politykę prywatności.
+              oraz{" "}
+              <Link
+                className="font-bold text-browin-red underline underline-offset-2"
+                href="/polityka-prywatnosci"
+              >
+                politykę prywatności sklepu
+              </Link>
+              .
               {errors.termsAccepted ? (
                 <span className="mt-1 block text-[10px] font-bold text-browin-red">
                   {errors.termsAccepted}
@@ -2170,26 +2721,96 @@ export function CheckoutFlow() {
             </div>
           </div>
 
-          <button
-            className="checkout-cta inline-flex min-h-11 w-full items-center justify-center gap-2 bg-browin-red px-4 text-xs font-bold uppercase tracking-[0.12em] text-browin-white shadow-sharp transition-colors disabled:cursor-not-allowed disabled:bg-browin-dark/35"
-            disabled={isSubmitting || !items.length}
-            type="submit"
-          >
-            {isSubmitting ? (
-              <>
-                <SpinnerGap className="animate-spin" size={16} />
-                Finalizuję...
-              </>
-            ) : (
-              <>
-                <ShoppingBagOpen size={16} weight="fill" />
-                Zamawiam i płacę
-              </>
-            )}
-          </button>
         </div>
       ),
     });
+  };
+
+  const getDesktopCtaLabel = () => {
+    if (isSubmitting) return "Finalizuję...";
+
+    const desktopStep = getDesktopCheckoutStep(currentStep);
+
+    if (desktopStep === "contact") return "Wybierz metodę dostawy";
+    if (desktopStep === "delivery") return "Uzupełnij dane kontaktowe";
+    if (desktopStep === "data") return "Wybierz metodę płatności";
+    return "Zamawiam i płacę";
+  };
+
+  const handleDesktopBack = () => {
+    const desktopStep = getDesktopCheckoutStep(currentStep);
+
+    setErrors({});
+
+    if (desktopStep === "payment") {
+      setCurrentStep("data");
+      return;
+    }
+
+    if (desktopStep === "data") {
+      setCurrentStep("delivery");
+      return;
+    }
+
+    if (desktopStep === "delivery") {
+      setCurrentStep("contact");
+    }
+  };
+
+  const renderDesktopWizardControls = () => {
+    const desktopStep = getDesktopCheckoutStep(currentStep);
+    const canGoBack = desktopStep !== "contact";
+
+    return (
+      <div
+        className={classNames(
+          "grid gap-3 md:sticky md:bottom-3 md:z-20 xl:static",
+          canGoBack ? "sm:grid-cols-[11rem_minmax(0,1fr)]" : "sm:grid-cols-1",
+        )}
+      >
+        {canGoBack ? (
+          <button
+            className="inline-flex min-h-14 items-center justify-center gap-2 border border-browin-dark/14 bg-browin-white px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red"
+            disabled={isSubmitting}
+            onClick={handleDesktopBack}
+            type="button"
+          >
+            <ArrowLeft size={22} weight="bold" />
+            Wstecz
+          </button>
+        ) : null}
+        <button
+          className="checkout-cta inline-flex min-h-14 w-full items-center justify-center gap-2 bg-browin-red px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-white shadow-sharp transition-colors disabled:cursor-not-allowed disabled:bg-browin-dark/35"
+          disabled={isSubmitting || !items.length}
+          type="submit"
+        >
+          {isSubmitting ? (
+            <SpinnerGap className="animate-spin" size={16} />
+          ) : desktopStep === "payment" ? (
+            <ShoppingBagOpen size={16} weight="fill" />
+          ) : (
+            <ArrowRight size={16} weight="bold" />
+          )}
+          {getDesktopCtaLabel()}
+        </button>
+      </div>
+    );
+  };
+
+  const renderDesktopActivePanel = () => {
+    const desktopStep = getDesktopCheckoutStep(currentStep);
+
+    return (
+      <div className="grid min-w-0 gap-3 xl:h-full xl:max-h-full xl:min-h-0 xl:self-stretch xl:grid-rows-[minmax(0,1fr)_auto]">
+        <div className="checkout-scrollbar grid min-w-0 content-start gap-3 xl:min-h-0 xl:overflow-y-auto xl:pr-1">
+          {desktopStep === "contact" ? renderDesktopContactPanel() : null}
+          {desktopStep === "delivery" ? renderDesktopDeliveryPanel() : null}
+          {desktopStep === "data" ? renderDesktopDataPanel() : null}
+          {desktopStep === "payment" ? renderDesktopPaymentPanel() : null}
+        </div>
+        {renderDesktopWizardControls()}
+      </div>
+    );
   };
 
   const renderDesktopExpressCheckout = () => {
@@ -2225,12 +2846,13 @@ export function CheckoutFlow() {
 
     return (
       <section className="hidden bg-browin-gray py-3 md:block xl:h-full xl:min-h-0 xl:overflow-hidden">
-        <div className="container mx-auto h-full px-4">
+        <div className="container mx-auto flex h-full flex-col px-4">
+          {renderProgress()}
           <form
             autoComplete="on"
-            className="grid gap-3 xl:h-full xl:min-h-0 xl:grid-cols-[minmax(17rem,0.85fr)_minmax(28rem,1.35fr)_minmax(18rem,0.9fr)] xl:grid-rows-[minmax(0,1fr)] xl:items-start"
+            className="grid gap-3 xl:min-h-0 xl:flex-1 xl:grid-cols-[minmax(17rem,0.85fr)_minmax(30rem,1.65fr)] xl:grid-rows-[minmax(0,1fr)] xl:items-start"
             noValidate
-            onSubmit={handleDesktopExpressSubmit}
+            onSubmit={handleDesktopWizardSubmit}
           >
             <h1 className="sr-only" ref={headingRef} tabIndex={-1}>
               Ekspresowe zamówienie BROWIN
@@ -2240,14 +2862,7 @@ export function CheckoutFlow() {
               {renderDesktopOrderPanel()}
             </aside>
 
-            <div className="checkout-scrollbar grid min-w-0 content-start gap-3 xl:h-full xl:max-h-full xl:min-h-0 xl:overflow-y-auto xl:pr-1">
-              {renderDesktopDeliveryPanel()}
-              {renderDesktopDataPanel()}
-            </div>
-
-            <aside className="min-w-0 xl:sticky xl:top-0 xl:h-full xl:max-h-full xl:min-h-0 xl:overflow-hidden xl:self-start">
-              {renderDesktopPaymentPanel()}
-            </aside>
+            {renderDesktopActivePanel()}
           </form>
         </div>
       </section>
@@ -2311,7 +2926,15 @@ export function CheckoutFlow() {
     if (currentStep === "cart") {
       setErrors({});
       setMobileOrderOpen(false);
-      setCurrentStep("delivery");
+      setCurrentStep("contact");
+      return;
+    }
+
+    if (currentStep === "contact") {
+      if (validateContact({ focusMobile: true })) {
+        setMobileOrderOpen(false);
+        setCurrentStep("delivery");
+      }
       return;
     }
 
@@ -2328,6 +2951,12 @@ export function CheckoutFlow() {
         setMobileOrderOpen(false);
         setCurrentStep("payment");
       }
+      return;
+    }
+
+    if (!validateContact()) {
+      setCurrentStep("contact");
+      window.setTimeout(() => validateContact({ focusMobile: true }), 80);
       return;
     }
 
@@ -2364,15 +2993,21 @@ export function CheckoutFlow() {
     }
 
     if (currentStep === "delivery") {
+      setCurrentStep("contact");
+      return;
+    }
+
+    if (currentStep === "contact") {
       setCurrentStep("cart");
     }
   };
 
   const getMobileCtaLabel = () => {
     if (isSubmitting) return "Finalizuję...";
-    if (currentStep === "cart") return "Do dostawy";
-    if (currentStep === "delivery") return "Do danych";
-    if (currentStep === "data") return "Do płatności";
+    if (currentStep === "cart") return "Do kontaktu";
+    if (currentStep === "contact") return "Wybierz dostawę";
+    if (currentStep === "delivery") return "Uzupełnij dane";
+    if (currentStep === "data") return "Wybierz płatność";
     return "Zamawiam i płacę";
   };
 
@@ -2905,10 +3540,117 @@ export function CheckoutFlow() {
     );
   };
 
+  const renderMobileContact = () =>
+    renderMobileSection({
+      complete:
+        isValidEmail(form.email) &&
+        isDeliveryCountry(form.country.trim()) &&
+        form.termsAccepted,
+      eyebrow: "Kontakt",
+      id: "mobile-contact",
+      title: "Kontakt i zgody",
+      children: (
+        <form
+          autoComplete="on"
+          className="grid gap-3"
+          noValidate
+          onSubmit={(event) => event.preventDefault()}
+        >
+          <h1 className="sr-only" ref={headingRef} tabIndex={-1}>
+            Kontakt do zamówienia
+          </h1>
+          <div className="border border-browin-red/20 bg-browin-red/5 p-3">
+            <p className="text-[12px] font-bold leading-tight text-browin-dark">
+              Podaj e-mail i kraj, zanim wybierzesz dostawę.
+            </p>
+            <p className="mt-1 text-[11px] leading-snug text-browin-dark/58">
+              Dzięki temu checkout może dobrać właściwe metody w kolejnych krokach.
+            </p>
+          </div>
+          <div className="grid gap-2">
+            <CompactField
+              autoComplete="email"
+              autoCapitalize="none"
+              enterKeyHint="next"
+              error={errors.email}
+              id="mobile-email"
+              inputMode="email"
+              label="E-mail"
+              name="email"
+              onChange={(event) => updateFormField("email", event.target.value)}
+              placeholder="adres@email.pl"
+              spellCheck={false}
+              type="email"
+              value={form.email}
+            />
+            <CountrySelect
+              error={errors.country}
+              id="mobile-country"
+              label="Kraj dostawy"
+              name="country-name"
+              onChange={(country) => updateFormField("country", country)}
+              value={form.country}
+            />
+          </div>
+          <label
+            className={classNames(
+              "grid min-h-12 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug",
+              errors.termsAccepted
+                ? "border-browin-red bg-browin-red/5"
+                : "border-browin-dark/10",
+            )}
+            htmlFor="mobile-terms"
+          >
+            <input
+              aria-describedby={
+                errors.termsAccepted ? "mobile-inline-error-message" : undefined
+              }
+              aria-invalid={Boolean(errors.termsAccepted)}
+              checked={form.termsAccepted}
+              className="peer sr-only"
+              id="mobile-terms"
+              onChange={(event) =>
+                updateFormField("termsAccepted", event.target.checked)
+              }
+              type="checkbox"
+            />
+            <span
+              aria-hidden="true"
+              className="mt-0.5 flex h-5 w-5 items-center justify-center border border-browin-dark/28 bg-browin-white text-browin-white transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-browin-red peer-checked:border-browin-red peer-checked:bg-browin-red"
+            >
+              {form.termsAccepted ? <Check size={14} weight="bold" /> : null}
+            </span>
+            <span>
+              Akceptuję{" "}
+              <Link
+                className="font-bold text-browin-red underline underline-offset-2"
+                href="/regulamin"
+              >
+                regulamin
+              </Link>{" "}
+              oraz{" "}
+              <Link
+                className="font-bold text-browin-red underline underline-offset-2"
+                href="/polityka-prywatnosci"
+              >
+                politykę prywatności sklepu
+              </Link>
+              .
+              {errors.termsAccepted ? (
+                <span className="mt-1 block text-[10px] font-bold text-browin-red">
+                  {errors.termsAccepted}
+                </span>
+              ) : null}
+            </span>
+          </label>
+        </form>
+      ),
+    });
+
   const renderMobileDeliveryMethods = () =>
     renderMobileSection({
       complete:
-        deliveryMethodId !== "inpost" || Boolean(form.inpostPoint.trim()),
+        !selectedDeliveryRequiresPoint || Boolean(form.inpostPoint.trim()),
       eyebrow: "Dostawa",
       id: "mobile-delivery",
       title: "Jak dostarczyć paczkę?",
@@ -2916,8 +3658,7 @@ export function CheckoutFlow() {
         <fieldset>
           <legend className="sr-only">Metoda dostawy</legend>
           <div className="grid gap-2">
-            {deliveryMethods.map((method) => {
-              const DeliveryIcon = getDeliveryIcon(method.id);
+            {availableDeliveryMethods.map((method) => {
               const checked = deliveryMethodId === method.id;
               const methodCost = calculateDeliveryCost({
                 deliveryMethodId: method.id,
@@ -2927,7 +3668,7 @@ export function CheckoutFlow() {
               return (
                 <label
                   className={classNames(
-                    "grid min-h-[4.25rem] cursor-pointer grid-cols-[2rem_minmax(0,1fr)_auto] items-center gap-3 border px-3 py-2.5 text-left transition-colors",
+                    "grid min-h-[4.65rem] cursor-pointer grid-cols-[3.75rem_minmax(0,1fr)_auto] items-center gap-3 border px-3 py-2.5 text-left transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
                     checked
                       ? "border-browin-red bg-browin-red/5 text-browin-red"
                       : "border-browin-dark/10 bg-browin-gray text-browin-dark",
@@ -2943,10 +3684,11 @@ export function CheckoutFlow() {
                     onChange={() => selectDeliveryMethod(method.id)}
                     type="radio"
                   />
-                  <DeliveryIcon
-                    className="mx-auto"
-                    size={20}
-                    weight={checked ? "fill" : "regular"}
+                  <MethodLogo
+                    alt={method.logoAlt}
+                    className="h-9 w-[3.75rem] p-1"
+                    sizes="60px"
+                    src={method.logoSrc}
                   />
                   <span className="min-w-0">
                     <span className="block text-[13px] font-bold leading-tight">
@@ -2956,15 +3698,13 @@ export function CheckoutFlow() {
                       {method.eta}
                     </span>
                   </span>
-                  <span className="text-right text-[12px] font-bold">
-                    {mobileDeliveryCostLabel(methodCost)}
-                  </span>
+                  <DeliveryPrice align="right" compact cost={methodCost} method={method} />
                 </label>
               );
             })}
           </div>
 
-          {deliveryMethodId === "inpost" ? (
+          {selectedDeliveryRequiresPoint && selectedDelivery ? (
             <div
               className={classNames(
                 "mt-2 grid grid-cols-[1fr_auto] items-center gap-2 border p-2",
@@ -2974,13 +3714,17 @@ export function CheckoutFlow() {
               )}
             >
               <p className="min-w-0 truncate text-[12px] font-bold text-browin-dark">
-                {form.inpostPoint || "Paczkomat: wybierz punkt"}
+                {form.inpostPoint ||
+                  `Wybierz ${selectedDelivery.pointLabel ?? "punkt odbioru"}`}
               </p>
               <button
                 className="min-h-9 bg-browin-dark px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-browin-white"
                 id="mobile-inpost-point-button"
                 onClick={() =>
-                  updateFormField("inpostPoint", "LOD01A • ul. Piotrkowska 120")
+                  updateFormField(
+                    "inpostPoint",
+                    `${selectedDelivery.name} • LOD01A • ul. Piotrkowska 120`,
+                  )
                 }
                 type="button"
               >
@@ -3000,7 +3744,6 @@ export function CheckoutFlow() {
   const renderMobileData = () =>
     renderMobileSection({
       complete:
-        isValidEmail(form.email) &&
         isValidPolishPhone(form.phone) &&
         Boolean(form.firstName.trim()) &&
         Boolean(form.lastName.trim()) &&
@@ -3010,7 +3753,7 @@ export function CheckoutFlow() {
         Boolean(form.city.trim()),
       eyebrow: "Dane",
       id: "mobile-data",
-      title: "Kontakt i adres",
+      title: "Telefon i adres",
       children: (
         <form
           autoComplete="on"
@@ -3022,21 +3765,6 @@ export function CheckoutFlow() {
             Ekspresowy checkout
           </h1>
           <div className="grid gap-2">
-            <CompactField
-              autoComplete="email"
-              autoCapitalize="none"
-              enterKeyHint="next"
-              error={errors.email}
-              id="mobile-email"
-              inputMode="email"
-              label="E-mail"
-              name="email"
-              onChange={(event) => updateFormField("email", event.target.value)}
-              placeholder="adres@email.pl"
-              spellCheck={false}
-              type="email"
-              value={form.email}
-            />
             <CompactField
               autoComplete="tel"
               enterKeyHint="next"
@@ -3124,16 +3852,6 @@ export function CheckoutFlow() {
                 value={form.city}
               />
             </div>
-            <CompactField
-              autoComplete="shipping country-name"
-              enterKeyHint="done"
-              error={errors.country}
-              id="mobile-country"
-              label="Kraj"
-              name="country-name"
-              onChange={(event) => updateFormField("country", event.target.value)}
-              value={form.country}
-            />
           </div>
 
           <div className="grid grid-cols-2 gap-2">
@@ -3262,43 +3980,22 @@ export function CheckoutFlow() {
     renderMobileSection({
       complete:
         form.termsAccepted &&
-        (paymentMethodId !== "blik" || /^\d{6}$/.test(blikCode)),
+        (paymentMethodId !== "IMOJE_BLIK" || /^\d{6}$/.test(blikCode)),
       eyebrow: "Płatność",
       id: "mobile-payment",
       title: "Wybierz płatność",
       children: (
         <div className="grid gap-3">
-          <div className="grid gap-2 border border-browin-red/20 bg-browin-red/5 p-3">
-            <div className="flex items-center gap-3">
-              <Wallet className="shrink-0 text-browin-red" size={22} weight="fill" />
-              <div className="min-w-0">
-                <p className="text-[12px] font-bold text-browin-dark">
-                  Apple Pay / Google Pay
-                </p>
-                <p className="mt-0.5 text-[11px] leading-snug text-browin-dark/58">
-                  Slot gotowy pod operatora płatności po integracji.
-                </p>
-              </div>
-            </div>
-          </div>
-
           <fieldset>
             <legend className="sr-only">Metoda płatności</legend>
             <div className="grid grid-cols-2 gap-2">
-              {paymentMethods.map((method) => {
-                const PaymentIcon = getPaymentIcon(method.id);
+              {availablePaymentMethods.map((method) => {
                 const checked = paymentMethodId === method.id;
-                const mobileName =
-                  method.id === "bank-transfer"
-                    ? "Przelew bankowy"
-                    : method.id === "p24"
-                      ? "Przelew online"
-                      : method.name;
 
                 return (
                   <label
                     className={classNames(
-                      "grid min-h-14 cursor-pointer grid-cols-[1.5rem_minmax(0,1fr)] items-center gap-2 border px-3 py-2 text-left transition-colors",
+                      "grid min-h-[4.75rem] cursor-pointer content-start gap-1.5 border px-3 pb-1.5 pt-2.5 text-left transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
                       checked
                         ? "border-browin-red bg-browin-red/5 text-browin-red"
                         : "border-browin-dark/10 bg-browin-gray text-browin-dark",
@@ -3314,9 +4011,17 @@ export function CheckoutFlow() {
                       onChange={() => selectPaymentMethod(method.id)}
                       type="radio"
                     />
-                    <PaymentIcon size={19} weight={checked ? "fill" : "regular"} />
-                    <span className="min-w-0 text-[11px] font-bold leading-tight">
-                      {mobileName}
+                    <span className="flex items-center justify-between gap-2">
+                      <MethodLogo
+                        alt={method.logoAlt}
+                        className="h-8 w-16 p-1"
+                        sizes="64px"
+                        src={method.logoSrc}
+                      />
+                      {checked ? <Check size={14} weight="bold" /> : null}
+                    </span>
+                    <span className="line-clamp-2 min-w-0 text-[11px] font-bold leading-tight">
+                      {method.shortName}
                     </span>
                   </label>
                 );
@@ -3324,7 +4029,18 @@ export function CheckoutFlow() {
             </div>
           </fieldset>
 
-          {paymentMethodId === "blik" ? (
+          {selectedPayment ? (
+            <div className="border border-browin-dark/10 bg-browin-gray p-3">
+              <p className="text-[12px] font-bold text-browin-dark">
+                {selectedPayment.name}
+              </p>
+              <p className="mt-1 text-[11px] leading-snug text-browin-dark/58">
+                {selectedPayment.detail}
+              </p>
+            </div>
+          ) : null}
+
+          {paymentMethodId === "IMOJE_BLIK" ? (
             <CompactField
               autoComplete="one-time-code"
               enterKeyHint="done"
@@ -3347,15 +4063,6 @@ export function CheckoutFlow() {
               placeholder="000000"
               value={blikCode}
             />
-          ) : paymentMethodId === "card" ? (
-            <div className="border border-browin-dark/10 bg-browin-gray p-3">
-              <p className="text-[12px] font-bold text-browin-dark">
-                Karta przez iframe operatora
-              </p>
-              <p className="mt-1 text-[11px] leading-snug text-browin-dark/58">
-                Pełne dane karty nie trafiają do aplikacji sklepu.
-              </p>
-            </div>
           ) : null}
 
           <div className="grid grid-cols-3 gap-2 border border-browin-dark/10 bg-browin-gray p-3 text-center">
@@ -3409,12 +4116,12 @@ export function CheckoutFlow() {
               >
                 regulamin
               </Link>{" "}
-              i{" "}
+              oraz{" "}
               <Link
                 className="font-bold text-browin-red underline underline-offset-2"
                 href="/polityka-prywatnosci"
               >
-                politykę prywatności
+                politykę prywatności sklepu
               </Link>
               .
             </span>
@@ -3551,6 +4258,7 @@ export function CheckoutFlow() {
         <>
           <div className="grid gap-3 px-3 py-3">
             {currentStep === "cart" ? renderMobileOrderPanel() : null}
+            {items.length && currentStep === "contact" ? renderMobileContact() : null}
             {items.length && currentStep === "delivery" ? renderMobileDeliveryMethods() : null}
             {items.length && currentStep === "data" ? renderMobileData() : null}
             {items.length && currentStep === "payment" ? renderMobilePayment() : null}

@@ -189,7 +189,7 @@ export const paymentMethods = [
   {
     id: "PRZELEW",
     name: "Przelew tradycyjny",
-    detail: "Dane do przelewu w mailu potwierdzającym zamówienie.",
+    detail: "Tradycyjny przelew na konto",
     logoAlt: "Przelew tradycyjny",
     logoSrc: "/static/dist/img/checkout/pbl_b.png",
     shortName: "Przelew",

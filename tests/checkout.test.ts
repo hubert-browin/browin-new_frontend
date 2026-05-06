@@ -32,11 +32,11 @@ test("nalicza demo rabaty i darmowa dostawe", () => {
   });
   assert.equal(getDiscountForCode("START20", 100), null);
   assert.equal(
-    calculateDeliveryCost({ deliveryMethodId: "inpost", discountedSubtotal: 149 }),
+    calculateDeliveryCost({ deliveryMethodId: "INPOST", discountedSubtotal: 149 }),
     0,
   );
   assert.equal(
-    calculateDeliveryCost({ deliveryMethodId: "courier", discountedSubtotal: 120 }),
-    16.9,
+    calculateDeliveryCost({ deliveryMethodId: "FEDEX", discountedSubtotal: 120 }),
+    15.99,
   );
 });
