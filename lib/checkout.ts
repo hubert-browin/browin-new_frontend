@@ -1,13 +1,24 @@
 import { freeShippingThreshold } from "@/lib/catalog";
 
-export type DeliveryMethodId = "inpost" | "courier" | "pickup";
+export type DeliveryMethodId =
+  | "ORLENPACZKA"
+  | "DPD-PA-PL-5"
+  | "INPOST"
+  | "FEDEX"
+  | "INPOSTKURIER"
+  | "DPDPRZEDP2"
+  | "DPDPOBR"
+  | "ODBIOROSOBISTY"
+  | "FEDEX-POBR";
 
 export type PaymentMethodId =
-  | "blik"
-  | "card"
-  | "p24"
-  | "paypo"
-  | "bank-transfer";
+  | "TWISTO"
+  | "IMOJE"
+  | "IMOJE_APPLEPAY"
+  | "IMOJE_GPAY"
+  | "IMOJE_BLIK"
+  | "PAYU"
+  | "PRZELEW";
 
 export type DiscountResult = {
   amount: number;
@@ -26,64 +37,170 @@ type DiscountDefinition = {
 
 export const deliveryMethods = [
   {
-    id: "inpost",
-    name: "Paczkomat InPost",
-    price: 14.9,
+    id: "ORLENPACZKA",
+    name: "ORLEN Paczka",
+    price: 11,
+    previousPrice: 10.99,
     eta: "1-2 dni robocze",
-    hint: "Najczęściej wybierana opcja w zamówieniach BROWIN.",
+    hint: "Odbiór w punkcie lub automacie ORLEN Paczka.",
+    logoAlt: "ORLEN Paczka",
+    logoSrc: "/static/img/postage/orlenpaczka.png",
+    pointLabel: "punkt ORLEN Paczka",
+    requiresPoint: true,
   },
   {
-    id: "courier",
-    name: "Kurier",
-    price: 16.9,
+    id: "DPD-PA-PL-5",
+    name: "DPD automat lub punkt odbioru",
+    price: 8.99,
     eta: "1-2 dni robocze",
-    hint: "Wygodna dostawa pod drzwi dla większych zestawów.",
+    hint: "Odbiór w automacie lub punkcie DPD Pickup.",
+    logoAlt: "DPD automat lub punkt odbioru",
+    logoSrc: "/static/img/postage/dpd_pickup_logo_2.png",
+    pointLabel: "automat lub punkt DPD",
+    requiresPoint: true,
   },
   {
-    id: "pickup",
-    name: "Odbiór osobisty",
+    id: "INPOST",
+    name: "InPost Paczkomaty 24/7",
+    price: 12.2,
+    eta: "1-2 dni robocze",
+    hint: "Odbiór w wybranym paczkomacie InPost.",
+    logoAlt: "InPost Paczkomaty 24/7",
+    logoSrc: "/static/img/postage/inpost-paczkomat-logo-kwadrat.png",
+    pointLabel: "paczkomat InPost",
+    requiresPoint: true,
+  },
+  {
+    id: "FEDEX",
+    name: "FedEx kurier",
+    price: 15.99,
+    eta: "1-2 dni robocze",
+    hint: "Dostawa kurierska FedEx pod wskazany adres.",
+    logoAlt: "FedEx kurier",
+    logoSrc: "/static/img/postage/fedex.png",
+  },
+  {
+    id: "INPOSTKURIER",
+    name: "InPost Kurier",
+    price: 13.51,
+    eta: "1-2 dni robocze",
+    hint: "Dostawa kurierem InPost pod wskazany adres.",
+    logoAlt: "InPost Kurier",
+    logoSrc: "/static/img/postage/rectangle.png",
+  },
+  {
+    id: "DPDPRZEDP2",
+    name: "DPD Kurier Przedpłata",
+    price: 18.29,
+    eta: "1-2 dni robocze",
+    hint: "Dostawa kurierem DPD po płatności online lub przelewem.",
+    logoAlt: "DPD Kurier Przedpłata",
+    logoSrc: "/static/img/postage/dpd_logored2015-32.png",
+  },
+  {
+    id: "DPDPOBR",
+    name: "DPD Kurier Pobranie",
+    price: 21,
+    eta: "1-2 dni robocze",
+    hint: "Dostawa DPD z płatnością przy odbiorze.",
+    logoAlt: "DPD Kurier Pobranie",
+    logoSrc: "/static/img/postage/dpd.png",
+  },
+  {
+    id: "ODBIOROSOBISTY",
+    name: "Odbiór osobisty Salon Firmowy",
     price: 0,
     eta: "po potwierdzeniu gotowości",
-    hint: "Bez kosztu dostawy, płatność online lub przy odbiorze w kolejnym etapie integracji.",
+    hint: "Odbiór osobisty w salonie firmowym BROWIN.",
+    logoAlt: "Odbiór osobisty Salon Firmowy",
+    logoSrc: "/static/dist/img/d_browin.png",
+  },
+  {
+    id: "FEDEX-POBR",
+    name: "FedEx Pobranie",
+    price: 19.5,
+    eta: "1-2 dni robocze",
+    hint: "Dostawa FedEx z płatnością przy odbiorze.",
+    logoAlt: "FedEx Pobranie",
+    logoSrc: "/static/img/postage/fedex-1.png",
   },
 ] as const satisfies ReadonlyArray<{
   eta: string;
   hint: string;
   id: DeliveryMethodId;
+  logoAlt: string;
+  logoSrc: string;
   name: string;
+  pointLabel?: string;
+  previousPrice?: number;
   price: number;
+  requiresPoint?: boolean;
 }>;
 
 export const paymentMethods = [
   {
-    id: "blik",
-    name: "BLIK",
-    detail: "Szybkie potwierdzenie w aplikacji bankowej.",
+    id: "TWISTO",
+    name: "Twisto - płatności odroczone",
+    detail: "Kup teraz zapłać później",
+    logoAlt: "Twisto - płatności odroczone",
+    logoSrc: "/static/dist/img/checkout/twisto.svg",
+    shortName: "Twisto",
   },
   {
-    id: "card",
-    name: "Karta",
-    detail: "Docelowo tokenizowany formularz operatora płatności.",
+    id: "IMOJE",
+    name: "iMoje - płatności online",
+    detail: "BLIK, szybkie przelewy, karty płatnicze",
+    logoAlt: "iMoje - płatności online",
+    logoSrc: "/static/dist/img/checkout/imoje.svg",
+    shortName: "iMoje",
   },
   {
-    id: "p24",
-    name: "Szybki przelew",
-    detail: "Przelewy24 lub inny operator po stronie integracji.",
+    id: "IMOJE_APPLEPAY",
+    name: "Apple Pay",
+    detail: "płatności Apple Pay",
+    logoAlt: "Apple Pay",
+    logoSrc: "/static/dist/img/checkout/ApplePay.svg",
+    shortName: "Apple Pay",
   },
   {
-    id: "paypo",
-    name: "PayPo",
-    detail: "Płatność odroczona, gdy operator potwierdzi dostępność.",
+    id: "IMOJE_GPAY",
+    name: "GPay",
+    detail: "płatności Google Pay",
+    logoAlt: "GPay",
+    logoSrc: "/static/dist/img/checkout/gpay.png",
+    shortName: "GPay",
   },
   {
-    id: "bank-transfer",
+    id: "IMOJE_BLIK",
+    name: "Blik",
+    detail: "płatności Blik",
+    logoAlt: "Blik",
+    logoSrc: "/static/dist/img/checkout/blik.png",
+    shortName: "Blik",
+  },
+  {
+    id: "PAYU",
+    name: "PayU - płatności online",
+    detail: "BLIK, szybkie przelewy, karty płatnicze",
+    logoAlt: "PayU - płatności online",
+    logoSrc: "/static/dist/img/checkout/PayU_card.jpg",
+    shortName: "PayU",
+  },
+  {
+    id: "PRZELEW",
     name: "Przelew tradycyjny",
     detail: "Dane do przelewu w mailu potwierdzającym zamówienie.",
+    logoAlt: "Przelew tradycyjny",
+    logoSrc: "/static/dist/img/checkout/pbl_b.png",
+    shortName: "Przelew",
   },
 ] as const satisfies ReadonlyArray<{
   detail: string;
   id: PaymentMethodId;
+  logoAlt: string;
+  logoSrc: string;
   name: string;
+  shortName: string;
 }>;
 
 export const demoDiscountCodes = [
@@ -143,7 +260,7 @@ export const calculateDeliveryCost = ({
     return 0;
   }
 
-  if (method.id === "pickup" || discountedSubtotal >= freeShippingThreshold) {
+  if (method.id === "ODBIOROSOBISTY" || discountedSubtotal >= freeShippingThreshold) {
     return 0;
   }
 

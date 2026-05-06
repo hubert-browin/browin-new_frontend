@@ -362,7 +362,9 @@ export function StoreChrome({
   const activeDockSections = activeDockCategory
     ? activeDockCategory.menuSections.slice(0, 2)
     : [];
-  const contentShellClass = `${isCheckoutPage ? "" : "min-h-screen"} transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
+  const contentShellClass = `${
+    isCheckoutPage ? "xl:flex xl:h-dvh xl:flex-col xl:overflow-hidden" : "min-h-screen"
+  } transition-[margin] duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] ${
     showDesktopNav
       ? isHomeDockLayout
         ? "md:ml-20 lg:ml-72"
@@ -1202,29 +1204,7 @@ export function StoreChrome({
       </div>
       ) : null}
 
-      {isCheckoutPage ? (
-      <header className="sticky top-0 z-50 hidden border-b border-browin-dark/10 bg-browin-white shadow-none md:block">
-        <div className="container mx-auto hidden min-h-[4.75rem] items-center justify-between gap-5 px-4 md:flex">
-          <Link className="z-10 flex-shrink-0" href="/">
-            <Image
-              alt="BROWIN"
-              className="brand-logo object-contain"
-              height={55}
-              priority
-              src="/assets/logo_BROWIN.svg"
-              width={224}
-            />
-          </Link>
-
-          <Link
-            className="inline-flex min-h-11 items-center justify-center border border-browin-dark/12 bg-browin-white px-4 text-xs font-bold uppercase tracking-[0.14em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red"
-            href="/koszyk"
-          >
-            Edytuj koszyk
-          </Link>
-        </div>
-      </header>
-      ) : (
+      {!isCheckoutPage ? (
       <header className="glass-header sticky top-0 z-50 border-b border-browin-border shadow-none transition-all duration-300">
         <div className="desktop-header-shell container relative mx-auto hidden items-center justify-between gap-5 px-4 py-3 md:flex">
           <Link className="z-10 flex-shrink-0" href="/">
@@ -1361,7 +1341,7 @@ export function StoreChrome({
           <MobileSearchForm onSubmit={handleSearchSubmit} searchSeed={searchSeed} />
         </div>
       </header>
-      )}
+      ) : null}
 
       {showDesktopBreadcrumbShell ? (
         <div className={desktopBreadcrumbClass}>
@@ -1603,7 +1583,9 @@ export function StoreChrome({
         </div>
       ) : null}
 
-      <main>{children}</main>
+      <main className={isCheckoutPage ? "xl:min-h-0 xl:flex-1" : undefined}>
+        {children}
+      </main>
 
       {!isCheckoutPage ? <StoreFooter /> : null}
       </div>

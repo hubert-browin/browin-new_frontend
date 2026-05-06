@@ -773,6 +773,38 @@ button.search-ui-copy {
   scrollbar-width: none;
 }
 
+.checkout-scrollbar {
+  scrollbar-color: rgb(51 51 51 / 0.18) transparent;
+  scrollbar-width: thin;
+}
+
+.checkout-scrollbar::-webkit-scrollbar {
+  height: 0.25rem;
+  width: 0.25rem;
+}
+
+.checkout-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.checkout-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(51 51 51 / 0.16);
+  border-radius: 999px;
+}
+
+.checkout-scrollbar:hover::-webkit-scrollbar-thumb {
+  background: rgb(51 51 51 / 0.26);
+}
+
+.checkout-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}
+
+.checkout-undo-progress {
+  transition: transform 100ms linear;
+  will-change: transform;
+}
+
 .catalog-range-input {
   outline: none;
 }
