@@ -475,6 +475,28 @@ button.search-ui-copy {
   color: var(--browin-white) !important;
 }
 
+.checkout-email-attention {
+  animation: checkout-email-attention 1.45s cubic-bezier(0.16, 1, 0.3, 1) 420ms 2 both;
+}
+
+@keyframes checkout-email-attention {
+  0%,
+  100% {
+    border-color: rgba(34, 34, 34, 0.12);
+    box-shadow: 0 0 0 0 rgba(182, 0, 0, 0);
+  }
+
+  38% {
+    border-color: rgba(182, 0, 0, 0.62);
+    box-shadow: 0 0 0 4px rgba(182, 0, 0, 0.1);
+  }
+
+  62% {
+    border-color: rgba(182, 0, 0, 0.4);
+    box-shadow: 0 0 0 8px rgba(182, 0, 0, 0);
+  }
+}
+
 .utility-strip-highlight,
 .product-accent-badge {
   color: var(--browin-white) !important;
@@ -2532,6 +2554,10 @@ button.search-ui-copy {
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .checkout-email-attention {
+    animation: none;
   }
 }
 

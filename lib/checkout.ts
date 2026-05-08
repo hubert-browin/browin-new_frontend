@@ -18,7 +18,8 @@ export type PaymentMethodId =
   | "IMOJE_GPAY"
   | "IMOJE_BLIK"
   | "PAYU"
-  | "PRZELEW";
+  | "PRZELEW"
+  | "GIFT_CARD";
 
 export type DiscountResult = {
   amount: number;
@@ -193,6 +194,14 @@ export const paymentMethods = [
     logoAlt: "Przelew tradycyjny",
     logoSrc: "/static/dist/img/checkout/pbl_b.png",
     shortName: "Przelew",
+  },
+  {
+    id: "GIFT_CARD",
+    name: "Karta podarunkowa",
+    detail: "Płatność kartą podarunkową BROWIN",
+    logoAlt: "Karta podarunkowa",
+    logoSrc: "/static/dist/img/checkout/gift-card.svg",
+    shortName: "Karta podarunkowa",
   },
 ] as const satisfies ReadonlyArray<{
   detail: string;

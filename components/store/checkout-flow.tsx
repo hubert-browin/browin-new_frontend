@@ -20,6 +20,7 @@ import {
   Truck,
   UserPlus,
   WarningCircle,
+  X,
 } from "@phosphor-icons/react";
 import Image from "next/image";
 import Link from "next/link";
@@ -37,7 +38,6 @@ import {
   getShippingRemaining,
   isValidEmail,
   isValidPolishPhone,
-  isValidPostalCode,
   normalizeDiscountCode,
   paymentMethods,
   type DeliveryMethodId,
@@ -59,7 +59,11 @@ type RemovedCheckoutLine = Pick<CartItem, "product" | "quantity" | "variant"> & 
   source?: "desktop" | "mobile-cart-products";
   undoId: string;
 };
-type CheckoutField = keyof CheckoutForm | "blikCode" | "discount";
+type CheckoutField =
+  | keyof CheckoutForm
+  | "blikCode"
+  | "deliveryMethod"
+  | "discount";
 type DeliveryMethod = {
   eta: string;
   hint: string;
@@ -79,7 +83,6 @@ type CheckoutForm = {
   billingPostalCode: string;
   billingStreet: string;
   city: string;
-  companyName: string;
   country: string;
   differentBillingAddress: boolean;
   email: string;
@@ -141,7 +144,6 @@ const defaultForm: CheckoutForm = {
   billingPostalCode: "",
   billingStreet: "",
   city: "",
-  companyName: "",
   country: "Polska",
   differentBillingAddress: false,
   email: "",
@@ -304,6 +306,254 @@ const normalizeCountrySearch = (value: string) =>
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/ł/g, "l");
 
+const postalCodeRules: Record<
+  DeliveryCountry,
+  { example: string; pattern: RegExp }
+> = {
+  Austria: { example: "1010", pattern: /^\d{4}$/ },
+  Belgia: { example: "1000", pattern: /^\d{4}$/ },
+  Bułgaria: { example: "1000", pattern: /^\d{4}$/ },
+  Czechy: { example: "110 00", pattern: /^\d{3}\s?\d{2}$/ },
+  Niemcy: { example: "10115", pattern: /^\d{5}$/ },
+  Dania: { example: "1050", pattern: /^\d{4}$/ },
+  Estonia: { example: "10111", pattern: /^\d{5}$/ },
+  Hiszpania: { example: "28001", pattern: /^\d{5}$/ },
+  Finlandia: { example: "00100", pattern: /^\d{5}$/ },
+  Francja: { example: "75001", pattern: /^\d{5}$/ },
+  "Wielka Brytania": {
+    example: "SW1A 1AA",
+    pattern: /^([A-Z]{1,2}\d[A-Z\d]?\s?\d[A-Z]{2}|GIR\s?0AA)$/i,
+  },
+  Grecja: { example: "105 58", pattern: /^\d{3}\s?\d{2}$/ },
+  Chorwacja: { example: "10000", pattern: /^\d{5}$/ },
+  Węgry: { example: "1051", pattern: /^\d{4}$/ },
+  Irlandia: { example: "D02 X285", pattern: /^[A-Z]\d{2}\s?[A-Z0-9]{4}$/i },
+  Włochy: { example: "00118", pattern: /^\d{5}$/ },
+  Litwa: { example: "LT-01100", pattern: /^(LT-?)?\d{5}$/i },
+  Luksemburg: { example: "1234", pattern: /^\d{4}$/ },
+  Łotwa: { example: "LV-1050", pattern: /^(LV-?)?\d{4}$/i },
+  Holandia: { example: "1011 AB", pattern: /^\d{4}\s?[A-Z]{2}$/i },
+  Polska: { example: "00-000", pattern: /^\d{2}-?\d{3}$/ },
+  Portugalia: { example: "1000-001", pattern: /^\d{4}-?\d{3}$/ },
+  Rumunia: { example: "010011", pattern: /^\d{6}$/ },
+  Szwecja: { example: "111 20", pattern: /^\d{3}\s?\d{2}$/ },
+  Słowenia: { example: "1000", pattern: /^\d{4}$/ },
+  Słowacja: { example: "811 01", pattern: /^\d{3}\s?\d{2}$/ },
+};
+
+const normalizePostalCode = (value: string) =>
+  value.trim().toLocaleUpperCase("pl-PL").replace(/\s+/g, " ");
+
+const formatGroupedDigitsPostalCode = (
+  value: string,
+  firstGroupLength: number,
+  secondGroupLength: number,
+  separator: "-" | " ",
+) => {
+  const digits = value.replace(/\D/g, "").slice(0, firstGroupLength + secondGroupLength);
+
+  if (digits.length <= firstGroupLength) {
+    return digits;
+  }
+
+  return `${digits.slice(0, firstGroupLength)}${separator}${digits.slice(firstGroupLength)}`;
+};
+
+const formatPrefixedDigitsPostalCode = (
+  value: string,
+  prefix: "LT" | "LV",
+  digitCount: number,
+) => {
+  const withoutPrefix = value
+    .toLocaleUpperCase("pl-PL")
+    .replace(new RegExp(`^${prefix}-?`), "");
+  const digits = withoutPrefix.replace(/\D/g, "").slice(0, digitCount);
+
+  return digits ? `${prefix}-${digits}` : "";
+};
+
+type PostalCodeCharacterType = "alnum" | "digit" | "letter";
+
+const postalCodeCharacterMatches = (
+  character: string,
+  type: PostalCodeCharacterType,
+) => {
+  if (type === "digit") {
+    return /\d/.test(character);
+  }
+
+  if (type === "letter") {
+    return /[A-Z]/.test(character);
+  }
+
+  return /[A-Z0-9]/.test(character);
+};
+
+const postalCodePatternAcceptsPrefix = (
+  candidate: string,
+  pattern: PostalCodeCharacterType[],
+) =>
+  candidate.length <= pattern.length &&
+  Array.from(candidate).every((character, index) =>
+    postalCodeCharacterMatches(character, pattern[index]),
+  );
+
+const formatPatternedPostalCode = (
+  value: string,
+  patterns: PostalCodeCharacterType[][],
+  splitAt?: number,
+) => {
+  const characters = value.toLocaleUpperCase("pl-PL").replace(/[^A-Z0-9]/g, "");
+  let formatted = "";
+
+  for (const character of characters) {
+    const candidate = `${formatted}${character}`;
+
+    if (patterns.some((pattern) => postalCodePatternAcceptsPrefix(candidate, pattern))) {
+      formatted = candidate;
+    }
+  }
+
+  if (splitAt && formatted.length > splitAt) {
+    return `${formatted.slice(0, splitAt)} ${formatted.slice(splitAt)}`;
+  }
+
+  return formatted;
+};
+
+const formatUkPostalCode = (value: string) => {
+  const regularUkPatterns: PostalCodeCharacterType[][] = [
+    ["letter", "digit", "digit", "letter", "letter"],
+    ["letter", "digit", "digit", "digit", "letter", "letter"],
+    ["letter", "digit", "letter", "digit", "letter", "letter"],
+    ["letter", "letter", "digit", "digit", "letter", "letter"],
+    ["letter", "letter", "digit", "digit", "digit", "letter", "letter"],
+    ["letter", "letter", "digit", "letter", "digit", "letter", "letter"],
+  ];
+  const characters = value.toLocaleUpperCase("pl-PL").replace(/[^A-Z0-9]/g, "");
+  let formatted = "";
+
+  for (const character of characters) {
+    const candidate = `${formatted}${character}`;
+    const isRegularPrefix = regularUkPatterns.some((pattern) =>
+      postalCodePatternAcceptsPrefix(candidate, pattern),
+    );
+    const isGiroPrefix = "GIR0AA".startsWith(candidate);
+
+    if (isRegularPrefix || isGiroPrefix) {
+      formatted = candidate;
+    }
+  }
+
+  if (formatted.length > 3) {
+    return `${formatted.slice(0, -3)} ${formatted.slice(-3)}`;
+  }
+
+  return formatted;
+};
+
+const formatPostalCodeForCountry = (value: string, country: DeliveryCountry) => {
+  const digitsOnly = (limit: number) => value.replace(/\D/g, "").slice(0, limit);
+  const fourDigitCountries: DeliveryCountry[] = [
+    "Austria",
+    "Belgia",
+    "Bułgaria",
+    "Dania",
+    "Węgry",
+    "Luksemburg",
+    "Słowenia",
+  ];
+  const fiveDigitCountries: DeliveryCountry[] = [
+    "Niemcy",
+    "Estonia",
+    "Hiszpania",
+    "Finlandia",
+    "Francja",
+    "Chorwacja",
+    "Włochy",
+  ];
+  const threeTwoDigitCountries: DeliveryCountry[] = [
+    "Czechy",
+    "Grecja",
+    "Szwecja",
+    "Słowacja",
+  ];
+
+  if (country === "Polska") {
+    return formatPostalCodeInput(value);
+  }
+
+  if (fourDigitCountries.includes(country)) {
+    return digitsOnly(4);
+  }
+
+  if (fiveDigitCountries.includes(country)) {
+    return digitsOnly(5);
+  }
+
+  if (threeTwoDigitCountries.includes(country)) {
+    return formatGroupedDigitsPostalCode(value, 3, 2, " ");
+  }
+
+  if (country === "Portugalia") {
+    return formatGroupedDigitsPostalCode(value, 4, 3, "-");
+  }
+
+  if (country === "Rumunia") {
+    return digitsOnly(6);
+  }
+
+  if (country === "Holandia") {
+    return formatPatternedPostalCode(
+      value,
+      [["digit", "digit", "digit", "digit", "letter", "letter"]],
+      4,
+    );
+  }
+
+  if (country === "Wielka Brytania") {
+    return formatUkPostalCode(value);
+  }
+
+  if (country === "Irlandia") {
+    return formatPatternedPostalCode(
+      value,
+      [
+        ["letter", "digit", "digit", "alnum", "alnum", "alnum", "alnum"],
+      ],
+      3,
+    );
+  }
+
+  if (country === "Litwa") {
+    return formatPrefixedDigitsPostalCode(value, "LT", 5);
+  }
+
+  if (country === "Łotwa") {
+    return formatPrefixedDigitsPostalCode(value, "LV", 4);
+  }
+
+  return value.toLocaleUpperCase("pl-PL").replace(/[^A-Z0-9 -]/g, "").slice(0, 12);
+};
+
+const getPostalCodeInputMode = (
+  country: DeliveryCountry,
+): InputHTMLAttributes<HTMLInputElement>["inputMode"] => {
+  if (country === "Holandia" || country === "Wielka Brytania" || country === "Irlandia") {
+    return "text";
+  }
+
+  return "numeric";
+};
+
+const isPostalCodeValidForCountry = (value: string, country: string) =>
+  isDeliveryCountry(country)
+    ? postalCodeRules[country].pattern.test(normalizePostalCode(value))
+    : false;
+
+const getPostalCodeError = (country: DeliveryCountry) =>
+  `Podaj kod pocztowy w formacie ${postalCodeRules[country].example}.`;
+
 const getDeliveryMethodsForCountry = (country: string) => {
   const normalizedCountry = country.trim().toLowerCase();
 
@@ -442,8 +692,8 @@ const mobileErrorFieldIds: Partial<Record<CheckoutField, string>> = {
   billingStreet: "mobile-billing-street",
   blikCode: "mobile-blik",
   city: "mobile-city",
-  companyName: "mobile-company",
   country: "mobile-country",
+  deliveryMethod: "mobile-delivery",
   email: "mobile-email",
   firstName: "mobile-first-name",
   houseNumber: "mobile-house",
@@ -465,7 +715,7 @@ function CompactField({
   wrapperClassName = "",
   ...props
 }: FormFieldProps) {
-  const descriptionId = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
+  const descriptionId = hint ? `${id}-hint` : undefined;
 
   return (
     <div className={wrapperClassName}>
@@ -476,19 +726,14 @@ function CompactField({
         aria-describedby={descriptionId}
         aria-invalid={Boolean(error)}
         className={classNames(
-          "mt-1 min-h-10 w-full border bg-browin-white px-2.5 py-2 text-[13px] font-bold text-browin-dark outline-none transition-colors placeholder:text-browin-dark/38 focus:border-browin-red focus:ring-2 focus:ring-browin-red/12",
+          "mt-1 min-h-10 w-full border bg-browin-white px-2.5 py-2 text-[13px] font-bold text-browin-dark outline-none transition-colors placeholder:text-browin-dark/38 focus:border-browin-red focus:ring-2 focus:ring-browin-red/12 disabled:cursor-not-allowed disabled:bg-browin-gray disabled:text-browin-dark/58",
           error ? "border-browin-red bg-browin-red/5" : "border-browin-dark/12",
           className,
         )}
         id={id}
         {...props}
       />
-      {error ? (
-        <p className="mt-1 flex items-start gap-1 text-[10px] font-bold leading-snug text-browin-red" id={`${id}-error`}>
-          <WarningCircle className="mt-0.5 shrink-0" size={12} weight="fill" />
-          {error}
-        </p>
-      ) : hint ? (
+      {hint ? (
         <p className="mt-1 text-[10px] leading-snug text-browin-dark/52" id={`${id}-hint`}>
           {hint}
         </p>
@@ -497,11 +742,20 @@ function CompactField({
   );
 }
 
-function CountryFlag({ country }: { country: DeliveryCountry }) {
+function CountryFlag({
+  className,
+  country,
+}: {
+  className?: string;
+  country: DeliveryCountry;
+}) {
   return (
     <span
       aria-hidden="true"
-      className="block h-4 w-6 overflow-hidden bg-contain bg-center bg-no-repeat"
+      className={classNames(
+        "block h-4 w-6 overflow-hidden bg-contain bg-center bg-no-repeat",
+        className,
+      )}
       style={{
         backgroundImage: `url(https://flagcdn.com/${deliveryCountryCodes[country]}.svg)`,
       }}
@@ -515,19 +769,28 @@ function CountrySelect({
   label,
   name,
   onChange,
+  mode = "dropdown",
   value,
 }: {
   error?: string;
   id: string;
   label: string;
+  mode?: "dropdown" | "sheet";
   name: string;
   onChange: (value: DeliveryCountry) => void;
   value: string;
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
+  const [sheetMetrics, setSheetMetrics] = useState({
+    keyboardInset: 0,
+    listBottomPadding: 8,
+    maxHeight: 640,
+  });
   const searchRef = useRef<HTMLInputElement>(null);
-  const descriptionId = error ? `${id}-error` : undefined;
+  const isSheetMode = mode === "sheet";
+  const listboxId = `${id}-listbox`;
+  const sheetTitleId = `${id}-sheet-title`;
   const selectedCountry = value.trim();
   const selectedValue: DeliveryCountry | "" = isDeliveryCountry(selectedCountry)
     ? selectedCountry
@@ -540,20 +803,123 @@ function CountrySelect({
     : deliveryCountries;
 
   useEffect(() => {
-    if (open) {
-      searchRef.current?.focus();
+    if (open && !isSheetMode) {
+      const focusTimeout = window.setTimeout(() => searchRef.current?.focus(), 40);
+
+      return () => window.clearTimeout(focusTimeout);
     }
+  }, [isSheetMode, open]);
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
+    };
+
+    window.addEventListener("keydown", closeOnEscape);
+
+    return () => window.removeEventListener("keydown", closeOnEscape);
   }, [open]);
+
+  useEffect(() => {
+    if (!open || !isSheetMode) {
+      return;
+    }
+
+    const updateSheetMetrics = () => {
+      const viewport = window.visualViewport;
+      const viewportHeight = Math.floor(viewport?.height ?? window.innerHeight);
+      const rawBottomInset = viewport
+        ? Math.round(window.innerHeight - viewport.height - viewport.offsetTop)
+        : 0;
+      const bottomInset = rawBottomInset > 24 ? rawBottomInset : 0;
+      const listBottomPadding = bottomInset ? 64 : 8;
+      const maxHeight = Math.max(
+        260,
+        Math.min(
+          640,
+          Math.floor(viewportHeight - 12),
+          Math.floor(viewportHeight * 0.92),
+        ),
+      );
+
+      setSheetMetrics({ keyboardInset: bottomInset, listBottomPadding, maxHeight });
+    };
+
+    const initialFrame = window.requestAnimationFrame(updateSheetMetrics);
+    window.addEventListener("resize", updateSheetMetrics);
+    window.addEventListener("orientationchange", updateSheetMetrics);
+    window.visualViewport?.addEventListener("resize", updateSheetMetrics);
+    window.visualViewport?.addEventListener("scroll", updateSheetMetrics);
+
+    return () => {
+      window.cancelAnimationFrame(initialFrame);
+      window.removeEventListener("resize", updateSheetMetrics);
+      window.removeEventListener("orientationchange", updateSheetMetrics);
+      window.visualViewport?.removeEventListener("resize", updateSheetMetrics);
+      window.visualViewport?.removeEventListener("scroll", updateSheetMetrics);
+    };
+  }, [isSheetMode, open]);
 
   const closeDropdown = () => {
     setOpen(false);
     setQuery("");
+    setSheetMetrics({ keyboardInset: 0, listBottomPadding: 8, maxHeight: 640 });
+  };
+
+  const selectCountry = (country: DeliveryCountry) => {
+    onChange(country);
+    closeDropdown();
+  };
+
+  const renderCountryOption = (
+    country: DeliveryCountry,
+    optionMode: "dropdown" | "sheet",
+  ) => {
+    const selected = country === selectedValue;
+
+    return (
+      <button
+        aria-selected={selected}
+        className={classNames(
+          optionMode === "sheet"
+            ? "grid min-h-12 w-full grid-cols-[2rem_minmax(0,1fr)_1.5rem] items-center gap-2 border px-3 text-left text-[14px] font-bold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-browin-red/20"
+            : "grid min-h-10 w-full grid-cols-[1.75rem_minmax(0,1fr)_1.25rem] items-center gap-2 px-3 text-left text-[13px] font-bold transition-colors hover:bg-browin-red/5 hover:text-browin-red focus-visible:bg-browin-red/5 focus-visible:text-browin-red focus-visible:outline-none",
+          selected
+            ? "border-browin-red bg-browin-red/5 text-browin-red"
+            : optionMode === "sheet"
+              ? "border-browin-dark/10 bg-browin-white text-browin-dark hover:border-browin-red/35 hover:bg-browin-red/5"
+              : "text-browin-dark",
+        )}
+        key={country}
+        onClick={() => selectCountry(country)}
+        role="option"
+        type="button"
+      >
+        <CountryFlag
+          className={optionMode === "sheet" ? "h-5 w-7" : undefined}
+          country={country}
+        />
+        <span className="truncate">{country}</span>
+        {selected ? <Check size={optionMode === "sheet" ? 17 : 15} weight="bold" /> : null}
+      </button>
+    );
   };
 
   return (
     <div
       className="relative"
       onBlur={(event) => {
+        if (isSheetMode) {
+          return;
+        }
+
         const nextFocus =
           event.relatedTarget instanceof Node ? event.relatedTarget : null;
 
@@ -571,8 +937,7 @@ function CountrySelect({
       <div className="relative mt-1">
         <input name={name} type="hidden" value={selectedValue} />
         <button
-          aria-controls={`${id}-listbox`}
-          aria-describedby={descriptionId}
+          aria-controls={listboxId}
           aria-expanded={open}
           aria-haspopup="listbox"
           className={classNames(
@@ -597,17 +962,26 @@ function CountrySelect({
           <span className={classNames("truncate", !selectedValue && "text-browin-dark/42")}>
             {selectedValue || "Wybierz kraj dostawy"}
           </span>
-          <CaretDown
-            aria-hidden="true"
-            className={classNames(
-              "text-browin-dark/48 transition-transform",
-              open && "rotate-180",
-            )}
-            size={16}
-            weight="bold"
-          />
+          {isSheetMode ? (
+            <ArrowRight
+              aria-hidden="true"
+              className="text-browin-dark/48"
+              size={16}
+              weight="bold"
+            />
+          ) : (
+            <CaretDown
+              aria-hidden="true"
+              className={classNames(
+                "text-browin-dark/48 transition-transform",
+                open && "rotate-180",
+              )}
+              size={16}
+              weight="bold"
+            />
+          )}
         </button>
-        {open ? (
+        {open && !isSheetMode ? (
           <div className="absolute left-0 right-0 z-40 mt-1 border border-browin-dark/12 bg-browin-white shadow-sharp">
             <div className="border-b border-browin-dark/10 p-2">
               <input
@@ -621,34 +995,11 @@ function CountrySelect({
             </div>
             <div
               className="checkout-scrollbar max-h-60 overflow-y-auto py-1"
-              id={`${id}-listbox`}
+              id={listboxId}
               role="listbox"
             >
               {filteredCountries.length ? (
-                filteredCountries.map((country) => {
-                  const selected = country === selectedValue;
-
-                  return (
-                    <button
-                      aria-selected={selected}
-                      className={classNames(
-                        "grid min-h-10 w-full grid-cols-[1.75rem_minmax(0,1fr)_1.25rem] items-center gap-2 px-3 text-left text-[13px] font-bold transition-colors hover:bg-browin-red/5 hover:text-browin-red focus-visible:bg-browin-red/5 focus-visible:text-browin-red focus-visible:outline-none",
-                        selected ? "text-browin-red" : "text-browin-dark",
-                      )}
-                      key={country}
-                      onClick={() => {
-                        onChange(country);
-                        closeDropdown();
-                      }}
-                      role="option"
-                      type="button"
-                    >
-                      <CountryFlag country={country} />
-                      <span className="truncate">{country}</span>
-                      {selected ? <Check size={15} weight="bold" /> : null}
-                    </button>
-                  );
-                })
+                filteredCountries.map((country) => renderCountryOption(country, "dropdown"))
               ) : (
                 <p className="px-3 py-3 text-[12px] font-bold text-browin-dark/52">
                   Brak kraju na liście dostaw.
@@ -657,17 +1008,135 @@ function CountrySelect({
             </div>
           </div>
         ) : null}
+        {open && isSheetMode ? (
+          <div
+            aria-labelledby={sheetTitleId}
+            aria-modal="true"
+            className="fixed inset-0 z-[80] md:hidden"
+            role="dialog"
+          >
+            <button
+              aria-label="Zamknij wybór kraju dostawy"
+              className="absolute inset-0 bg-browin-dark/42"
+              onClick={closeDropdown}
+              type="button"
+            />
+            {sheetMetrics.keyboardInset ? (
+              <div
+                aria-hidden="true"
+                className="absolute inset-x-0 bottom-0 bg-browin-white"
+                style={{ height: sheetMetrics.keyboardInset }}
+              />
+            ) : null}
+            <div
+              className="absolute inset-x-0 flex flex-col border-t border-browin-dark/10 bg-browin-white shadow-panel"
+              style={{
+                bottom: sheetMetrics.keyboardInset,
+                maxHeight: sheetMetrics.maxHeight,
+                paddingBottom: sheetMetrics.keyboardInset
+                  ? 0
+                  : "env(safe-area-inset-bottom)",
+              }}
+            >
+              <div className="border-b border-browin-dark/10 p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
+                      Dostawa
+                    </p>
+                    <h3
+                      className="mt-0.5 text-lg font-bold leading-tight text-browin-dark"
+                      id={sheetTitleId}
+                    >
+                      Wybierz kraj
+                    </h3>
+                  </div>
+                  <button
+                    aria-label="Zamknij"
+                    className="flex h-10 w-10 shrink-0 items-center justify-center border border-browin-dark/10 bg-browin-gray text-browin-dark transition-colors hover:border-browin-red/35 hover:text-browin-red focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red"
+                    onClick={closeDropdown}
+                    type="button"
+                  >
+                    <X size={18} weight="bold" />
+                  </button>
+                </div>
+                <input
+                  aria-label="Szukaj kraju dostawy"
+                  className="mt-3 min-h-11 w-full border border-browin-dark/12 bg-browin-gray px-3 py-2 text-[15px] font-bold text-browin-dark outline-none transition-colors placeholder:text-browin-dark/38 focus:border-browin-red focus:ring-2 focus:ring-browin-red/12"
+                  onChange={(event) => setQuery(event.target.value)}
+                  placeholder="Szukaj kraju"
+                  ref={searchRef}
+                  value={query}
+                />
+              </div>
+              <div
+                className="checkout-scrollbar grid min-h-[6.5rem] flex-1 content-start gap-1 overflow-y-auto p-2"
+                id={listboxId}
+                role="listbox"
+                style={{ paddingBottom: sheetMetrics.listBottomPadding }}
+              >
+                {filteredCountries.length ? (
+                  filteredCountries.map((country) => renderCountryOption(country, "sheet"))
+                ) : (
+                  <p className="px-3 py-4 text-[13px] font-bold text-browin-dark/52">
+                    Brak kraju na liście dostaw.
+                  </p>
+                )}
+              </div>
+            </div>
+          </div>
+        ) : null}
       </div>
-      {error ? (
-        <p
-          className="mt-1 flex items-start gap-1 text-[10px] font-bold leading-snug text-browin-red"
-          id={`${id}-error`}
-        >
-          <WarningCircle className="mt-0.5 shrink-0" size={12} weight="fill" />
-          {error}
-        </p>
-      ) : null}
     </div>
+  );
+}
+
+function InvoiceSwitch({
+  checked,
+  id,
+  onChange,
+}: {
+  checked: boolean;
+  id: string;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <button
+      aria-checked={checked}
+      aria-label={checked ? "Wyłącz fakturę VAT" : "Włącz fakturę VAT"}
+      className={classNames(
+        "flex min-h-12 w-full items-center justify-between gap-3 border bg-browin-white px-3.5 py-3 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red",
+        "border-browin-dark/10 hover:border-browin-dark/20",
+      )}
+      id={id}
+      onClick={() => onChange(!checked)}
+      role="switch"
+      type="button"
+    >
+      <span className="min-w-0">
+        <span
+          className="block text-[13px] font-extrabold uppercase tracking-[0.1em] text-browin-dark sm:text-sm"
+        >
+          Faktura VAT
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className={classNames(
+          "relative h-6 w-11 shrink-0 rounded-full border transition-colors",
+          checked
+            ? "border-browin-red bg-browin-red"
+            : "border-browin-dark/18 bg-browin-dark/10",
+        )}
+      >
+        <span
+          className={classNames(
+            "absolute top-1/2 h-4 w-4 -translate-y-1/2 rounded-full bg-browin-white shadow-sm transition-transform",
+            checked ? "translate-x-[1.35rem]" : "translate-x-1",
+          )}
+        />
+      </span>
+    </button>
   );
 }
 
@@ -790,7 +1259,7 @@ function OrderSummary({
   total,
 }: {
   deliveryCost: number;
-  deliveryMethodId: DeliveryMethodId;
+  deliveryMethodId: DeliveryMethodId | null;
   discount: DiscountResult | null;
   discountedSubtotal: number;
   items: CartItem[];
@@ -852,10 +1321,12 @@ function OrderSummary({
             <span>-{formatCurrency(discount.amount)}</span>
           </div>
         ) : null}
-        <div className="flex items-center justify-between gap-4 text-browin-dark/68">
-          <span>{selectedDelivery?.name ?? "Dostawa"}</span>
-          <span>{deliveryCost === 0 ? "0,00 zł" : formatCurrency(deliveryCost)}</span>
-        </div>
+        {selectedDelivery ? (
+          <div className="flex items-center justify-between gap-4 text-browin-dark/68">
+            <span>{selectedDelivery.name}</span>
+            <span>{deliveryCost === 0 ? "0,00 zł" : formatCurrency(deliveryCost)}</span>
+          </div>
+        ) : null}
         <div className="flex items-center justify-between gap-4 border-t border-browin-dark/10 pt-4 text-xl font-bold tracking-tight text-browin-dark">
           <span>Razem brutto</span>
           <span>{formatCurrency(total)}</span>
@@ -877,7 +1348,7 @@ export function CheckoutFlow() {
   } = useCart();
   const [currentStep, setCurrentStep] = useState<CheckoutStep>("cart");
   const [deliveryMethodId, setDeliveryMethodId] =
-    useState<DeliveryMethodId>("ORLENPACZKA");
+    useState<DeliveryMethodId | null>(null);
   const [paymentMethodId, setPaymentMethodId] = useState<PaymentMethodId>("TWISTO");
   const [form, setForm] = useState<CheckoutForm>(defaultForm);
   const [errors, setErrors] = useState<Partial<Record<CheckoutField, string>>>({});
@@ -892,7 +1363,6 @@ export function CheckoutFlow() {
   const [removedLines, setRemovedLines] = useState<RemovedCheckoutLine[]>([]);
   const [undoNow, setUndoNow] = useState(0);
   const [desktopDiscountOpen, setDesktopDiscountOpen] = useState(false);
-  const [desktopPaymentMoreOpen, setDesktopPaymentMoreOpen] = useState(false);
   const [mobileOrderOpen, setMobileOrderOpen] = useState(false);
   const [mobileCartProductsOpen, setMobileCartProductsOpen] = useState(false);
   const [mobileDiscountOpen, setMobileDiscountOpen] = useState(false);
@@ -907,7 +1377,7 @@ export function CheckoutFlow() {
     [discountCode, subtotal],
   );
   const discountedSubtotal = Math.max(subtotal - (discount?.amount ?? 0), 0);
-  const deliveryCost = items.length
+  const deliveryCost = items.length && deliveryMethodId
     ? calculateDeliveryCost({
         deliveryMethodId,
         discountedSubtotal,
@@ -921,12 +1391,22 @@ export function CheckoutFlow() {
   const summaryDeliveryCost = order?.deliveryCost ?? deliveryCost;
   const summaryDeliveryMethodId = order?.deliveryMethodId ?? deliveryMethodId;
   const summaryTotal = order?.total ?? total;
-  const mobileErrorMessage = Object.values(errors)[0] ?? null;
+  const checkoutErrorMessages = Array.from(
+    new Set(Object.values(errors).filter((message): message is string => Boolean(message))),
+  );
+  const bottomPanelErrorMessages =
+    checkoutErrorMessages.length > 2
+      ? ["Uzupełnij wymagane pola, aby przejść dalej."]
+      : checkoutErrorMessages;
+  const bottomPanelErrorText = bottomPanelErrorMessages.join(" ");
   const lastRemovedLine = removedLines.at(-1) ?? null;
   const selectedCountry = form.country.trim();
-  const countryForMethods = isDeliveryCountry(selectedCountry)
+  const countryForMethods: DeliveryCountry = isDeliveryCountry(selectedCountry)
     ? selectedCountry
-    : defaultForm.country;
+    : "Polska";
+  const requiresContactPostalCode = countryForMethods !== "Polska";
+  const postalCodeLockedInDataStep =
+    requiresContactPostalCode && Boolean(form.postalCode.trim());
   const availableDeliveryMethods = getDeliveryMethodsForCountry(countryForMethods);
   const availablePaymentMethods = getPaymentMethodsForCountry(countryForMethods);
 
@@ -1033,11 +1513,14 @@ export function CheckoutFlow() {
 
     const payload: PersistedCheckout = {
       currentStep,
-      deliveryMethodId,
       discountCode,
       form,
       paymentMethodId,
     };
+
+    if (deliveryMethodId) {
+      payload.deliveryMethodId = deliveryMethodId;
+    }
 
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
   }, [currentStep, deliveryMethodId, discountCode, form, hasHydrated, paymentMethodId]);
@@ -1104,7 +1587,7 @@ export function CheckoutFlow() {
       observer.disconnect();
       window.removeEventListener("resize", updateStickyBarHeight);
     };
-  }, [currentStep, items.length, mobileErrorMessage, mobileOrderOpen]);
+  }, [bottomPanelErrorText, currentStep, items.length, mobileOrderOpen]);
 
   useEffect(() => {
     const checkout = mobileCheckoutRef.current;
@@ -1215,8 +1698,10 @@ export function CheckoutFlow() {
     currentStep,
     discount,
     errors,
+    form.country,
     form.differentBillingAddress,
     form.wantsInvoice,
+    form.postalCode,
     items.length,
     mobileDiscountOpen,
     mobileOrderOpen,
@@ -1236,6 +1721,30 @@ export function CheckoutFlow() {
 
       const next = { ...current };
       delete next[field];
+      return next;
+    });
+  };
+
+  const selectDeliveryCountry = (country: DeliveryCountry) => {
+    setForm((current) => {
+      if (current.country === country) {
+        return current;
+      }
+
+      return {
+        ...current,
+        country,
+        postalCode: "",
+      };
+    });
+    setErrors((current) => {
+      if (!current.country && !current.postalCode) {
+        return current;
+      }
+
+      const next = { ...current };
+      delete next.country;
+      delete next.postalCode;
       return next;
     });
   };
@@ -1346,7 +1855,10 @@ export function CheckoutFlow() {
     });
 
     window.setTimeout(() => {
-      const targetId = mobileErrorFieldIds[firstErrorField];
+      const targetId =
+        currentStep === "contact" && firstErrorField === "postalCode"
+          ? "mobile-contact-postal"
+          : mobileErrorFieldIds[firstErrorField];
       const target = targetId ? document.getElementById(targetId) : null;
 
       target?.scrollIntoView({ behavior: "smooth", block: "center" });
@@ -1367,9 +1879,10 @@ export function CheckoutFlow() {
       return { ...current, inpostPoint: "" };
     });
     setErrors((current) => {
-      if (!current.inpostPoint) return current;
+      if (!current.inpostPoint && !current.deliveryMethod) return current;
       const next = { ...current };
       delete next.inpostPoint;
+      delete next.deliveryMethod;
       return next;
     });
     trackCheckoutEvent("checkout_method_change", {
@@ -1433,6 +1946,8 @@ export function CheckoutFlow() {
       nextErrors.country = "Wybierz kraj dostawy.";
     } else if (!isDeliveryCountry(country)) {
       nextErrors.country = "Wybierz kraj z listy obsługiwanych dostaw.";
+    } else if (country !== "Polska" && !isPostalCodeValidForCountry(form.postalCode, country)) {
+      nextErrors.postalCode = getPostalCodeError(country);
     }
 
     if (!form.termsAccepted) {
@@ -1447,6 +1962,11 @@ export function CheckoutFlow() {
     const delivery: DeliveryMethod | undefined = availableDeliveryMethods.find(
       (method) => method.id === deliveryMethodId,
     );
+
+    if (!deliveryMethodId || !delivery) {
+      nextErrors.deliveryMethod = "Wybierz metodę dostawy.";
+      return nextErrors;
+    }
 
     if (delivery?.requiresPoint && !form.inpostPoint.trim()) {
       nextErrors.inpostPoint = `Wybierz ${delivery.pointLabel ?? "punkt odbioru"}.`;
@@ -1465,27 +1985,15 @@ export function CheckoutFlow() {
     if (!form.lastName.trim()) nextErrors.lastName = "Podaj nazwisko.";
     if (!form.street.trim()) nextErrors.street = "Podaj ulicę.";
     if (!form.houseNumber.trim()) nextErrors.houseNumber = "Podaj numer domu lub lokalu.";
-    if (!isValidPostalCode(form.postalCode)) {
-      nextErrors.postalCode = "Podaj kod w formacie 00-000.";
+    if (!isPostalCodeValidForCountry(form.postalCode, countryForMethods)) {
+      nextErrors.postalCode = getPostalCodeError(countryForMethods);
     }
     if (!form.city.trim()) nextErrors.city = "Podaj miasto.";
 
     if (form.wantsInvoice) {
-      if (!form.companyName.trim()) nextErrors.companyName = "Podaj nazwę firmy.";
       if (form.taxId.replace(/\D/g, "").length !== 10) {
         nextErrors.taxId = "Podaj 10-cyfrowy NIP.";
       }
-    }
-
-    if (form.differentBillingAddress) {
-      if (!form.billingStreet.trim()) nextErrors.billingStreet = "Podaj ulicę.";
-      if (!form.billingHouseNumber.trim()) {
-        nextErrors.billingHouseNumber = "Podaj numer domu lub lokalu.";
-      }
-      if (!isValidPostalCode(form.billingPostalCode)) {
-        nextErrors.billingPostalCode = "Podaj kod w formacie 00-000.";
-      }
-      if (!form.billingCity.trim()) nextErrors.billingCity = "Podaj miasto.";
     }
 
     return nextErrors;
@@ -1518,10 +2026,6 @@ export function CheckoutFlow() {
       nextErrors.blikCode = "Podaj 6-cyfrowy kod BLIK.";
     }
 
-    if (!form.termsAccepted) {
-      nextErrors.termsAccepted = "Akceptacja regulaminu i polityki prywatności jest wymagana.";
-    }
-
     return nextErrors;
   };
 
@@ -1535,6 +2039,18 @@ export function CheckoutFlow() {
     focusMobile?: boolean;
     source?: string;
   } = {}) => {
+    if (!deliveryMethodId || !selectedDelivery) {
+      setErrors({ deliveryMethod: "Wybierz metodę dostawy." });
+      setCurrentStep("delivery");
+      if (focusMobile) {
+        window.setTimeout(
+          () => focusFirstMobileError({ deliveryMethod: "Wybierz metodę dostawy." }),
+          40,
+        );
+      }
+      return;
+    }
+
     if (!validatePayment({ focusMobile }) || !items.length || isSubmitting) {
       return;
     }
@@ -1655,7 +2171,6 @@ export function CheckoutFlow() {
       0,
       Math.min(activeIndex, checkoutSteps.length - 1),
     );
-    const activeStep = checkoutSteps[clampedActiveIndex];
     const desktopProgressWidth = `${
       ((clampedActiveIndex + 1) / checkoutSteps.length) * 100
     }%`;
@@ -1693,60 +2208,67 @@ export function CheckoutFlow() {
         aria-label="Etapy checkoutu"
         className="mb-3 border border-browin-dark/10 bg-browin-white px-4 py-3 shadow-sm"
       >
-        <div className="mb-3 min-w-0">
-          <div className="min-w-0">
-            <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-red">
-              Checkout
-            </p>
-            <p className="mt-0.5 truncate text-sm font-bold text-browin-dark">
-              Etap {activeIndex + 1} z {checkoutSteps.length}: {activeStep.label}
-            </p>
-          </div>
-        </div>
+        <div className="grid items-center gap-4 lg:grid-cols-[10rem_minmax(0,1fr)]">
+          <Link
+            aria-label="BROWIN - strona główna"
+            className="inline-flex w-max shrink-0 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red"
+            href="/"
+          >
+            <Image
+              alt="BROWIN"
+              className="block object-contain"
+              height={20}
+              priority
+              src="/assets/logo_BROWIN.svg"
+              style={{ height: "auto", width: "9.25rem" }}
+              width={148}
+            />
+          </Link>
 
-        <ol className="grid grid-cols-4 gap-1.5">
-          {checkoutSteps.map((step, index) => {
-            const isActive = step.id === desktopCurrentStep;
-            const isComplete = index < activeIndex;
-            const canNavigate = index < activeIndex;
+          <ol className="grid min-w-0 grid-cols-4 gap-1.5">
+            {checkoutSteps.map((step, index) => {
+              const isActive = step.id === desktopCurrentStep;
+              const isComplete = index < activeIndex;
+              const canNavigate = index < activeIndex;
 
-            return (
-              <li key={step.id}>
-                <button
-                  aria-current={isActive ? "step" : undefined}
-                  className={classNames(
-                    "grid w-full grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-2 px-1 py-1 text-left transition-colors disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red",
-                    isActive
-                      ? "text-browin-red"
-                      : isComplete
-                        ? "text-browin-dark"
-                        : "text-browin-dark/42",
-                    canNavigate && "hover:text-browin-red",
-                  )}
-                  disabled={!canNavigate && !isActive}
-                  onClick={() => setCurrentStep(step.id)}
-                  type="button"
-                >
-                  <span
+              return (
+                <li key={step.id}>
+                  <button
+                    aria-current={isActive ? "step" : undefined}
                     className={classNames(
-                      "flex h-7 w-7 items-center justify-center text-[11px] font-bold",
+                      "grid w-full grid-cols-[1.75rem_minmax(0,1fr)] items-center gap-2 px-1 py-1 text-left transition-colors disabled:cursor-default focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red",
                       isActive
-                        ? "bg-browin-red text-browin-white"
+                        ? "text-browin-red"
                         : isComplete
-                          ? "bg-browin-red/10 text-browin-red"
-                          : "bg-browin-gray text-browin-dark/42",
+                          ? "text-browin-dark"
+                          : "text-browin-dark/42",
+                      canNavigate && "hover:text-browin-red",
                     )}
+                    disabled={!canNavigate && !isActive}
+                    onClick={() => setCurrentStep(step.id)}
+                    type="button"
                   >
-                    {isComplete ? <Check size={14} weight="bold" /> : index + 1}
-                  </span>
-                  <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.08em] md:text-xs">
-                    {step.label}
-                  </span>
-                </button>
-              </li>
-            );
-          })}
-        </ol>
+                    <span
+                      className={classNames(
+                        "flex h-7 w-7 items-center justify-center text-[11px] font-bold",
+                        isActive
+                          ? "bg-browin-red text-browin-white"
+                          : isComplete
+                            ? "bg-browin-red/10 text-browin-red"
+                            : "bg-browin-gray text-browin-dark/42",
+                      )}
+                    >
+                      {isComplete ? <Check size={14} weight="bold" /> : index + 1}
+                    </span>
+                    <span className="min-w-0 truncate text-[11px] font-bold uppercase tracking-[0.08em] md:text-xs">
+                      {step.label}
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+          </ol>
+        </div>
         <div className="mt-3 h-1 bg-browin-dark/10" aria-hidden="true">
           <span
             className="block h-full bg-browin-red transition-[width]"
@@ -1946,25 +2468,6 @@ export function CheckoutFlow() {
       className: "xl:flex xl:h-full xl:max-h-full xl:min-h-0 xl:flex-col xl:overflow-hidden",
       eyebrow: "Zamówienie",
       title: `${count} ${formatPolishPlural(count, "produkt", "produkty", "produktów")}`,
-      action: (
-        <span className="mr-6 inline-flex shrink-0">
-          <Link
-            aria-label="BROWIN - strona główna"
-            className="inline-flex shrink-0"
-            href="/"
-          >
-            <Image
-              alt="BROWIN"
-              className="block object-contain"
-              height={18}
-              priority
-              src="/assets/logo_BROWIN.svg"
-              style={{ height: "auto", width: "10rem" }}
-              width={92}
-            />
-          </Link>
-        </span>
-      ),
       children: (
         <div className="grid gap-3 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-hidden">
           {items.length || inlineUndoLines.length ? (
@@ -2052,33 +2555,8 @@ export function CheckoutFlow() {
           )}
 
           <div className="overflow-hidden border border-browin-dark/10 bg-browin-white">
-            <button
-              aria-expanded={desktopDiscountOpen || Boolean(discount)}
-              className="flex min-h-10 w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:text-browin-red"
-              onClick={() => setDesktopDiscountOpen((open) => !open)}
-              type="button"
-            >
-              <span className="flex min-w-0 items-center gap-2">
-                <Ticket className="shrink-0 text-browin-red" size={16} weight="fill" />
-                <span className="truncate text-[12px] font-bold text-browin-dark">
-                  {discount ? `Kod ${discount.code}` : "Mam kod rabatowy"}
-                </span>
-              </span>
-              <span className="flex shrink-0 items-center gap-2 text-[12px] font-bold text-browin-red">
-                {discount ? `-${formatCurrency(discount.amount)}` : null}
-                <CaretDown
-                  className={classNames(
-                    "transition-transform",
-                    (desktopDiscountOpen || discount) && "rotate-180",
-                  )}
-                  size={14}
-                  weight="bold"
-                />
-              </span>
-            </button>
-
             {desktopDiscountOpen || discount || discountError ? (
-              <div className="border-t border-browin-dark/10 p-2">
+              <div className="p-2">
                 <div
                   className={classNames(
                     "flex min-h-10 overflow-hidden border bg-browin-white",
@@ -2109,10 +2587,10 @@ export function CheckoutFlow() {
                   />
                   <button
                     className={classNames(
-                      "shrink-0 px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-browin-red",
+                      "min-h-10 shrink-0 px-3 text-[10px] font-bold uppercase tracking-[0.12em] transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-browin-red",
                       discount
                         ? "bg-browin-white text-browin-red hover:bg-browin-red/5"
-                        : "bg-browin-dark text-browin-white hover:bg-browin-red",
+                        : "bg-browin-red text-browin-white hover:bg-browin-red/90",
                     )}
                     onClick={discount ? removeDiscount : applyDiscount}
                     type="button"
@@ -2131,6 +2609,30 @@ export function CheckoutFlow() {
                 ) : null}
               </div>
             ) : null}
+            <button
+              aria-expanded={desktopDiscountOpen || Boolean(discount) || Boolean(discountError)}
+              className="flex min-h-10 w-full items-center justify-between gap-3 px-3 text-left transition-colors hover:text-browin-red"
+              onClick={() => setDesktopDiscountOpen((open) => !open)}
+              type="button"
+            >
+              <span className="flex min-w-0 items-center gap-2">
+                <Ticket className="shrink-0 text-browin-red" size={16} weight="fill" />
+                <span className="truncate text-[12px] font-bold text-browin-dark">
+                  {discount ? `Kod ${discount.code}` : "Mam kod rabatowy"}
+                </span>
+              </span>
+              <span className="flex shrink-0 items-center gap-2 text-[12px] font-bold text-browin-red">
+                {discount ? `-${formatCurrency(discount.amount)}` : null}
+                <CaretDown
+                  className={classNames(
+                    "transition-transform",
+                    !(desktopDiscountOpen || discount || discountError) && "rotate-180",
+                  )}
+                  size={14}
+                  weight="bold"
+                />
+              </span>
+            </button>
           </div>
 
           <div className="xl:mt-auto">
@@ -2148,10 +2650,12 @@ export function CheckoutFlow() {
                 <span>-{formatCurrency(discount.amount)}</span>
               </div>
             ) : null}
-            <div className="flex items-center justify-between gap-3 text-browin-dark/62">
-              <span>Dostawa</span>
-              <span>{deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}</span>
-            </div>
+            {selectedDelivery ? (
+              <div className="flex items-center justify-between gap-3 text-browin-dark/62">
+                <span>Dostawa</span>
+                <span>{deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-3 border-t border-browin-dark/10 pt-1.5 text-lg font-bold text-browin-dark">
               <span>Razem</span>
               <span>{formatCurrency(total)}</span>
@@ -2172,6 +2676,7 @@ export function CheckoutFlow() {
             <CompactField
               autoComplete="email"
               autoCapitalize="none"
+              className={!form.email ? "checkout-email-attention" : ""}
               enterKeyHint="next"
               error={errors.email}
               id="desktop-email"
@@ -2189,53 +2694,72 @@ export function CheckoutFlow() {
               id="desktop-country"
               label="Kraj dostawy"
               name="desktop-country-name"
-              onChange={(country) => updateFormField("country", country)}
+              onChange={selectDeliveryCountry}
               value={form.country}
             />
+            {requiresContactPostalCode ? (
+              <CompactField
+                autoComplete="shipping postal-code"
+                enterKeyHint="next"
+                error={errors.postalCode}
+                id="desktop-contact-postal"
+                inputMode={getPostalCodeInputMode(countryForMethods)}
+                label="Kod pocztowy"
+                maxLength={postalCodeRules[countryForMethods].example.length}
+                name="desktop-contact-postal-code"
+                onChange={(event) =>
+                  updateFormField(
+                    "postalCode",
+                    formatPostalCodeForCountry(event.target.value, countryForMethods),
+                  )
+                }
+                placeholder={`np. ${postalCodeRules[countryForMethods].example}`}
+                value={form.postalCode}
+                wrapperClassName="sm:col-span-2"
+              />
+            ) : null}
           </div>
 
-          <label
-            className={classNames(
-              "grid cursor-pointer grid-cols-[1.35rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug",
-              errors.termsAccepted
-                ? "border-browin-red bg-browin-red/5"
-                : "border-browin-dark/10",
-            )}
-            htmlFor="desktop-contact-terms"
-          >
-            <input
-              aria-invalid={Boolean(errors.termsAccepted)}
-              checked={form.termsAccepted}
-              className="mt-0.5 h-4 w-4 accent-browin-red"
-              id="desktop-contact-terms"
-              onChange={(event) =>
-                updateFormField("termsAccepted", event.target.checked)
-              }
-              type="checkbox"
-            />
-            <span>
-              Akceptuję{" "}
+          <div className="grid gap-1.5">
+            <label
+              className={classNames(
+                "grid cursor-pointer grid-cols-[1.35rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug transition-colors hover:border-browin-red/35",
+                errors.termsAccepted
+                  ? "border-browin-red bg-browin-red/5"
+                  : "border-browin-dark/10",
+              )}
+              htmlFor="desktop-contact-terms"
+            >
+              <input
+                aria-describedby={
+                  errors.termsAccepted ? "desktop-checkout-error-summary" : undefined
+                }
+                aria-invalid={Boolean(errors.termsAccepted)}
+                checked={form.termsAccepted}
+                className="mt-0.5 h-4 w-4 cursor-pointer accent-browin-red"
+                id="desktop-contact-terms"
+                onChange={(event) =>
+                  updateFormField("termsAccepted", event.target.checked)
+                }
+                type="checkbox"
+              />
+              <span>Akceptuję regulamin oraz politykę prywatności sklepu.</span>
+            </label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-[11px] font-bold">
               <Link
-                className="font-bold text-browin-red underline underline-offset-2"
+                className="text-browin-red underline underline-offset-2 transition-colors hover:text-browin-red/80"
                 href="/regulamin"
               >
-                regulamin
-              </Link>{" "}
-              oraz{" "}
+                Zobacz regulamin
+              </Link>
               <Link
-                className="font-bold text-browin-red underline underline-offset-2"
+                className="text-browin-red underline underline-offset-2 transition-colors hover:text-browin-red/80"
                 href="/polityka-prywatnosci"
               >
-                politykę prywatności sklepu
+                Zobacz politykę prywatności
               </Link>
-              .
-              {errors.termsAccepted ? (
-                <span className="mt-1 block text-[10px] font-bold text-browin-red">
-                  {errors.termsAccepted}
-                </span>
-              ) : null}
-            </span>
-          </label>
+            </div>
+          </div>
         </div>
       ),
     });
@@ -2321,11 +2845,6 @@ export function CheckoutFlow() {
                 <p className="mt-0.5 text-[10px] leading-snug text-browin-dark/52">
                   {selectedDelivery.name}: wskaż punkt odbioru dla tej metody dostawy.
                 </p>
-                {errors.inpostPoint ? (
-                  <p className="mt-1 text-[10px] font-bold text-browin-red">
-                    {errors.inpostPoint}
-                  </p>
-                ) : null}
               </div>
               <button
                 className="min-h-9 border border-browin-red bg-browin-white px-3 text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red transition-colors hover:bg-browin-red hover:text-browin-white"
@@ -2349,208 +2868,137 @@ export function CheckoutFlow() {
   const renderDesktopDataPanel = () =>
     renderDesktopSection({
       eyebrow: "Dane",
-      title: "Telefon i adres",
+      title: "Dane dostawy",
       children: (
         <div className="grid gap-3">
-          <div className="grid gap-2 lg:grid-cols-2">
-            <CompactField
-              autoComplete="tel"
-              enterKeyHint="next"
-              error={errors.phone}
-              id="desktop-phone"
-              inputMode="tel"
-              label="Telefon"
-              name="desktop-tel"
-              onChange={(event) => updateFormField("phone", event.target.value)}
-              placeholder="501 222 333"
-              type="tel"
-              value={form.phone}
-            />
-            <CompactField
-              autoComplete="shipping given-name"
-              enterKeyHint="next"
-              error={errors.firstName}
-              id="desktop-first-name"
-              label="Imię"
-              name="desktop-given-name"
-              onChange={(event) => updateFormField("firstName", event.target.value)}
-              value={form.firstName}
-            />
-            <CompactField
-              autoComplete="shipping family-name"
-              enterKeyHint="next"
-              error={errors.lastName}
-              id="desktop-last-name"
-              label="Nazwisko"
-              name="desktop-family-name"
-              onChange={(event) => updateFormField("lastName", event.target.value)}
-              value={form.lastName}
-            />
-            <CompactField
-              autoComplete="shipping address-line1"
-              enterKeyHint="next"
-              error={errors.street}
-              id="desktop-street"
-              label="Ulica"
-              name="desktop-address-line1"
-              onChange={(event) => updateFormField("street", event.target.value)}
-              value={form.street}
-            />
-            <CompactField
-              autoComplete="shipping address-line2"
-              enterKeyHint="next"
-              error={errors.houseNumber}
-              id="desktop-house"
-              label="Nr domu / lokalu"
-              name="desktop-address-line2"
-              onChange={(event) => updateFormField("houseNumber", event.target.value)}
-              value={form.houseNumber}
-            />
-            <CompactField
-              autoComplete="shipping postal-code"
-              enterKeyHint="next"
-              error={errors.postalCode}
-              id="desktop-postal"
-              inputMode="numeric"
-              label="Kod"
-              maxLength={6}
-              name="desktop-postal-code"
-              onChange={(event) =>
-                updateFormField("postalCode", formatPostalCodeInput(event.target.value))
-              }
-              pattern="[0-9]{2}-?[0-9]{3}"
-              placeholder="00-000"
-              value={form.postalCode}
-            />
-            <CompactField
-              autoComplete="shipping address-level2"
-              enterKeyHint="done"
-              error={errors.city}
-              id="desktop-city"
-              label="Miasto"
-              name="desktop-address-level2"
-              onChange={(event) => updateFormField("city", event.target.value)}
-              value={form.city}
-            />
+          <div className="grid gap-2">
+            <div className="grid gap-2 lg:grid-cols-3">
+              <CompactField
+                autoComplete="shipping given-name"
+                enterKeyHint="next"
+                error={errors.firstName}
+                id="desktop-first-name"
+                label="Imię"
+                name="desktop-given-name"
+                onChange={(event) => updateFormField("firstName", event.target.value)}
+                value={form.firstName}
+              />
+              <CompactField
+                autoComplete="shipping family-name"
+                enterKeyHint="next"
+                error={errors.lastName}
+                id="desktop-last-name"
+                label="Nazwisko"
+                name="desktop-family-name"
+                onChange={(event) => updateFormField("lastName", event.target.value)}
+                value={form.lastName}
+              />
+              <CompactField
+                autoComplete="tel"
+                enterKeyHint="next"
+                error={errors.phone}
+                id="desktop-phone"
+                inputMode="tel"
+                label="Telefon"
+                name="desktop-tel"
+                onChange={(event) => updateFormField("phone", event.target.value)}
+                placeholder="501 222 333"
+                type="tel"
+                value={form.phone}
+              />
+            </div>
+
+            <div className="grid gap-2 lg:grid-cols-[minmax(0,1fr)_9rem]">
+              <CompactField
+                autoComplete="shipping address-line1"
+                enterKeyHint="next"
+                error={errors.street}
+                id="desktop-street"
+                label="Ulica"
+                name="desktop-address-line1"
+                onChange={(event) => updateFormField("street", event.target.value)}
+                value={form.street}
+              />
+              <CompactField
+                autoComplete="shipping address-line2"
+                enterKeyHint="next"
+                error={errors.houseNumber}
+                id="desktop-house"
+                label="Nr domu / lokalu"
+                name="desktop-address-line2"
+                onChange={(event) => updateFormField("houseNumber", event.target.value)}
+                value={form.houseNumber}
+              />
+            </div>
+
+            <div className="grid gap-2 lg:grid-cols-[10rem_minmax(0,1fr)]">
+              <CompactField
+                autoComplete="shipping postal-code"
+                disabled={postalCodeLockedInDataStep}
+                enterKeyHint="next"
+                error={errors.postalCode}
+                id="desktop-postal"
+                inputMode={getPostalCodeInputMode(countryForMethods)}
+                label="Kod pocztowy"
+                maxLength={postalCodeRules[countryForMethods].example.length}
+                name="desktop-postal-code"
+                onChange={(event) =>
+                  updateFormField(
+                    "postalCode",
+                    formatPostalCodeForCountry(event.target.value, countryForMethods),
+                  )
+                }
+                pattern={
+                  countryForMethods === "Polska" ? "[0-9]{2}-?[0-9]{3}" : undefined
+                }
+                placeholder={`np. ${postalCodeRules[countryForMethods].example}`}
+                value={form.postalCode}
+              />
+              <CompactField
+                autoComplete="shipping address-level2"
+                enterKeyHint="done"
+                error={errors.city}
+                id="desktop-city"
+                label="Miasto"
+                name="desktop-address-level2"
+                onChange={(event) => updateFormField("city", event.target.value)}
+                value={form.city}
+              />
+            </div>
           </div>
 
-          <div className="grid gap-2 sm:grid-cols-2">
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 border border-browin-dark/10 bg-browin-white px-2.5 text-[11px] font-semibold text-browin-dark" htmlFor="desktop-wants-invoice">
-              <input
-                checked={form.wantsInvoice}
-                className="h-4 w-4 accent-browin-red"
-                id="desktop-wants-invoice"
-                onChange={(event) => updateFormField("wantsInvoice", event.target.checked)}
-                type="checkbox"
-              />
-              Chcę fakturę
-            </label>
-            <label className="flex min-h-10 cursor-pointer items-center gap-2 border border-browin-dark/10 bg-browin-white px-2.5 text-[11px] font-semibold text-browin-dark" htmlFor="desktop-different-billing">
-              <input
-                checked={form.differentBillingAddress}
-                className="h-4 w-4 accent-browin-red"
-                id="desktop-different-billing"
-                onChange={(event) =>
-                  updateFormField("differentBillingAddress", event.target.checked)
-                }
-                type="checkbox"
-              />
-              Inny adres rozliczeniowy
-            </label>
-          </div>
+          <InvoiceSwitch
+            checked={form.wantsInvoice}
+            id="desktop-wants-invoice"
+            onChange={(checked) => updateFormField("wantsInvoice", checked)}
+          />
 
           {form.wantsInvoice ? (
-            <div className="grid gap-2 border border-browin-dark/10 bg-browin-gray p-2 lg:grid-cols-2">
-              <CompactField
-                autoComplete="organization"
-                error={errors.companyName}
-                id="desktop-company"
-                label="Firma"
-                name="desktop-organization"
-                onChange={(event) => updateFormField("companyName", event.target.value)}
-                value={form.companyName}
-              />
-              <CompactField
-                autoComplete="off"
-                error={errors.taxId}
-                id="desktop-tax"
-                inputMode="numeric"
-                label="NIP"
-                maxLength={13}
-                name="desktop-tax-id"
-                onChange={(event) => updateFormField("taxId", event.target.value)}
-                value={form.taxId}
-              />
-            </div>
-          ) : null}
-
-          {form.differentBillingAddress ? (
-            <div className="grid gap-2 border border-browin-dark/10 bg-browin-gray p-2 lg:grid-cols-2">
-              <CompactField
-                autoComplete="billing address-line1"
-                error={errors.billingStreet}
-                id="desktop-billing-street"
-                label="Ulica"
-                name="desktop-billing-address-line1"
-                onChange={(event) => updateFormField("billingStreet", event.target.value)}
-                value={form.billingStreet}
-              />
-              <CompactField
-                autoComplete="billing address-line2"
-                error={errors.billingHouseNumber}
-                id="desktop-billing-house"
-                label="Nr domu"
-                name="desktop-billing-address-line2"
-                onChange={(event) => updateFormField("billingHouseNumber", event.target.value)}
-                value={form.billingHouseNumber}
-              />
-              <CompactField
-                autoComplete="billing postal-code"
-                error={errors.billingPostalCode}
-                id="desktop-billing-postal"
-                inputMode="numeric"
-                label="Kod"
-                maxLength={6}
-                name="desktop-billing-postal-code"
-                onChange={(event) =>
-                  updateFormField("billingPostalCode", formatPostalCodeInput(event.target.value))
-                }
-                placeholder="00-000"
-                value={form.billingPostalCode}
-              />
-              <CompactField
-                autoComplete="billing address-level2"
-                error={errors.billingCity}
-                id="desktop-billing-city"
-                label="Miasto"
-                name="desktop-billing-address-level2"
-                onChange={(event) => updateFormField("billingCity", event.target.value)}
-                value={form.billingCity}
-              />
-            </div>
+            <CompactField
+              autoComplete="off"
+              error={errors.taxId}
+              id="desktop-tax"
+              inputMode="numeric"
+              label="NIP"
+              maxLength={13}
+              name="desktop-tax-id"
+              onChange={(event) => updateFormField("taxId", event.target.value)}
+              value={form.taxId}
+            />
           ) : null}
         </div>
       ),
     });
 
-  const renderDesktopPaymentPanel = () => {
-    const visiblePaymentMethods = desktopPaymentMoreOpen
-      ? availablePaymentMethods
-      : availablePaymentMethods.slice(0, 4);
-    const hiddenPaymentMethods = availablePaymentMethods.slice(4);
-    const hiddenPaymentMethodCount = hiddenPaymentMethods.length;
-    const hiddenPaymentSelected = hiddenPaymentMethods.some(
-      (method) => method.id === paymentMethodId,
-    );
-
-    return renderDesktopSection({
+  const renderDesktopPaymentPanel = () =>
+    renderDesktopSection({
       className: "xl:flex xl:h-full xl:max-h-full xl:min-h-0 xl:flex-col xl:overflow-hidden",
       eyebrow: "Płatność",
       title: "Finalizacja",
       children: (
         <div className="checkout-scrollbar grid gap-3 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:overflow-y-auto xl:pr-1">
-          <div className="grid grid-cols-2 gap-2">
-            {visiblePaymentMethods.map((method) => {
+          <div className="grid grid-cols-3 gap-2">
+            {availablePaymentMethods.map((method) => {
               const checked = paymentMethodId === method.id;
 
               return (
@@ -2592,27 +3040,6 @@ export function CheckoutFlow() {
                 </label>
               );
             })}
-
-            {!desktopPaymentMoreOpen && hiddenPaymentMethodCount ? (
-              <button
-                aria-expanded={desktopPaymentMoreOpen}
-                className={classNames(
-                  "grid min-h-[4.25rem] w-full content-center border p-3 text-center transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
-                  hiddenPaymentSelected
-                    ? "border-browin-red bg-browin-red/5"
-                    : "border-browin-dark/10 bg-browin-gray",
-                )}
-                onClick={() => setDesktopPaymentMoreOpen(true)}
-                type="button"
-              >
-                <span className="text-xl font-bold leading-none text-browin-red">
-                  +{hiddenPaymentMethodCount}
-                </span>
-                <span className="mt-1 text-[10px] font-bold uppercase leading-tight tracking-[0.08em] text-browin-dark/52">
-                  więcej metod
-                </span>
-              </button>
-            ) : null}
           </div>
 
           {selectedPayment ? (
@@ -2651,55 +3078,6 @@ export function CheckoutFlow() {
             />
           ) : null}
 
-          <label
-            className={classNames(
-              "grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-2 text-[11px] font-semibold leading-snug",
-              errors.termsAccepted ? "border-browin-red bg-browin-red/5" : "border-browin-dark/10",
-            )}
-            htmlFor="desktop-terms"
-          >
-            <input
-              checked={form.termsAccepted}
-              className="mt-0.5 h-4 w-4 accent-browin-red"
-              id="desktop-terms"
-              onChange={(event) => updateFormField("termsAccepted", event.target.checked)}
-              type="checkbox"
-            />
-            <span>
-              Akceptuję{" "}
-              <Link className="font-bold text-browin-red underline underline-offset-2" href="/regulamin">
-                regulamin
-              </Link>{" "}
-              oraz{" "}
-              <Link
-                className="font-bold text-browin-red underline underline-offset-2"
-                href="/polityka-prywatnosci"
-              >
-                politykę prywatności sklepu
-              </Link>
-              .
-              {errors.termsAccepted ? (
-                <span className="mt-1 block text-[10px] font-bold text-browin-red">
-                  {errors.termsAccepted}
-                </span>
-              ) : null}
-            </span>
-          </label>
-
-          <label
-            className="grid cursor-pointer grid-cols-[1.25rem_minmax(0,1fr)] items-start gap-2 border border-browin-dark/10 bg-browin-white p-2 text-[11px] font-semibold leading-snug"
-            htmlFor="desktop-marketing"
-          >
-            <input
-              checked={form.marketingAccepted}
-              className="mt-0.5 h-4 w-4 accent-browin-red"
-              id="desktop-marketing"
-              onChange={(event) => updateFormField("marketingAccepted", event.target.checked)}
-              type="checkbox"
-            />
-            <span>Promocje i inspiracje po zakupie. Opcjonalnie.</span>
-          </label>
-
           <div className="grid gap-1 border-t border-browin-dark/10 pt-2 text-[12px] xl:mt-auto">
             <div className="flex items-center justify-between gap-3 text-browin-dark/62">
               <span>Produkty</span>
@@ -2711,10 +3089,12 @@ export function CheckoutFlow() {
                 <span>-{formatCurrency(discount.amount)}</span>
               </div>
             ) : null}
-            <div className="flex items-center justify-between gap-3 text-browin-dark/62">
-              <span>Dostawa</span>
-              <span>{deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}</span>
-            </div>
+            {selectedDelivery ? (
+              <div className="flex items-center justify-between gap-3 text-browin-dark/62">
+                <span>Dostawa</span>
+                <span>{deliveryCost === 0 ? "Gratis" : formatCurrency(deliveryCost)}</span>
+              </div>
+            ) : null}
             <div className="flex items-center justify-between gap-3 border-t border-browin-dark/10 pt-1.5 text-lg font-bold text-browin-dark">
               <span>Razem</span>
               <span>{formatCurrency(total)}</span>
@@ -2724,7 +3104,6 @@ export function CheckoutFlow() {
         </div>
       ),
     });
-  };
 
   const getDesktopCtaLabel = () => {
     if (isSubmitting) return "Finalizuję...";
@@ -2757,42 +3136,71 @@ export function CheckoutFlow() {
     }
   };
 
+  const renderCheckoutErrorSummary = (id: string) => {
+    if (!bottomPanelErrorMessages.length) {
+      return null;
+    }
+
+    return (
+      <div
+        aria-live="assertive"
+        className="border border-browin-red/25 bg-browin-red/5 px-3 py-2 text-[11px] font-bold leading-snug text-browin-red"
+        id={id}
+        role="alert"
+      >
+        <div className="flex items-start gap-1.5">
+          <WarningCircle className="mt-0.5 shrink-0" size={13} weight="fill" />
+          <div className="grid gap-0.5">
+            {bottomPanelErrorMessages.map((message) => (
+              <p key={message}>{message}</p>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   const renderDesktopWizardControls = () => {
     const desktopStep = getDesktopCheckoutStep(currentStep);
     const canGoBack = desktopStep !== "contact";
 
     return (
       <div
-        className={classNames(
-          "grid gap-3 md:sticky md:bottom-3 md:z-20 xl:static",
-          canGoBack ? "sm:grid-cols-[11rem_minmax(0,1fr)]" : "sm:grid-cols-1",
-        )}
+        className="grid gap-2 md:sticky md:bottom-3 md:z-20 xl:static"
       >
-        {canGoBack ? (
-          <button
-            className="inline-flex min-h-14 items-center justify-center gap-2 border border-browin-dark/14 bg-browin-white px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red"
-            disabled={isSubmitting}
-            onClick={handleDesktopBack}
-            type="button"
-          >
-            <ArrowLeft size={22} weight="bold" />
-            Wstecz
-          </button>
-        ) : null}
-        <button
-          className="checkout-cta inline-flex min-h-14 w-full items-center justify-center gap-2 bg-browin-red px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-white shadow-sharp transition-colors disabled:cursor-not-allowed disabled:bg-browin-dark/35"
-          disabled={isSubmitting || !items.length}
-          type="submit"
-        >
-          {isSubmitting ? (
-            <SpinnerGap className="animate-spin" size={16} />
-          ) : desktopStep === "payment" ? (
-            <ShoppingBagOpen size={16} weight="fill" />
-          ) : (
-            <ArrowRight size={16} weight="bold" />
+        {renderCheckoutErrorSummary("desktop-checkout-error-summary")}
+        <div
+          className={classNames(
+            "grid gap-3",
+            canGoBack ? "sm:grid-cols-[11rem_minmax(0,1fr)]" : "sm:grid-cols-1",
           )}
-          {getDesktopCtaLabel()}
-        </button>
+        >
+          {canGoBack ? (
+            <button
+              className="inline-flex min-h-14 items-center justify-center gap-2 border border-browin-dark/14 bg-browin-white px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-browin-red"
+              disabled={isSubmitting}
+              onClick={handleDesktopBack}
+              type="button"
+            >
+              <ArrowLeft size={22} weight="bold" />
+              Wstecz
+            </button>
+          ) : null}
+          <button
+            className="checkout-cta inline-flex min-h-14 w-full items-center justify-center gap-2 bg-browin-red px-5 text-sm font-bold uppercase tracking-[0.12em] text-browin-white shadow-sharp transition-colors disabled:cursor-not-allowed disabled:bg-browin-dark/35"
+            disabled={isSubmitting || !items.length}
+            type="submit"
+          >
+            {isSubmitting ? (
+              <SpinnerGap className="animate-spin" size={16} />
+            ) : desktopStep === "payment" ? (
+              <ShoppingBagOpen size={16} weight="fill" />
+            ) : (
+              <ArrowRight size={16} weight="bold" />
+            )}
+            {getDesktopCtaLabel()}
+          </button>
+        </div>
       </div>
     );
   };
@@ -3210,8 +3618,9 @@ export function CheckoutFlow() {
                       </span>
                     ))}
                     <span className="truncate text-[11px] font-semibold text-browin-dark/55">
-                      {selectedDelivery?.name ?? "Dostawa"} ·{" "}
-                      {mobileDeliveryCostLabel(deliveryCost)}
+                      {selectedDelivery
+                        ? `${selectedDelivery.name} · ${mobileDeliveryCostLabel(deliveryCost)}`
+                        : "Dostawa do wyboru"}
                     </span>
                   </span>
                 </span>
@@ -3426,10 +3835,12 @@ export function CheckoutFlow() {
                       <span>-{formatCurrency(discount.amount)}</span>
                     </div>
                   ) : null}
-                  <div className="flex items-center justify-between gap-3 text-browin-dark/62">
-                    <span>Dostawa</span>
-                    <span>{mobileDeliveryCostLabel(deliveryCost)}</span>
-                  </div>
+                  {selectedDelivery ? (
+                    <div className="flex items-center justify-between gap-3 text-browin-dark/62">
+                      <span>Dostawa</span>
+                      <span>{mobileDeliveryCostLabel(deliveryCost)}</span>
+                    </div>
+                  ) : null}
                   <div className="flex items-center justify-between gap-3 border-t border-browin-dark/10 pt-2 text-base font-bold text-browin-dark">
                     <span>Razem</span>
                     <span>{formatCurrency(total)}</span>
@@ -3479,8 +3890,8 @@ export function CheckoutFlow() {
               Podsumowanie
             </p>
             <p className="truncate text-[12px] font-bold text-browin-dark">
-              {count} {count === 1 ? "produkt" : "produkty"} ·{" "}
-              {selectedDelivery?.name ?? "Dostawa"}
+              {count} {count === 1 ? "produkt" : "produkty"}
+              {selectedDelivery ? ` · ${selectedDelivery.name}` : ""}
             </p>
           </div>
           <button
@@ -3527,10 +3938,12 @@ export function CheckoutFlow() {
               <span>-{formatCurrency(discount.amount)}</span>
             </div>
           ) : null}
-          <div className="flex items-center justify-between gap-3 text-browin-dark/60">
-            <span>Dostawa</span>
-            <span>{mobileDeliveryCostLabel(deliveryCost)}</span>
-          </div>
+          {selectedDelivery ? (
+            <div className="flex items-center justify-between gap-3 text-browin-dark/60">
+              <span>Dostawa</span>
+              <span>{mobileDeliveryCostLabel(deliveryCost)}</span>
+            </div>
+          ) : null}
           <div className="flex items-center justify-between gap-3 text-sm font-bold text-browin-dark">
             <span>Razem</span>
             <span>{formatCurrency(total)}</span>
@@ -3545,6 +3958,8 @@ export function CheckoutFlow() {
       complete:
         isValidEmail(form.email) &&
         isDeliveryCountry(form.country.trim()) &&
+        (!requiresContactPostalCode ||
+          isPostalCodeValidForCountry(form.postalCode, countryForMethods)) &&
         form.termsAccepted,
       eyebrow: "Kontakt",
       id: "mobile-contact",
@@ -3559,18 +3974,11 @@ export function CheckoutFlow() {
           <h1 className="sr-only" ref={headingRef} tabIndex={-1}>
             Kontakt do zamówienia
           </h1>
-          <div className="border border-browin-red/20 bg-browin-red/5 p-3">
-            <p className="text-[12px] font-bold leading-tight text-browin-dark">
-              Podaj e-mail i kraj, zanim wybierzesz dostawę.
-            </p>
-            <p className="mt-1 text-[11px] leading-snug text-browin-dark/58">
-              Dzięki temu checkout może dobrać właściwe metody w kolejnych krokach.
-            </p>
-          </div>
           <div className="grid gap-2">
             <CompactField
               autoComplete="email"
               autoCapitalize="none"
+              className={!form.email ? "checkout-email-attention" : ""}
               enterKeyHint="next"
               error={errors.email}
               id="mobile-email"
@@ -3587,62 +3995,78 @@ export function CheckoutFlow() {
               error={errors.country}
               id="mobile-country"
               label="Kraj dostawy"
+              mode="sheet"
               name="country-name"
-              onChange={(country) => updateFormField("country", country)}
+              onChange={selectDeliveryCountry}
               value={form.country}
             />
+            {requiresContactPostalCode ? (
+              <CompactField
+                autoComplete="shipping postal-code"
+                enterKeyHint="next"
+                error={errors.postalCode}
+                id="mobile-contact-postal"
+                inputMode={getPostalCodeInputMode(countryForMethods)}
+                label="Kod pocztowy"
+                maxLength={postalCodeRules[countryForMethods].example.length}
+                name="contact-postal-code"
+                onChange={(event) =>
+                  updateFormField(
+                    "postalCode",
+                    formatPostalCodeForCountry(event.target.value, countryForMethods),
+                  )
+                }
+                placeholder={`np. ${postalCodeRules[countryForMethods].example}`}
+                value={form.postalCode}
+              />
+            ) : null}
           </div>
-          <label
-            className={classNames(
-              "grid min-h-12 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug",
-              errors.termsAccepted
-                ? "border-browin-red bg-browin-red/5"
-                : "border-browin-dark/10",
-            )}
-            htmlFor="mobile-terms"
-          >
-            <input
-              aria-describedby={
-                errors.termsAccepted ? "mobile-inline-error-message" : undefined
-              }
-              aria-invalid={Boolean(errors.termsAccepted)}
-              checked={form.termsAccepted}
-              className="peer sr-only"
-              id="mobile-terms"
-              onChange={(event) =>
-                updateFormField("termsAccepted", event.target.checked)
-              }
-              type="checkbox"
-            />
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex h-5 w-5 items-center justify-center border border-browin-dark/28 bg-browin-white text-browin-white transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-browin-red peer-checked:border-browin-red peer-checked:bg-browin-red"
+          <div className="grid gap-1.5">
+            <label
+              className={classNames(
+                "grid min-h-12 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug transition-colors hover:border-browin-red/35",
+                errors.termsAccepted
+                  ? "border-browin-red bg-browin-red/5"
+                  : "border-browin-dark/10",
+              )}
+              htmlFor="mobile-terms"
             >
-              {form.termsAccepted ? <Check size={14} weight="bold" /> : null}
-            </span>
-            <span>
-              Akceptuję{" "}
+              <input
+                aria-describedby={
+                  errors.termsAccepted ? "mobile-inline-error-message" : undefined
+                }
+                aria-invalid={Boolean(errors.termsAccepted)}
+                checked={form.termsAccepted}
+                className="peer sr-only"
+                id="mobile-terms"
+                onChange={(event) =>
+                  updateFormField("termsAccepted", event.target.checked)
+                }
+                type="checkbox"
+              />
+              <span
+                aria-hidden="true"
+                className="mt-0.5 flex h-5 w-5 cursor-pointer items-center justify-center border border-browin-dark/28 bg-browin-white text-browin-white transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-browin-red peer-checked:border-browin-red peer-checked:bg-browin-red"
+              >
+                {form.termsAccepted ? <Check size={14} weight="bold" /> : null}
+              </span>
+              <span>Akceptuję regulamin oraz politykę prywatności sklepu.</span>
+            </label>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 px-1 text-[11px] font-bold">
               <Link
-                className="font-bold text-browin-red underline underline-offset-2"
+                className="text-browin-red underline underline-offset-2 transition-colors hover:text-browin-red/80"
                 href="/regulamin"
               >
-                regulamin
-              </Link>{" "}
-              oraz{" "}
+                Zobacz regulamin
+              </Link>
               <Link
-                className="font-bold text-browin-red underline underline-offset-2"
+                className="text-browin-red underline underline-offset-2 transition-colors hover:text-browin-red/80"
                 href="/polityka-prywatnosci"
               >
-                politykę prywatności sklepu
+                Zobacz politykę prywatności
               </Link>
-              .
-              {errors.termsAccepted ? (
-                <span className="mt-1 block text-[10px] font-bold text-browin-red">
-                  {errors.termsAccepted}
-                </span>
-              ) : null}
-            </span>
-          </label>
+            </div>
+          </div>
         </form>
       ),
     });
@@ -3650,7 +4074,8 @@ export function CheckoutFlow() {
   const renderMobileDeliveryMethods = () =>
     renderMobileSection({
       complete:
-        !selectedDeliveryRequiresPoint || Boolean(form.inpostPoint.trim()),
+        Boolean(selectedDelivery) &&
+        (!selectedDeliveryRequiresPoint || Boolean(form.inpostPoint.trim())),
       eyebrow: "Dostawa",
       id: "mobile-delivery",
       title: "Jak dostarczyć paczkę?",
@@ -3730,11 +4155,6 @@ export function CheckoutFlow() {
               >
                 Wybierz
               </button>
-              {errors.inpostPoint ? (
-                <p className="col-span-2 text-[10px] font-bold text-browin-red">
-                  {errors.inpostPoint}
-                </p>
-              ) : null}
             </div>
           ) : null}
         </fieldset>
@@ -3749,7 +4169,7 @@ export function CheckoutFlow() {
         Boolean(form.lastName.trim()) &&
         Boolean(form.street.trim()) &&
         Boolean(form.houseNumber.trim()) &&
-        isValidPostalCode(form.postalCode) &&
+        isPostalCodeValidForCountry(form.postalCode, countryForMethods) &&
         Boolean(form.city.trim()),
       eyebrow: "Dane",
       id: "mobile-data",
@@ -3827,18 +4247,24 @@ export function CheckoutFlow() {
               />
               <CompactField
                 autoComplete="shipping postal-code"
+                disabled={postalCodeLockedInDataStep}
                 enterKeyHint="next"
                 error={errors.postalCode}
                 id="mobile-postal"
-                inputMode="numeric"
-                label="Kod"
-                maxLength={6}
+                inputMode={getPostalCodeInputMode(countryForMethods)}
+                label="Kod pocztowy"
+                maxLength={postalCodeRules[countryForMethods].example.length}
                 name="postal-code"
                 onChange={(event) =>
-                  updateFormField("postalCode", formatPostalCodeInput(event.target.value))
+                  updateFormField(
+                    "postalCode",
+                    formatPostalCodeForCountry(event.target.value, countryForMethods),
+                  )
                 }
-                pattern="[0-9]{2}-?[0-9]{3}"
-                placeholder="00-000"
+                pattern={
+                  countryForMethods === "Polska" ? "[0-9]{2}-?[0-9]{3}" : undefined
+                }
+                placeholder={`np. ${postalCodeRules[countryForMethods].example}`}
                 value={form.postalCode}
               />
               <CompactField
@@ -3854,133 +4280,34 @@ export function CheckoutFlow() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              aria-pressed={form.wantsInvoice}
-              className={classNames(
-                "min-h-11 border px-2 text-[11px] font-bold uppercase tracking-[0.1em]",
-                form.wantsInvoice
-                  ? "border-browin-red bg-browin-red/5 text-browin-red"
-                  : "border-browin-dark/10 bg-browin-gray text-browin-dark/62",
-              )}
-              onClick={() => updateFormField("wantsInvoice", !form.wantsInvoice)}
-              type="button"
-            >
-              Faktura
-            </button>
-            <button
-              aria-pressed={form.differentBillingAddress}
-              className={classNames(
-                "min-h-11 border px-2 text-[11px] font-bold uppercase tracking-[0.1em]",
-                form.differentBillingAddress
-                  ? "border-browin-red bg-browin-red/5 text-browin-red"
-                  : "border-browin-dark/10 bg-browin-gray text-browin-dark/62",
-              )}
-              onClick={() =>
-                updateFormField(
-                  "differentBillingAddress",
-                  !form.differentBillingAddress,
-                )
-              }
-              type="button"
-            >
-              Inny adres
-            </button>
-          </div>
+          <InvoiceSwitch
+            checked={form.wantsInvoice}
+            id="mobile-wants-invoice"
+            onChange={(checked) => updateFormField("wantsInvoice", checked)}
+          />
 
           {form.wantsInvoice ? (
-            <div className="grid gap-2 border border-browin-dark/10 bg-browin-gray p-2">
-              <CompactField
-                autoComplete="organization"
-                enterKeyHint="next"
-                error={errors.companyName}
-                id="mobile-company"
-                label="Firma"
-                name="organization"
-                onChange={(event) => updateFormField("companyName", event.target.value)}
-                value={form.companyName}
-              />
-              <CompactField
-                autoComplete="off"
-                enterKeyHint="done"
-                error={errors.taxId}
-                id="mobile-nip"
-                inputMode="numeric"
-                label="NIP"
-                maxLength={13}
-                name="tax-id"
-                onChange={(event) => updateFormField("taxId", event.target.value)}
-                value={form.taxId}
-              />
-            </div>
+            <CompactField
+              autoComplete="off"
+              enterKeyHint="done"
+              error={errors.taxId}
+              id="mobile-nip"
+              inputMode="numeric"
+              label="NIP"
+              maxLength={13}
+              name="tax-id"
+              onChange={(event) => updateFormField("taxId", event.target.value)}
+              value={form.taxId}
+            />
           ) : null}
 
-          {form.differentBillingAddress ? (
-            <div className="grid gap-2 border border-browin-dark/10 bg-browin-gray p-2">
-              <CompactField
-                autoComplete="billing address-line1"
-                enterKeyHint="next"
-                error={errors.billingStreet}
-                id="mobile-billing-street"
-                label="Ulica rozl."
-                name="billing-address-line1"
-                onChange={(event) => updateFormField("billingStreet", event.target.value)}
-                value={form.billingStreet}
-              />
-              <div className="grid grid-cols-[0.8fr_0.85fr_minmax(0,1fr)] gap-2">
-                <CompactField
-                  autoComplete="billing address-line2"
-                  enterKeyHint="next"
-                  error={errors.billingHouseNumber}
-                  id="mobile-billing-house"
-                  label="Nr"
-                  name="billing-address-line2"
-                  onChange={(event) =>
-                    updateFormField("billingHouseNumber", event.target.value)
-                  }
-                  value={form.billingHouseNumber}
-                />
-                <CompactField
-                  autoComplete="billing postal-code"
-                  enterKeyHint="next"
-                  error={errors.billingPostalCode}
-                  id="mobile-billing-postal"
-                  inputMode="numeric"
-                  label="Kod"
-                  maxLength={6}
-                  name="billing-postal-code"
-                  onChange={(event) =>
-                    updateFormField(
-                      "billingPostalCode",
-                      formatPostalCodeInput(event.target.value),
-                    )
-                  }
-                  pattern="[0-9]{2}-?[0-9]{3}"
-                  placeholder="00-000"
-                  value={form.billingPostalCode}
-                />
-                <CompactField
-                  autoComplete="billing address-level2"
-                  enterKeyHint="done"
-                  error={errors.billingCity}
-                  id="mobile-billing-city"
-                  label="Miasto"
-                  name="billing-address-level2"
-                  onChange={(event) => updateFormField("billingCity", event.target.value)}
-                  value={form.billingCity}
-                />
-              </div>
-            </div>
-          ) : null}
         </form>
       ),
     });
 
   const renderMobilePayment = () =>
     renderMobileSection({
-      complete:
-        form.termsAccepted &&
-        (paymentMethodId !== "IMOJE_BLIK" || /^\d{6}$/.test(blikCode)),
+      complete: paymentMethodId !== "IMOJE_BLIK" || /^\d{6}$/.test(blikCode),
       eyebrow: "Płatność",
       id: "mobile-payment",
       title: "Wybierz płatność",
@@ -3988,14 +4315,14 @@ export function CheckoutFlow() {
         <div className="grid gap-3">
           <fieldset>
             <legend className="sr-only">Metoda płatności</legend>
-            <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-3 gap-2">
               {availablePaymentMethods.map((method) => {
                 const checked = paymentMethodId === method.id;
 
                 return (
                   <label
                     className={classNames(
-                      "grid min-h-[4.75rem] cursor-pointer content-start gap-1.5 border px-3 pb-1.5 pt-2.5 text-left transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
+                      "grid min-h-[4.75rem] cursor-pointer content-start gap-1.5 border px-2 pb-1.5 pt-2.5 text-left transition-colors hover:border-browin-red/45 hover:bg-browin-red/5",
                       checked
                         ? "border-browin-red bg-browin-red/5 text-browin-red"
                         : "border-browin-dark/10 bg-browin-gray text-browin-dark",
@@ -4014,8 +4341,8 @@ export function CheckoutFlow() {
                     <span className="flex items-center justify-between gap-2">
                       <MethodLogo
                         alt={method.logoAlt}
-                        className="h-8 w-16 p-1"
-                        sizes="64px"
+                        className="h-8 w-14 p-1"
+                        sizes="56px"
                         src={method.logoSrc}
                       />
                       {checked ? <Check size={14} weight="bold" /> : null}
@@ -4080,74 +4407,6 @@ export function CheckoutFlow() {
             </div>
           </div>
 
-          <label
-            className={classNames(
-              "grid min-h-12 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 border bg-browin-white p-3 text-[12px] font-semibold leading-snug",
-              errors.termsAccepted
-                ? "border-browin-red bg-browin-red/5"
-                : "border-browin-dark/10",
-            )}
-            htmlFor="mobile-terms"
-          >
-            <input
-              aria-describedby={
-                errors.termsAccepted ? "mobile-inline-error-message" : undefined
-              }
-              aria-invalid={Boolean(errors.termsAccepted)}
-              checked={form.termsAccepted}
-              className="peer sr-only"
-              id="mobile-terms"
-              onChange={(event) =>
-                updateFormField("termsAccepted", event.target.checked)
-              }
-              type="checkbox"
-            />
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex h-5 w-5 items-center justify-center border border-browin-dark/28 bg-browin-white text-browin-white transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-browin-red peer-checked:border-browin-red peer-checked:bg-browin-red"
-            >
-              {form.termsAccepted ? <Check size={14} weight="bold" /> : null}
-            </span>
-            <span>
-              Akceptuję{" "}
-              <Link
-                className="font-bold text-browin-red underline underline-offset-2"
-                href="/regulamin"
-              >
-                regulamin
-              </Link>{" "}
-              oraz{" "}
-              <Link
-                className="font-bold text-browin-red underline underline-offset-2"
-                href="/polityka-prywatnosci"
-              >
-                politykę prywatności sklepu
-              </Link>
-              .
-            </span>
-          </label>
-
-          <label
-            className="grid min-h-12 cursor-pointer grid-cols-[1.75rem_minmax(0,1fr)] items-start gap-2 border border-browin-dark/10 bg-browin-white p-3 text-[12px] font-semibold leading-snug"
-            htmlFor="mobile-marketing"
-          >
-            <input
-              checked={form.marketingAccepted}
-              className="peer sr-only"
-              id="mobile-marketing"
-              onChange={(event) =>
-                updateFormField("marketingAccepted", event.target.checked)
-              }
-              type="checkbox"
-            />
-            <span
-              aria-hidden="true"
-              className="mt-0.5 flex h-5 w-5 items-center justify-center border border-browin-dark/28 bg-browin-white text-browin-white transition-colors peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-browin-red peer-checked:border-browin-red peer-checked:bg-browin-red"
-            >
-              {form.marketingAccepted ? <Check size={14} weight="bold" /> : null}
-            </span>
-            <span>Inspiracje i promocje BROWIN po zakupie. Opcjonalnie.</span>
-          </label>
         </div>
       ),
     });
@@ -4271,16 +4530,10 @@ export function CheckoutFlow() {
               style={{ paddingBottom: "max(0.75rem, env(safe-area-inset-bottom))" }}
             >
               {renderMobileOrderTray()}
-              {mobileErrorMessage ? (
-                <p
-                  aria-live="assertive"
-                  className="mb-2 flex items-start gap-1.5 text-[11px] font-bold leading-snug text-browin-red"
-                  id="mobile-inline-error-message"
-                  role="alert"
-                >
-                  <WarningCircle className="mt-0.5 shrink-0" size={13} weight="fill" />
-                  <span>{mobileErrorMessage}</span>
-                </p>
+              {bottomPanelErrorMessages.length ? (
+                <div className="mb-2">
+                  {renderCheckoutErrorSummary("mobile-inline-error-message")}
+                </div>
               ) : null}
               {currentStep === "cart" ? (
                 <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
