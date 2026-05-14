@@ -1,5 +1,4 @@
 import {
-  Buildings,
   CaretDown,
   Clock,
   EnvelopeSimple,
@@ -10,7 +9,6 @@ import {
   MapPin,
   Phone,
   PinterestLogo,
-  Storefront,
   TwitterLogo,
   YoutubeLogo,
 } from "@phosphor-icons/react";
@@ -20,13 +18,6 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { footerColumns, type FooterLink } from "@/data/footer-links";
-
-type FooterContactCard = {
-  title: string;
-  icon: Icon;
-  body: ReactNode;
-  actions?: FooterLink[];
-};
 
 type FooterSocialLink = FooterLink & {
   icon: Icon;
@@ -38,79 +29,6 @@ type FooterMarketLink = FooterLink & {
 };
 
 const mapUrl = "https://goo.gl/maps/HpofxDH6iJveHaaa8";
-
-const contactCards: FooterContactCard[] = [
-  {
-    title: "Siedziba i recepcja",
-    icon: Buildings,
-    body: (
-      <>
-        <p>BROWIN</p>
-        <p className="mt-0.5 text-browin-dark/50">BDO: 000008185</p>
-        <p className="mt-2">
-          ul. Pryncypalna 129/141
-          <br />
-          93-373 Łódź
-        </p>
-        <p className="mt-2">
-          Recepcja:{" "}
-          <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href="tel:+48422323200">
-            +48 42 23 23 200
-          </a>
-          <br />
-          <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href="mailto:browin@browin.pl">
-            browin@browin.pl
-          </a>
-        </p>
-      </>
-    ),
-    actions: [{ label: "Mapa dojazdu", href: mapUrl }],
-  },
-  {
-    title: "Salon sprzedaży",
-    icon: Storefront,
-    body: (
-      <>
-        <p>
-          ul. Pryncypalna 129/141
-          <br />
-          93-373 Łódź
-        </p>
-        <p className="mt-2">
-          Pn-Czw 9:00-17:00
-          <br />
-          Pt 9:00-18:00
-          <br />
-          Sb 8:00-15:00
-        </p>
-      </>
-    ),
-    actions: [{ label: "Zobacz lokalizację", href: mapUrl }],
-  },
-  {
-    title: "Biuro obsługi klienta",
-    icon: Phone,
-    body: (
-      <>
-        <p>Klient detaliczny</p>
-        <p className="mt-0.5 text-browin-dark/50">Pn-Pt 8:00-16:00</p>
-        <p className="mt-2">
-          <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href="tel:+48422323230">
-            tel.: +48 42 23 23 230
-          </a>
-          <br />
-          <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href="tel:+48422323295">
-            fax: +48 42 23 23 295
-          </a>
-          <br />
-          <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href="mailto:support@browin.pl">
-            support@browin.pl
-          </a>
-        </p>
-      </>
-    ),
-  },
-];
 
 const socialLinks: FooterSocialLink[] = [
   { label: "Facebook", href: "https://www.facebook.com/browinpl/", icon: FacebookLogo },
@@ -178,12 +96,26 @@ function FooterTextLink({
   );
 }
 
+function FooterContactLink({
+  children,
+  href,
+}: {
+  children: ReactNode;
+  href: string;
+}) {
+  return (
+    <a className="font-bold text-browin-dark transition-colors hover:text-browin-red" href={href}>
+      {children}
+    </a>
+  );
+}
+
 export function StoreFooter() {
   return (
-    <footer className="store-footer mt-10 border-t border-browin-dark/10 bg-browin-white text-browin-dark">
-      <div className="container mx-auto px-4 py-6 lg:py-7">
-        <div className="grid gap-5 border-b border-browin-dark/10 pb-5 lg:grid-cols-[minmax(13rem,0.95fr)_repeat(4,minmax(0,1fr))]">
-          <div className="min-w-0">
+    <footer className="store-footer mt-8 border-t border-browin-dark/10 bg-browin-white text-browin-dark">
+      <div className="container mx-auto px-4 py-5 lg:py-6">
+        <div className="grid gap-3 border-b border-browin-dark/10 pb-4 lg:grid-cols-[minmax(12rem,0.58fr)_repeat(3,minmax(0,1fr))]">
+          <div className="min-w-0 p-3">
             <Image
               alt="BROWIN"
               className="footer-brand-logo object-contain"
@@ -191,49 +123,102 @@ export function StoreFooter() {
               src="/assets/logo_BROWIN.svg"
               width={140}
             />
-            <p className="mt-2 max-w-xl text-xs font-semibold leading-relaxed text-browin-dark/58">
-              Producent akcesoriów do domowego winiarstwa, gorzelnictwa, wędliniarstwa,
-              serowarstwa, piwowarstwa i przetwórstwa.
+            <p className="mt-2 text-[11px] font-semibold leading-relaxed text-browin-dark/58">
+              Akcesoria do domowego winiarstwa, wędliniarstwa, serowarstwa,
+              piwowarstwa i przetwórstwa.
             </p>
-
-            <div className="mt-3 space-y-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-browin-dark/64">
-              <a
-                className="flex items-center gap-2 transition-colors hover:text-browin-red"
-                href="tel:+48422323230"
-              >
-                <Phone className="shrink-0 text-browin-red" size={15} weight="fill" />
-                BOK: 42 23 23 230
-              </a>
-              <a
-                className="flex items-center gap-2 transition-colors hover:text-browin-red"
-                href="mailto:support@browin.pl"
-              >
-                <EnvelopeSimple className="shrink-0 text-browin-red" size={15} weight="fill" />
-                support@browin.pl
-              </a>
-              <span className="flex items-center gap-2">
-                <Clock className="shrink-0 text-browin-red" size={15} weight="fill" />
-                Pn-Pt 8:00-16:00
-              </span>
-            </div>
+            <p className="mt-2 text-[10px] font-bold uppercase leading-relaxed tracking-[0.12em] text-browin-dark/45">
+              NIP: 729 268 73 25
+              <br />
+              BDO: 000008185
+            </p>
           </div>
 
-          <nav aria-label="Linki w stopce" className="grid gap-2 sm:hidden">
+          <address className="min-w-0 border border-browin-dark/10 bg-browin-gray p-3 text-[11px] font-semibold leading-relaxed text-browin-dark/66 not-italic">
+            <h2 className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-browin-dark">
+              <MapPin className="shrink-0 text-browin-red" size={15} weight="fill" />
+              Siedziba i recepcja
+            </h2>
+            <p className="font-bold text-browin-dark">BROWIN</p>
+            <p>
+              ul. Pryncypalna 129/141
+              <br />
+              93-373 Łódź
+            </p>
+            <p className="mt-2">
+              Recepcja:
+              <br />
+              <FooterContactLink href="tel:+48422323200">tel.: +48 42 23 23 200</FooterContactLink>
+              <br />
+              <FooterContactLink href="mailto:browin@browin.pl">browin@browin.pl</FooterContactLink>
+            </p>
+          </address>
+
+          <address className="min-w-0 border border-browin-dark/10 bg-browin-gray p-3 text-[11px] font-semibold leading-relaxed text-browin-dark/66 not-italic">
+            <h2 className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-browin-dark">
+              <Clock className="shrink-0 text-browin-red" size={15} weight="fill" />
+              Salon sprzedaży
+            </h2>
+            <p>
+              ul. Pryncypalna 129/141
+              <br />
+              93-373 Łódź
+            </p>
+            <p className="mt-2">
+              Otwarty w godzinach:
+              <br />
+              Pn-Czw 9:00-17:00
+              <br />
+              Pt 9:00-18:00
+              <br />
+              Sb 8:00-15:00
+            </p>
+            <a
+              className="mt-2 inline-flex text-[10px] font-bold uppercase tracking-[0.12em] text-browin-red transition-colors hover:text-browin-dark"
+              href={mapUrl}
+            >
+              Mapa dojazdu
+            </a>
+          </address>
+
+          <address className="min-w-0 border border-browin-dark/10 bg-browin-gray p-3 text-[11px] font-semibold leading-relaxed text-browin-dark/66 not-italic">
+            <h2 className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase leading-tight tracking-[0.14em] text-browin-dark">
+              <Phone className="shrink-0 text-browin-red" size={15} weight="fill" />
+              BOK detaliczny
+            </h2>
+            <p>Pn-Pt 8:00-16:00</p>
+            <p className="mt-2">
+              <FooterContactLink href="tel:+48422323230">tel.: +48 42 23 23 230</FooterContactLink>
+              <br />
+              <FooterContactLink href="tel:+48422323295">fax: +48 42 23 23 295</FooterContactLink>
+              <br />
+              <FooterContactLink href="mailto:support@browin.pl">
+                <span className="inline-flex items-center gap-1.5">
+                  <EnvelopeSimple className="text-browin-red" size={13} weight="fill" />
+                  support@browin.pl
+                </span>
+              </FooterContactLink>
+            </p>
+          </address>
+        </div>
+
+        <div className="border-b border-browin-dark/10 py-4">
+          <nav aria-label="Linki w stopce" className="grid gap-1.5 sm:hidden">
             {footerColumns.map((column) => (
-              <details className="group border border-browin-dark/10 bg-browin-gray" key={column.title}>
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2.5 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark">
+              <details className="group border border-browin-dark/10 bg-browin-white" key={column.title}>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-3 py-2 text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark transition-colors hover:text-browin-red">
                   {column.title}
                   <CaretDown
                     className="shrink-0 text-browin-dark/35 transition-transform group-open:rotate-180 group-open:text-browin-red"
-                    size={14}
+                    size={13}
                     weight="bold"
                   />
                 </summary>
-                <ul className="space-y-2 border-t border-browin-dark/10 bg-browin-white p-3 text-xs font-semibold leading-tight text-browin-dark/58">
+                <ul className="grid gap-1.5 border-t border-browin-dark/10 bg-browin-gray px-3 py-2.5 text-xs font-semibold leading-tight text-browin-dark/58">
                   {column.links.map((link) => (
                     <li key={`mobile-${column.title}-${link.href}-${link.label}`}>
                       <FooterTextLink
-                        className="inline-block transition-colors hover:text-browin-red"
+                        className="inline-block py-0.5 transition-colors hover:text-browin-red"
                         href={link.href}
                       >
                         {link.label}
@@ -247,14 +232,14 @@ export function StoreFooter() {
 
           <nav
             aria-label="Linki w stopce"
-            className="hidden gap-x-5 gap-y-5 sm:col-span-full sm:grid sm:grid-cols-2 lg:col-span-4 lg:grid-cols-4"
+            className="hidden gap-x-6 gap-y-4 sm:grid sm:grid-cols-2 md:grid-cols-4"
           >
             {footerColumns.map((column) => (
               <div key={column.title}>
                 <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark">
                   {column.title}
                 </h2>
-                <ul className="mt-3 space-y-1.5 text-[12px] font-semibold leading-tight text-browin-dark/58">
+                <ul className="mt-2 grid gap-1 text-[12px] font-semibold leading-tight text-browin-dark/58">
                   {column.links.map((link) => (
                     <li key={`${column.title}-${link.href}-${link.label}`}>
                       <FooterTextLink
@@ -271,73 +256,35 @@ export function StoreFooter() {
           </nav>
         </div>
 
-        <div className="grid gap-3 border-b border-browin-dark/10 py-5 sm:grid-cols-3">
-          {contactCards.map((card) => {
-            const Icon = card.icon;
+        <div className="flex flex-col gap-3 pt-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+            <ul className="flex flex-wrap gap-1">
+              {socialLinks.map((social) => {
+                const Icon = social.icon;
 
-            return (
-              <address
-                className="border border-browin-dark/10 bg-browin-gray p-3 text-xs font-semibold leading-relaxed text-browin-dark/66 not-italic"
-                key={card.title}
-              >
-                <div className="mb-2 flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark">
-                  <Icon className="text-browin-red" size={17} weight="fill" />
-                  {card.title}
-                </div>
-                {card.body}
-                {card.actions ? (
-                  <div className="mt-3 flex flex-wrap gap-2">
-                    {card.actions.map((action) => (
-                      <FooterTextLink
-                        className="inline-flex items-center gap-1.5 border border-browin-dark/12 bg-browin-white px-2 py-1 text-[10px] font-bold uppercase tracking-[0.1em] text-browin-dark/62 transition-colors hover:border-browin-red hover:text-browin-red"
-                        href={action.href}
-                        key={`${card.title}-${action.href}`}
-                      >
-                        <MapPin size={13} weight="fill" />
-                        {action.label}
-                      </FooterTextLink>
-                    ))}
-                  </div>
-                ) : null}
-              </address>
-            );
-          })}
-        </div>
+                return (
+                  <li key={social.href}>
+                    <a
+                      aria-label={`BROWIN ${social.label}`}
+                      className="flex h-8 w-8 items-center justify-center border border-transparent text-browin-dark/55 transition-colors hover:border-browin-dark/10 hover:text-browin-red"
+                      href={social.href}
+                      rel="noopener"
+                      target="_blank"
+                    >
+                      <Icon size={17} weight="fill" />
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
 
-        <div className="grid gap-4 border-t border-browin-dark/10 pt-5 lg:grid-cols-[minmax(0,1fr)_minmax(18rem,0.62fr)] lg:items-start">
-          <div className="flex flex-col gap-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-              <h2 className="text-[10px] font-bold uppercase tracking-[0.16em] text-browin-dark">
-                BROWIN w social media
-              </h2>
-              <ul className="flex flex-wrap gap-1.5">
-                {socialLinks.map((social) => {
-                  const Icon = social.icon;
-
-                  return (
-                    <li key={social.href}>
-                      <a
-                        aria-label={`BROWIN ${social.label}`}
-                        className="flex h-7 w-7 items-center justify-center text-browin-dark/55 transition-colors hover:text-browin-red"
-                        href={social.href}
-                        rel="noopener"
-                        target="_blank"
-                      >
-                        <Icon size={18} weight="fill" />
-                      </a>
-                    </li>
-                  );
-                })}
-              </ul>
-            </div>
-
-            <p className="flex items-center gap-2 text-[11px] font-semibold leading-relaxed text-browin-dark/45">
+            <p className="text-[11px] font-semibold leading-relaxed text-browin-dark/45">
               &copy; {currentYear} BROWIN Sp. z o.o. Wszystkie prawa zastrzeżone.
             </p>
           </div>
 
-          <details className="group relative justify-self-end">
-            <summary className="flex cursor-pointer list-none items-center gap-2 px-2 py-1.5 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark transition-colors hover:text-browin-red">
+          <details className="group relative w-fit">
+            <summary className="flex cursor-pointer list-none items-center gap-2 border border-browin-dark/10 bg-browin-white px-3 py-2 text-left text-[10px] font-bold uppercase tracking-[0.14em] text-browin-dark transition-colors hover:border-browin-red hover:text-browin-red">
               <Globe className="shrink-0 text-browin-red" size={15} weight="fill" />
               Polski
               <CaretDown
@@ -346,14 +293,14 @@ export function StoreFooter() {
                 weight="bold"
               />
             </summary>
-            <ul className="absolute bottom-full right-0 z-20 mb-2 grid max-h-56 min-w-[17rem] grid-cols-2 gap-1 overflow-y-auto border border-browin-dark/10 bg-browin-white p-2 text-[11px] shadow-sm sm:grid-cols-3">
+            <ul className="absolute bottom-full left-0 z-20 mb-2 grid max-h-56 min-w-[17rem] grid-cols-2 gap-1 overflow-y-auto border border-browin-dark/10 bg-browin-white p-2 text-[11px] shadow-sm sm:grid-cols-3 md:left-auto md:right-0">
               {marketLinks.map((market) => (
                 <li key={market.href}>
                   <a
                     className={`flex items-center gap-2 px-2.5 py-2 font-semibold transition-colors ${
                       market.active
                         ? "bg-browin-red text-browin-white"
-                        : "text-browin-dark/58 hover:bg-browin-white hover:text-browin-red"
+                        : "text-browin-dark/58 hover:bg-browin-gray hover:text-browin-red"
                     }`}
                     href={market.href}
                     rel="noopener"
@@ -370,7 +317,6 @@ export function StoreFooter() {
           </details>
         </div>
       </div>
-
     </footer>
   );
 }

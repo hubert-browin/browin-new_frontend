@@ -77,17 +77,17 @@ export function ProductCard({
   );
 
   return (
-    <article className="product-card group flex h-full flex-col rounded-none border border-browin-dark/8 bg-browin-white p-3 shadow-[0_10px_26px_rgba(51,51,51,0.05)] transition-colors duration-200 hover:border-browin-red focus-within:border-browin-red md:p-4">
-      <div className="relative mb-4">
+    <article className="product-card group flex h-full w-full flex-col rounded-none border border-browin-dark/8 bg-browin-white p-3 shadow-[0_10px_26px_rgba(51,51,51,0.05)] transition-colors duration-200 hover:border-browin-red focus-within:border-browin-red md:p-4">
+      <div className="relative mb-4 h-[9.5rem] shrink-0 min-[390px]:h-[10.75rem] sm:h-[11rem] md:h-[12rem] xl:h-[13rem]">
         <Link
-          className={`relative block w-full overflow-hidden bg-browin-gray/70 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] ${
-            squareImage ? "aspect-square flex-none" : "min-h-[15rem] flex-1"
+          className={`relative block h-full w-full overflow-hidden ${
+            squareImage ? "flex-none" : ""
           }`}
           href={`/produkt/${product.slug}`}
         >
           <div
             className={`relative h-full w-full ${
-              squareImage ? "aspect-square p-4 md:p-5" : "min-h-[15rem] p-3 md:p-4"
+              squareImage ? "p-4 md:p-5" : "p-3 md:p-4"
             }`}
           >
             <Image
@@ -116,15 +116,15 @@ export function ProductCard({
         ) : null}
       </div>
 
-      <div className="flex min-h-0 flex-col md:flex-1">
+      <div className="flex min-h-[5.75rem] flex-col md:min-h-[6.75rem]">
         <Link
-          className={`${titleClampClass} text-[13px] font-semibold leading-[1.28] text-browin-dark transition-colors hover:text-browin-red focus-visible:text-browin-red md:text-[15px]`}
+          className={`${titleClampClass} min-h-[3.1rem] text-[13px] font-semibold leading-[1.28] text-browin-dark transition-colors hover:text-browin-red focus-visible:text-browin-red md:min-h-[3.65rem] md:text-[15px]`}
           href={`/produkt/${product.slug}`}
         >
           {product.title}
         </Link>
 
-        <div className="mt-2 flex items-center justify-between gap-3 md:mt-auto">
+        <div className="mt-auto flex min-h-10 items-center justify-between gap-3 pt-2">
           {metaSlot ? (
             <>
               <div className="min-w-0 flex-1 md:hidden">{defaultMeta}</div>

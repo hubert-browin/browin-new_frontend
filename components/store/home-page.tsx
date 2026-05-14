@@ -24,6 +24,7 @@ import type {
   FocusEvent,
   MouseEvent as ReactMouseEvent,
   ReactNode,
+  RefObject,
   WheelEvent as ReactWheelEvent,
 } from "react";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -46,7 +47,6 @@ type HeroSlide = {
   cta: string;
   href: string;
   emphasis: "primary" | "light";
-  align: "left" | "right";
   withAvatars?: boolean;
 };
 
@@ -58,50 +58,44 @@ const heroSlides: HeroSlide[] = [
     progressLabel: "Wędliny",
     title: (
       <>
-        Prawdziwe arcydzieło.
-        <br />
-        <span>Z Twojej kuchni.</span>
+        <span className="block whitespace-nowrap">Prawdziwe arcydzieło</span>
+        <span className="block whitespace-nowrap">z Twojej kuchni.</span>
       </>
     ),
     cta: "Zobacz Bestsellery",
     href: "/kategoria/wedliniarstwo",
     emphasis: "primary" as const,
     withAvatars: true,
-    align: "left" as const,
   },
   {
     id: "winiarstwo",
-    image: "/assets/baner-27.02-wielkanoc5.webp",
+    image: "/assets/wino-wlasnyrocznik.webp",
     eyebrow: "Sezon na wino",
     progressLabel: "Wino",
     title: (
       <>
-        Stwórz własny
-        <br />
-        <span>niepowtarzalny rocznik.</span>
+        <span className="block whitespace-nowrap">Stwórz własny</span>
+        <span className="block whitespace-nowrap">niepowtarzalny rocznik.</span>
       </>
     ),
     cta: "Odkryj winiarstwo",
     href: "/kategoria/winiarstwo",
     emphasis: "light" as const,
-    align: "left" as const,
   },
   {
-    id: "serowarstwo",
-    image: "/assets/zestaw.webp",
-    eyebrow: "Warsztaty domowe",
-    progressLabel: "Sery",
+    id: "dom-i-ogrod",
+    image: "/assets/domiogrod.webp",
+    eyebrow: "Dom i ogród",
+    progressLabel: "Dom i ogród",
     title: (
       <>
-        Domowa serowarnia.
-        <br />
-        <span>To prostsze niż myślisz.</span>
+        <span className="block whitespace-nowrap">Wszystko na sezon.</span>
+        <span className="block whitespace-nowrap">W domu i ogrodzie.</span>
       </>
     ),
-    cta: "Sprzęt do serów",
-    href: "/kategoria/serowarstwo",
+    cta: "Zobacz kategorię",
+    href: "/kategoria/domiogrod",
     emphasis: "primary" as const,
-    align: "right" as const,
   },
 ] as const;
 
@@ -190,6 +184,99 @@ const getDealProgressValue = (stock: number) => {
   return Math.min(92, Math.max(18, 100 - stock * 3.6));
 };
 
+function useHorizontalDragScroll(
+  railRef: RefObject<HTMLDivElement | null>,
+  onScrollStateChange?: () => void,
+) {
+  const dragState = useRef({
+    hasMoved: false,
+    isDragging: false,
+    startScrollLeft: 0,
+    startX: 0,
+  });
+  const suppressClickRef = useRef(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  const finishDrag = useCallback(() => {
+    if (!dragState.current.isDragging) {
+      return;
+    }
+
+    if (dragState.current.hasMoved) {
+      suppressClickRef.current = true;
+      window.setTimeout(() => {
+        suppressClickRef.current = false;
+      }, 0);
+    }
+
+    dragState.current.isDragging = false;
+    setIsDragging(false);
+  }, []);
+
+  const updateDrag = useCallback((clientX: number) => {
+    const rail = railRef.current;
+
+    if (!rail || !dragState.current.isDragging) {
+      return;
+    }
+
+    const dragDistance = clientX - dragState.current.startX;
+
+    if (Math.abs(dragDistance) > 3) {
+      dragState.current.hasMoved = true;
+    }
+
+    rail.scrollLeft = dragState.current.startScrollLeft - dragDistance;
+    onScrollStateChange?.();
+  }, [onScrollStateChange, railRef]);
+
+  useEffect(() => {
+    const handleMouseMove = (event: MouseEvent) => updateDrag(event.clientX);
+    const handleMouseUp = () => finishDrag();
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [finishDrag, updateDrag]);
+
+  const handleMouseDown = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    const rail = railRef.current;
+
+    if (event.button !== 0 || !rail || rail.scrollWidth <= rail.clientWidth) {
+      return;
+    }
+
+    dragState.current = {
+      hasMoved: false,
+      isDragging: true,
+      startScrollLeft: rail.scrollLeft,
+      startX: event.clientX,
+    };
+    setIsDragging(true);
+    event.preventDefault();
+  }, [railRef]);
+
+  const handleClickCapture = useCallback((event: ReactMouseEvent<HTMLDivElement>) => {
+    if (!suppressClickRef.current) {
+      return;
+    }
+
+    event.preventDefault();
+    event.stopPropagation();
+    suppressClickRef.current = false;
+  }, []);
+
+  return {
+    handleClickCapture,
+    handleMouseDown,
+    isDragging,
+  };
+}
+
 function MarketplaceRail({
   children,
   description,
@@ -265,6 +352,7 @@ function MarketplaceRail({
     rail.scrollLeft += event.deltaY;
     event.preventDefault();
   };
+  const productRailDrag = useHorizontalDragScroll(railRef, updateScrollState);
 
   return (
     <section aria-labelledby={id} className="home-marketplace-section py-7 md:py-9">
@@ -317,7 +405,11 @@ function MarketplaceRail({
         </div>
 
         <div
-          className="home-product-rail no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-1 scroll-smooth sm:mx-0 sm:px-0 md:gap-4 xl:gap-5"
+          className={`home-product-rail no-scrollbar -mx-4 flex cursor-grab snap-x gap-3 overflow-x-auto px-4 pb-1 scroll-smooth sm:mx-0 sm:px-0 md:gap-4 xl:gap-5 ${
+            productRailDrag.isDragging ? "cursor-grabbing snap-none select-none" : ""
+          }`}
+          onClickCapture={productRailDrag.handleClickCapture}
+          onMouseDown={productRailDrag.handleMouseDown}
           onScroll={updateScrollState}
           onWheel={handleWheel}
           ref={railRef}
@@ -341,7 +433,7 @@ function HomeProductRail({
   return (
     <MarketplaceRail {...railProps}>
       {products.map((product, index) => (
-        <div className="home-product-rail-card flex shrink-0 snap-start" key={product.id}>
+        <div className="home-product-rail-card flex w-full shrink-0 snap-start" key={product.id}>
           {renderProduct(product, index)}
         </div>
       ))}
@@ -662,6 +754,10 @@ function RecipebookInspirationSection({
       left: direction === "left" ? -rail.clientWidth * 0.82 : rail.clientWidth * 0.82,
     });
   };
+  const recipeRailDrag = useHorizontalDragScroll(
+    recipeRailRef,
+    updateRecipeRailState,
+  );
 
   if (recipes.length === 0) {
     return null;
@@ -723,7 +819,11 @@ function RecipebookInspirationSection({
                 </div>
               </div>
               <div
-                className="no-scrollbar -mx-2 flex snap-x gap-3 overflow-x-auto px-2 pb-1 scroll-smooth"
+                className={`no-scrollbar -mx-2 flex cursor-grab snap-x gap-3 overflow-x-auto px-2 pb-1 scroll-smooth ${
+                  recipeRailDrag.isDragging ? "cursor-grabbing snap-none select-none" : ""
+                }`}
+                onClickCapture={recipeRailDrag.handleClickCapture}
+                onMouseDown={recipeRailDrag.handleMouseDown}
                 onScroll={updateRecipeRailState}
                 ref={recipeRailRef}
               >
@@ -1407,9 +1507,7 @@ export function HomePage({
                           <div className="absolute inset-0 bg-gradient-to-t from-browin-dark/90 via-browin-dark/20 to-transparent" />
 
                           <div
-                            className={`hero-slider-content absolute inset-0 flex flex-col justify-end p-5 pb-8 sm:p-6 md:p-8 md:pb-10 xl:p-10 xl:pb-12 ${
-                              slide.align === "right" ? "items-end text-right" : "items-start text-left"
-                            }`}
+                            className="hero-slider-content absolute inset-0 flex flex-col items-start justify-end p-5 pb-8 text-left sm:p-6 md:p-8 md:pb-10 xl:p-10 xl:pb-12"
                           >
                             {slide.withAvatars ? (
                               <div className="mb-5 flex w-max items-center space-x-2 rounded-none border border-browin-white/20 bg-browin-white/10 px-4 py-1.5 backdrop-blur-sm">
@@ -1441,7 +1539,7 @@ export function HomePage({
                               </span>
                             )}
 
-                            <h1 className="mb-4 max-w-[16rem] text-[1.95rem] font-bold leading-[1.08] text-browin-white drop-shadow-md sm:max-w-[18rem] sm:text-[2.35rem] md:max-w-[26rem] md:text-4xl xl:max-w-[30rem] xl:text-5xl">
+                            <h1 className="mb-4 max-w-full text-[1.4rem] font-bold leading-[1.08] text-browin-white drop-shadow-md sm:text-[2.15rem] md:text-4xl xl:text-5xl">
                               {slide.title}
                             </h1>
 

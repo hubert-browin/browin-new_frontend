@@ -26,9 +26,10 @@ import {
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 
 import { CartDrawer } from "@/components/store/cart-drawer";
+import { CustomerAuthModal } from "@/components/store/customer-account";
 import {
   DesktopProductRecipeNav,
   DesktopRecipeProductReturnNav,
@@ -53,6 +54,12 @@ import {
   type CategoryTopic,
   type StoreCategory,
 } from "@/data/store";
+import {
+  getCustomerSessionServerSnapshot,
+  getCustomerSessionSnapshot,
+  parseCustomerSessionSnapshot,
+  subscribeCustomerSession,
+} from "@/lib/customer-session";
 import type { RecipeCommerceEntry } from "@/data/recipes";
 import { formatCurrency } from "@/lib/catalog";
 import {
@@ -311,6 +318,7 @@ export function StoreChrome({
   const [isMobileContextSearchHidden, setIsMobileContextSearchHidden] =
     useState(false);
   const [isHomeBreadcrumbVisible, setIsHomeBreadcrumbVisible] = useState(false);
+  const [accountModalOpen, setAccountModalOpen] = useState(false);
   const breadcrumbRef = useRef<HTMLDivElement | null>(null);
   const dockRef = useRef<HTMLElement | null>(null);
   const dockHoverIntentTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -323,6 +331,8 @@ export function StoreChrome({
   const isProductPage = pathname.startsWith("/produkt/");
   const isRecipePage =
     pathname.startsWith("/przepisnik") || pathname.startsWith("/przepisy");
+  const isCustomerAccountPage =
+    pathname === "/rejestracja-logowanie" || pathname === "/konto";
   const isRecipeDetailPage =
     pathname.startsWith("/przepisnik/przepis/") || pathname.startsWith("/przepisy/");
   const currentRecipeSlug = isRecipeDetailPage
@@ -330,7 +340,8 @@ export function StoreChrome({
     : null;
   const canAutoHideMobileSearch =
     isCheckoutPage || isProductPage || isRecipeDetailPage || pathname === "/przepisnik";
-  const showMobileCategoryStrip = !isCheckoutPage && !isProductPage && !isRecipePage;
+  const showMobileCategoryStrip =
+    !isCheckoutPage && !isProductPage && !isRecipePage && !isCustomerAccountPage;
   const isHomePage = pathname === "/";
   const isHomeExpandedDockLayout = isHomePage;
   const isHomeSplitDockLayout = false;
@@ -421,6 +432,12 @@ export function StoreChrome({
   const desktopDockClass = `group/dock fixed left-0 top-0 z-[100] hidden h-screen overflow-visible border-r border-browin-dark/10 bg-browin-white text-browin-dark transition-all duration-300 ease-[cubic-bezier(0.16,1,0.3,1)] md:block ${
     isHomeDockLayout ? "w-20 hover:w-72 lg:w-72" : "w-20 hover:w-72"
   }`;
+  const accountSessionSnapshot = useSyncExternalStore(
+    subscribeCustomerSession,
+    getCustomerSessionSnapshot,
+    getCustomerSessionServerSnapshot,
+  );
+  const accountSession = parseCustomerSessionSnapshot(accountSessionSnapshot);
 
   useEffect(() => {
     document.body.style.overflow =
@@ -844,6 +861,11 @@ export function StoreChrome({
     openCart();
   };
 
+  const openAccountModal = () => {
+    closeMobileOverlays();
+    setAccountModalOpen(true);
+  };
+
   const toggleCartFromBottomNav = () => {
     if (isOpen) {
       closeCart();
@@ -1250,9 +1272,24 @@ export function StoreChrome({
           </form>
 
           <div className="desktop-header-actions flex flex-shrink-0 items-center gap-2 lg:gap-3">
-            <button className="border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red" type="button">
-              <User size={26} />
-            </button>
+            {accountSession ? (
+              <Link
+                aria-label="Panel klienta"
+                className="border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red"
+                href="/konto"
+              >
+                <User size={26} />
+              </Link>
+            ) : (
+              <button
+                aria-label="Logowanie i rejestracja"
+                className="border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red"
+                onClick={openAccountModal}
+                type="button"
+              >
+                <User size={26} />
+              </button>
+            )}
             <button className="relative border border-transparent p-2 text-browin-dark transition-colors hover:border-browin-dark/10 hover:text-browin-red" type="button">
               <Heart size={26} />
               <span className="absolute right-1 top-1 flex h-4 w-4 items-center justify-center rounded-full bg-browin-red text-[9px] font-semibold text-browin-white">
@@ -1300,13 +1337,24 @@ export function StoreChrome({
           </div>
 
           <div className="flex shrink-0 items-center gap-4">
-            <button
-              aria-label="Logowanie"
-              className="flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
-              type="button"
-            >
-              <User size={23} />
-            </button>
+            {accountSession ? (
+              <Link
+                aria-label="Panel klienta"
+                className="flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
+                href="/konto"
+              >
+                <User size={23} />
+              </Link>
+            ) : (
+              <button
+                aria-label="Logowanie i rejestracja"
+                className="flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
+                onClick={openAccountModal}
+                type="button"
+              >
+                <User size={23} />
+              </button>
+            )}
             <button
               aria-label="Ulubione"
               className="relative flex h-8 w-8 items-center justify-center text-browin-dark transition-colors hover:text-browin-red"
@@ -1589,6 +1637,11 @@ export function StoreChrome({
 
       {!isCheckoutPage ? <StoreFooter /> : null}
       </div>
+
+      <CustomerAuthModal
+        isOpen={accountModalOpen}
+        onClose={() => setAccountModalOpen(false)}
+      />
 
       <div
         className={`fixed inset-x-0 top-0 z-[55] bg-browin-dark/20 transition-opacity duration-300 md:hidden ${
